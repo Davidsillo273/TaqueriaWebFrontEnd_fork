@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Icon from '../components/Icon'
 import TextInput from '../components/TextInput'
 import PrimaryButton from '../components/PrimaryButton'
@@ -7,6 +7,7 @@ import AuthCard from '../components/AuthCard'
 
 // Página de login. Usa componentes reutilizables y TailwindCSS.
 export default function Login() {
+	const navigate = useNavigate()
 	const [username, setUsername] = useState('')
 	const [password, setPassword] = useState('')
 	const [showPassword, setShowPassword] = useState(false)
@@ -24,8 +25,9 @@ export default function Login() {
 		e.preventDefault()
 		if (!validate()) return
 		// Aquí se implementaría la llamada al backend para autenticar
-		// Por ahora solo mostramos en consola
+		// Por ahora redirigimos al dashboard
 		console.log('Login attempt', { username, password })
+		navigate('/dashboard')
 	}
 
 	return (
