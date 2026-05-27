@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Link } from 'react-router-dom'
 import Icon from '../components/Icon'
 import TextInput from '../components/TextInput'
 import PrimaryButton from '../components/PrimaryButton'
@@ -73,11 +74,9 @@ export default function Login() {
 						}
 					/>
 
-					<div className="flex items-center justify-between">
-						<a className="text-sm text-red-600 hover:underline" href="#">¿Olvidó su contraseña?</a>
-					</div>
-
-					<PrimaryButton type="submit">Iniciar Sesión ↵</PrimaryButton>
+				<div className="flex items-center justify-between">
+					<Link className="text-sm text-red-600 hover:underline" to="/recovery">¿Olvidó su contraseña?</Link>
+				</div>					<PrimaryButton type="submit">Iniciar Sesión ↵</PrimaryButton>
 				</form>
 
 				<p className="mt-6 text-xs text-gray-400 text-center">© 2024 Taquería El Corral Admin Portal. Acceso restringido a personal autorizado.</p>

@@ -1,8 +1,19 @@
 import React from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Login from './pages/login'
+import Recovery from './pages/recovery'
+import VerifyCode from './pages/verifyCode'
 
-// App entry: render login as the first screen
+// App entry: setup rutas con React Router
 export default function App() {
-	return <Login />
+	return (
+		<BrowserRouter>
+			<Routes>
+				<Route path="/" element={<Login />} />
+				<Route path="/recovery" element={<Recovery />} />
+				<Route path="/verify-code" element={<VerifyCode />} />
+			</Routes>
+		</BrowserRouter>
+	)
 }
 
