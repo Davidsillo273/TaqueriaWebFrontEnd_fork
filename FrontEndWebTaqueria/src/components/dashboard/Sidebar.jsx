@@ -5,16 +5,16 @@ import FAIcon from '../FAIcon'
 // Sidebar con navegación del dashboard
 const Sidebar = ({ activeMenu }) => {
 	const menuItems = [
-		{ id: 'activity', label: 'Actividad', icon: 'chart-line' },
-		{ id: 'orders', label: 'Combos', icon: 'shopping-bag' },
-		{ id: 'drinks', label: 'Bebidas', icon: 'wine-glass' },
-		{ id: 'dishes', label: 'Platillo', icon: 'utensils' },
-		{ id: 'extras', label: 'Extras', icon: 'star' },
-		{ id: 'inventory', label: 'Inventario', icon: 'box' },
-		{ id: 'tables', label: 'Mesas', icon: 'chair' },
-		{ id: 'clients', label: 'Clientes', icon: 'users' },
-		{ id: 'staff', label: 'Empleados', icon: 'user-tie' },
-		{ id: 'orders-list', label: 'Pedidos', icon: 'list' },
+		{ id: 'activity', label: 'Actividad', icon: 'chart-line', path: '/dashboard' },
+		{ id: 'orders', label: 'Combos', icon: 'shopping-bag', path: '/combos' },
+		{ id: 'drinks', label: 'Bebidas', icon: 'wine-glass', path: '#' },
+		{ id: 'dishes', label: 'Platillo', icon: 'utensils', path: '#' },
+		{ id: 'extras', label: 'Extras', icon: 'star', path: '#' },
+		{ id: 'inventory', label: 'Inventario', icon: 'box', path: '#' },
+		{ id: 'tables', label: 'Mesas', icon: 'chair', path: '#' },
+		{ id: 'clients', label: 'Clientes', icon: 'users', path: '#' },
+		{ id: 'staff', label: 'Empleados', icon: 'user-tie', path: '#' },
+		{ id: 'orders-list', label: 'Pedidos', icon: 'list', path: '#' },
 	]
 
 	return (
@@ -33,9 +33,10 @@ const Sidebar = ({ activeMenu }) => {
 
 			<nav className="p-4 space-y-1">
 				{menuItems.map((item) => (
-					<button
+					<Link
 						key={item.id}
-						className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+						to={item.path}
+						className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
 							activeMenu === item.id
 								? 'bg-red-50 text-red-600 border-l-4 border-red-600'
 								: 'text-gray-700 hover:bg-gray-100'
@@ -43,7 +44,7 @@ const Sidebar = ({ activeMenu }) => {
 					>
 						<FAIcon icon={item.icon} />
 						<span>{item.label}</span>
-					</button>
+					</Link>
 				))}
 			</nav>
 
