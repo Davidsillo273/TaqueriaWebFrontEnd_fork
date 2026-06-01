@@ -1,5 +1,5 @@
 import React from 'react'
-import FAIcon from '../FAIcon'
+import FAIcon from '../commons/FAIcon'
 
 // Tarjeta de estadística con título, valor y cambio
 const StatCard = ({ icon, title, value, change, unit = '', alert = false }) => {

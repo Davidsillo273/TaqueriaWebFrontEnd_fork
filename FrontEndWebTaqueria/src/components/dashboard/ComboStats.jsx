@@ -1,5 +1,5 @@
 import React from 'react'
-import FAIcon from '../FAIcon'
+import FAIcon from '../commons/FAIcon'
 
 // Tarjeta de estadística para combos
 const ComboStats = ({ icon, title, value, label, highlighted = false }) => {
