@@ -3,8 +3,8 @@ import Sidebar from '../components/dashboard/Sidebar'
 import TopBar from '../components/dashboard/TopBar'
 import ComboCard from '../components/dashboard/ComboCard'
 import ComboStats from '../components/dashboard/ComboStats'
-import AddComboModal from '../components/dashboard/AddComboModal'
-import FAIcon from '../components/FAIcon'
+import AddComboModal from '../components/comboManagement/AddComboModal'
+import FAIcon from '../components/commons/FAIcon'
 
 // Página de gestión de combos
 export default function ComboManagement() {

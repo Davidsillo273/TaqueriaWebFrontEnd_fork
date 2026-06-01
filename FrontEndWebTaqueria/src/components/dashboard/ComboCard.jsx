@@ -1,5 +1,5 @@
 import React from 'react'
-import FAIcon from '../FAIcon'
+import FAIcon from '../commons/FAIcon'
 
 // Tarjeta de combo con imagen, precio, descripción y acciones
 const ComboCard = ({ image, title, price, description, isMostSold = false, isAvailable = true }) => {

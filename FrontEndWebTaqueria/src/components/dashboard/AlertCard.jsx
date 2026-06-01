@@ -1,5 +1,5 @@
 import React from 'react'
-import FAIcon from '../FAIcon'
+import FAIcon from '../commons/FAIcon'
 
 // Tarjeta de alerta o información especial (ej: stock bajo, recomendación)
 const AlertCard = ({ type, title, subtitle, icon }) => {

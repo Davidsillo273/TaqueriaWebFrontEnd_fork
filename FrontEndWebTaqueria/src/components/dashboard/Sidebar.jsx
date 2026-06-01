@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import FAIcon from '../FAIcon'
+import FAIcon from '../commons/FAIcon'
 
 // Sidebar con navegación del dashboard
 const Sidebar = ({ activeMenu }) => {

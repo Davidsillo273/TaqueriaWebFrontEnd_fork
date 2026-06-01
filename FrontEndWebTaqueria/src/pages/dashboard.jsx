@@ -5,7 +5,7 @@ import StatCard from '../components/dashboard/StatCard'
 import ActivityRow from '../components/dashboard/ActivityRow'
 import StaffCard from '../components/dashboard/StaffCard'
 import AlertCard from '../components/dashboard/AlertCard'
-import FAIcon from '../components/FAIcon'
+import FAIcon from '../components/commons/FAIcon'
 
 // Dashboard principal con todas las secciones
 export default function Dashboard() {
