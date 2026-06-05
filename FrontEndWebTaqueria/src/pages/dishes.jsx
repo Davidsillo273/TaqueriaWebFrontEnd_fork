@@ -4,7 +4,7 @@ import TopBar from '../components/dashboard/TopBar'
 import StatCard from '../components/dashboard/StatCard'
 import DishCard from '../components/dishes/DishCard'
 import AddDishModal from '../components/dishes/AddDishModal'
-import FAIcon from '../components/FAIcon'
+import FAIcon from '../components/commons/FAIcon'
 
 export default function Dishes() {
 	const [activeMenu] = useState('dishes')

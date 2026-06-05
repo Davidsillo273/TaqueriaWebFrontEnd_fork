@@ -6,6 +6,7 @@ import VerifyCode from './pages/verifyCode'
 import Dashboard from './pages/dashboard'
 import ComboManagement from './pages/comboManagement'
 import Drinks from './pages/drinks'
+import Dishes from './pages/dishes'
 
 // App entry: setup rutas con React Router
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
 				<Route path="/dashboard" element={<Dashboard />} />
 				<Route path="/combos" element={<ComboManagement />} />
 				<Route path="/drinks" element={<Drinks />} />
+				<Route path="/dishes" element={<Dishes />} />
 			</Routes>
 		</BrowserRouter>
 	)

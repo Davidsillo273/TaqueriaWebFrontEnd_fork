@@ -1,5 +1,5 @@
 import React from 'react'
-import FAIcon from '../FAIcon'
+import FAIcon from '../commons/FAIcon'
 
 const DishCard = ({ image, title, price, isMostSold = false, isAvailable = true, status = '' }) => {
 	return (

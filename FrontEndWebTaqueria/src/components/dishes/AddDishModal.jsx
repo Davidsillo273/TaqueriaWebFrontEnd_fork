@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
-import FAIcon from '../FAIcon'
-
+import FAIcon from '../commons/FAIcon'
 const AddDishModal = ({ isOpen, onClose, onSave }) => {
 	const [formData, setFormData] = useState({
 		title: '',
