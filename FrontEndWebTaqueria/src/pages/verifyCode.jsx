@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import DigitInput from '../components/DigitInput'
-import PrimaryButton from '../components/PrimaryButton'
-import AuthCard from '../components/AuthCard'
+import DigitInput from '../components/auth/DigitInput'
+import PrimaryButton from '../components/commons/PrimaryButton'
+import AuthCard from '../components/commons/AuthCard'
 
 // Página de verificación del código enviado al correo
 export default function VerifyCode() {

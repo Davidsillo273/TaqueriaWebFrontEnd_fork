@@ -1,5 +1,5 @@
 import React from 'react'
-import FAIcon from '../FAIcon'
+import FAIcon from '../commons/FAIcon'
 
 // TopBar con búsqueda y opciones del usuario
 const TopBar = () => {

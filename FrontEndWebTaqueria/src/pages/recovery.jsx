@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import Icon from '../components/Icon'
-import TextInput from '../components/TextInput'
-import PrimaryButton from '../components/PrimaryButton'
-import AuthCard from '../components/AuthCard'
+import Icon from '../components/commons/Icon'
+import TextInput from '../components/commons/TextInput'
+import PrimaryButton from '../components/commons/PrimaryButton'
+import AuthCard from '../components/commons/AuthCard'
 
 // Página de recuperación de contraseña
 export default function Recovery() {
