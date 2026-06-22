@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Archivos excluidos para evitar conflictos
+src/components/dashboard/Sidebar.jsx
+src/App.jsx
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -8,6 +8,7 @@ import ComboManagement from './pages/comboManagement'
 import Drinks from './pages/drinks'
 import Dishes from './pages/dishes'
 import ClientManagement from './pages/clientManagement'
+import Extras from './pages/extras'
 
 // App entry: setup rutas con React Router
 export default function App() {
@@ -22,6 +23,7 @@ export default function App() {
 				<Route path="/drinks" element={<Drinks />} />
 				<Route path="/dishes" element={<Dishes />} />
 				<Route path="/clients" element={<ClientManagement />} />
+				<Route path="/extras" element={<Extras />} />
 			</Routes>
 		</BrowserRouter>
 	)

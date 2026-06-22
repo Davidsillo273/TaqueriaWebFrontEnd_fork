@@ -7,9 +7,9 @@ const Sidebar = ({ activeMenu }) => {
 	const menuItems = [
 		{ id: 'activity', label: 'Actividad', icon: 'chart-line', path: '/dashboard' },
 		{ id: 'orders', label: 'Combos', icon: 'shopping-bag', path: '/combos' },
-		{ id: 'drinks', label: 'Bebidas', icon: 'wine-glass', path: '#' },
-		{ id: 'dishes', label: 'Platillo', icon: 'utensils', path: '#' },
-		{ id: 'extras', label: 'Extras', icon: 'star', path: '#' },
+		{ id: 'drinks', label: 'Bebidas', icon: 'wine-glass', path: '/drinks' },
+		{ id: 'dishes', label: 'Platillo', icon: 'utensils', path: '/dishes' },
+		{ id: 'extras', label: 'Extras', icon: 'star', path: '/extras' },
 		{ id: 'inventory', label: 'Inventario', icon: 'box', path: '#' },
 		{ id: 'tables', label: 'Mesas', icon: 'chair', path: '#' },
 		{ id: 'clients', label: 'Clientes', icon: 'users', path: '/clients' },
