@@ -12,7 +12,7 @@ const Sidebar = ({ activeMenu }) => {
 		{ id: 'extras', label: 'Extras', icon: 'star', path: '#' },
 		{ id: 'inventory', label: 'Inventario', icon: 'box', path: '#' },
 		{ id: 'tables', label: 'Mesas', icon: 'chair', path: '#' },
-		{ id: 'clients', label: 'Clientes', icon: 'users', path: '#' },
+		{ id: 'clients', label: 'Clientes', icon: 'users', path: '/clients' },
 		{ id: 'staff', label: 'Empleados', icon: 'user-tie', path: '#' },
 		{ id: 'orders-list', label: 'Pedidos', icon: 'list', path: '#' },
 	]
