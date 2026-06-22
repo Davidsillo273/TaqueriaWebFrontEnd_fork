@@ -13,7 +13,7 @@ const Sidebar = ({ activeMenu }) => {
 		{ id: 'inventory', label: 'Inventario', icon: 'box', path: '#' },
 		{ id: 'tables', label: 'Mesas', icon: 'chair', path: '#' },
 		{ id: 'clients', label: 'Clientes', icon: 'users', path: '/clients' },
-		{ id: 'staff', label: 'Empleados', icon: 'user-tie', path: '#' },
+		{ id: 'staff', label: 'Empleados', icon: 'user-tie', path: '/employees' },
 		{ id: 'orders-list', label: 'Pedidos', icon: 'list', path: '#' },
 	]
 
