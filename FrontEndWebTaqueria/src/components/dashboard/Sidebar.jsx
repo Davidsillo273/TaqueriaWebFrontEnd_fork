@@ -10,7 +10,7 @@ const Sidebar = ({ activeMenu }) => {
 		{ id: 'drinks', label: 'Bebidas', icon: 'wine-glass', path: '/drinks' },
 		{ id: 'dishes', label: 'Platillo', icon: 'utensils', path: '/dishes' },
 		{ id: 'extras', label: 'Extras', icon: 'star', path: '/extras' },
-		{ id: 'inventory', label: 'Inventario', icon: 'box', path: '#' },
+		{ id: 'inventory', label: 'Inventario', icon: 'box', path: '/inventario' },
 		{ id: 'tables', label: 'Mesas', icon: 'chair', path: '/mesas' },
 		{ id: 'clients', label: 'Clientes', icon: 'users', path: '/clients' },
 		{ id: 'staff', label: 'Empleados', icon: 'user-tie', path: '/employees' },
