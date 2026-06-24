@@ -12,6 +12,7 @@ import Extras from './pages/extras'
 import EmployeeManagement from './pages/employeeManagement'
 import Tables from './pages/tables'
 import Inventory from './pages/inventory'
+import Orders from './pages/orders'
 
 // App entry: setup rutas con React Router
 export default function App() {
@@ -30,6 +31,7 @@ export default function App() {
 				<Route path="/employees" element={<EmployeeManagement />} />
 				<Route path="/mesas" element={<Tables />} />
 				<Route path="/inventario" element={<Inventory />} />
+				<Route path="/pedidos" element={<Orders />} />
 			</Routes>
 		</BrowserRouter>
 	)
