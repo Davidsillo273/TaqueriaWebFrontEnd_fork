@@ -1,8 +1,11 @@
-// src/hooks/useLogin.js
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const API_URL = import.meta.env.VITE_API_BASE_URL || 'https://syscor.onrender.com/api';
+// Detectar si estamos en desarrollo (localhost)
+const IS_DEV = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_URL = IS_DEV 
+  ? '/api' 
+  : (import.meta.env?.VITE_API_BASE_URL || 'https://syscor.onrender.com/api');
 
 // Mapeo de roles a endpoints de login
 const LOGIN_ENDPOINTS = {
@@ -18,12 +21,12 @@ export default function useLogin() {
   const [form, setForm] = useState({
     email: '',
     password: '',
-    role: 'admin', // por defecto admin
+    role: 'admin',
   });
 
   // Estados para recuperación de contraseña
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [forgotStep, setForgotStep] = useState(1); // 1: solicitar código, 2: verificar y nueva contraseña
+  const [forgotStep, setForgotStep] = useState(1);
   const [forgotForm, setForgotForm] = useState({
     email: '',
     code: '',
@@ -41,7 +44,6 @@ export default function useLogin() {
       ...prev,
       [name]: value,
     }));
-    // Limpiar error al escribir
     if (error) setError('');
   };
 
@@ -59,7 +61,6 @@ export default function useLogin() {
   const handleLogin = async (event) => {
     event.preventDefault();
 
-    // Validaciones básicas
     if (!form.email.trim() || !form.password.trim()) {
       setError('Debes completar correo y contraseña');
       return;
@@ -73,7 +74,7 @@ export default function useLogin() {
       const response = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // importante para cookies
+        credentials: 'include',
         body: JSON.stringify({
           email: form.email,
           password: form.password,
@@ -87,8 +88,12 @@ export default function useLogin() {
         return;
       }
 
-      // Guardar usuario en localStorage (solo email y rol)
-      const userData = { email: form.email, role: form.role };
+      // Guardar usuario en localStorage
+      const userData = { 
+        email: form.email, 
+        role: form.role,
+        id: data.id || data._id,
+      };
       localStorage.setItem('user', JSON.stringify(userData));
 
       // Redirigir al dashboard
@@ -120,7 +125,7 @@ export default function useLogin() {
         credentials: 'include',
         body: JSON.stringify({
           email: forgotForm.email,
-          userType: form.role, // usamos el rol seleccionado
+          userType: form.role,
         }),
       });
 
@@ -131,9 +136,8 @@ export default function useLogin() {
         return;
       }
 
-      // Paso al siguiente paso
       setForgotStep(2);
-      setError(''); // Limpiar error
+      setError('');
     } catch (err) {
       console.error(err);
       setError('Error al enviar el código');
@@ -146,7 +150,6 @@ export default function useLogin() {
   const handleForgotStep2 = async (event) => {
     event.preventDefault();
 
-    // Validaciones
     if (!forgotForm.code.trim()) {
       setError('Ingresa el código de verificación');
       return;
@@ -164,7 +167,6 @@ export default function useLogin() {
     setError('');
 
     try {
-      // 1. Verificar el código
       const verifyResponse = await fetch(`${API_URL}/auth/recoveryPassword/verifyCode`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -181,7 +183,6 @@ export default function useLogin() {
         return;
       }
 
-      // 2. Establecer nueva contraseña
       const newPassResponse = await fetch(`${API_URL}/auth/recoveryPassword/newPassword`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -199,7 +200,6 @@ export default function useLogin() {
         return;
       }
 
-      // Éxito: volver al login
       setShowForgotPassword(false);
       setForgotStep(1);
       setForgotForm({ email: '', code: '', newPassword: '', confirmPassword: '' });
@@ -212,7 +212,6 @@ export default function useLogin() {
     }
   };
 
-  // Volver al login desde recuperación
   const goBackToLogin = () => {
     setShowForgotPassword(false);
     setForgotStep(1);
@@ -221,7 +220,6 @@ export default function useLogin() {
   };
 
   return {
-    // Estados
     form,
     setForm,
     forgotForm,
@@ -232,7 +230,6 @@ export default function useLogin() {
     setShowForgotPassword,
     forgotStep,
     setForgotStep,
-    // Manejadores
     handleChange,
     handleForgotChange,
     handleLogin,
