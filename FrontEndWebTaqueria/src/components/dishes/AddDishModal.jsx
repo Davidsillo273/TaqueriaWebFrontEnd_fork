@@ -43,7 +43,7 @@ export default function AddDishModal({ isOpen, onClose, onSave, dishToEdit }) {
 	}
 
 	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+		<div className="fixed inset-0  z-50 flex items-center justify-center p-4">
 			
 			{/* CAPA DE FONDO OSCURO COMPLETA */}
 			<div 

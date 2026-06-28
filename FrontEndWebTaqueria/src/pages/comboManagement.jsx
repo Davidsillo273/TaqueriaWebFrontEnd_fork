@@ -3,21 +3,38 @@ import Sidebar from '../components/dashboard/Sidebar'
 import TopBar from '../components/dashboard/TopBar'
 import ComboCard from '../components/dashboard/ComboCard'
 import ComboStats from '../components/dashboard/ComboStats'
-import AddComboModal from '../components/comboManagement/AddComboModal'
+import AddComboModal from '../components/dashboard/AddComboModal'
 import FAIcon from '../components/commons/FAIcon'
 import { useCombos } from '../hooks/useCombos'
 
 export default function ComboManagement() {
   const [activeMenu] = useState('orders')
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const { combos, loading, error, addCombo, deleteCombo } = useCombos()
+  const [selectedCombo, setSelectedCombo] = useState(null)
+  
+  const { combos, loading, error, addCombo, updateCombo, deleteCombo } = useCombos()
 
-  const handleAddCombo = async (formData) => {
+  const handleOpenAddModal = () => {
+    setSelectedCombo(null)
+    setIsModalOpen(true)
+  }
+
+  const handleOpenEditModal = (combo) => {
+    setSelectedCombo(combo) 
+    setIsModalOpen(true)
+  }
+
+  const handleSaveCombo = async (formData, id) => {
     try {
-      await addCombo(formData)
+      if (id) {
+        await updateCombo(id, formData)
+      } else {
+        await addCombo(formData)
+      }
       setIsModalOpen(false)
+      setSelectedCombo(null)
     } catch (err) {
-      console.error('Error al agregar combo:', err)
+      console.error('Error al guardar el combo:', err)
     }
   }
 
@@ -50,16 +67,16 @@ export default function ComboManagement() {
           <div className="p-8">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Gestión de Combos</h1>
-                <p className="text-gray-600">Administra el menú de ofertas y paquetes especiales.</p>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Gestión de combos</h1>
+                <p className="text-gray-600">Administra el menú de la taqueria fusionando platillos y bebidas.</p>
               </div>
               <button
-                onClick={() => setIsModalOpen(true)}
+                onClick={handleOpenAddModal}
                 className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
                 disabled={loading}
               >
                 <FAIcon icon="plus" />
-                Nuevo Combo
+                Nuevo combo
               </button>
             </div>
 
@@ -69,35 +86,11 @@ export default function ComboManagement() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-              <ComboStats 
-                icon="ban" 
-                title="TOTAL COMBOS" 
-                value={loading ? '...' : combos.length} 
-                label={`${combos.length} combos registrados`} 
-                highlighted={false} 
-              />
-              <ComboStats
-                icon="star"
-                title="COMBO MÁS VENDIDO"
-                value={combos[0]?.name || 'N/A'}
-                label="Destacado"
-                highlighted={true}
-              />
-              <ComboStats
-                icon="check-circle"
-                title="COMBOS ACTIVOS"
-                value={loading ? '...' : combos.filter(c => c.status === 'available').length}
-                label={`${combos.filter(c => c.status === 'available').length} activos`}
-                highlighted={false}
-              />
-              <ComboStats
-                icon="chart-bar"
-                title="MEJOR CLASIFICACIÓN"
-                value="4.8 / 5.0"
-                label="Basado en reseñas"
-                highlighted={false}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+              <ComboStats icon="list" title="TOTAL COMBOS" value={loading ? '...' : combos.length} label={`${combos.length} combos registrados`} highlighted={true} />
+              {/*<ComboStats icon="star" title="COMBO MÁS VENDIDO" value={combos[0]?.name || 'N/A'} label="Destacado" highlighted={true} />*/}
+              <ComboStats icon="check-circle" title="COMBOS DISPONIBLES" value={loading ? '...' : combos.filter(c => c.status === 'available').length} label={`${combos.filter(c => c.status === 'available').length} combos disponibles`} highlighted={true} />
+             {/* <ComboStats icon="chart-bar" title="MEJOR CLASIFICACIÓN" value="4.8 / 5.0" label="Basado en reseñas" highlighted={false} /> */}
             </div>
 
             {loading && (
@@ -113,6 +106,7 @@ export default function ComboManagement() {
                   <ComboCard 
                     key={combo._id} 
                     {...formatComboForDisplay(combo)}
+                    onEdit={() => handleOpenEditModal(combo)}
                     onDelete={() => handleDeleteCombo(combo._id)}
                   />
                 ))}
@@ -123,17 +117,19 @@ export default function ComboManagement() {
               <div className="text-center py-12">
                 <FAIcon icon="inbox" size="3xl" className="text-gray-400 mx-auto mb-3" />
                 <p className="text-gray-500 text-lg">No hay combos agregados</p>
-                <p className="text-gray-400 text-sm mb-4">Haz click en "Nuevo Combo" para crear uno</p>
+                <p className="text-gray-400 text-sm mb-4">Haz click en "Nuevo combo" para crear uno</p>
               </div>
             )}
           </div>
         </main>
       </div>
+
       <AddComboModal 
         isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        onSave={handleAddCombo}
+        onClose={() => { setIsModalOpen(false); setSelectedCombo(null); }} 
+        onSave={handleSaveCombo}
         loading={loading}
+        comboToEdit={selectedCombo}
       />
     </div>
   )
