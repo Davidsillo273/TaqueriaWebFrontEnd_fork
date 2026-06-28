@@ -1,135 +1,141 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import FAIcon from '../commons/FAIcon'
-const AddDishModal = ({ isOpen, onClose, onSave }) => {
-	const [formData, setFormData] = useState({
-		title: '',
-		price: '',
-		image: '',
-		category: 'meat',
-		description: '',
-	})
 
-	const handleChange = (e) => {
-		const { name, value } = e.target
-		setFormData((prev) => ({
-			...prev,
-			[name]: value,
-		}))
-	}
+export default function AddDishModal({ isOpen, onClose, onSave, dishToEdit }) {
+	const [name, setName] = useState('')
+	const [category, setCategory] = useState('Carnes')
+	const [price, setPrice] = useState('')
+	const [status, setStatus] = useState('Activo')
+	const [imageFile, setImageFile] = useState(null) // <--- ESTA ES LA LÍNEA QUE FALTABA
 
-	const handleSubmit = (e) => {
-		e.preventDefault()
-		onSave(formData)
-		setFormData({ title: '', price: '', image: '', category: 'meat', description: '' })
-	}
+	useEffect(() => {
+		if (dishToEdit) {
+			setName(dishToEdit.name || '')
+			setCategory(dishToEdit.category || 'Carnes')
+			setPrice(dishToEdit.price || '')
+			setStatus(dishToEdit.status || 'Activo')
+			setImageFile(null) 
+		} else {
+			setName('')
+			setCategory('Carnes')
+			setPrice('')
+			setStatus('Activo')
+			setImageFile(null)
+		}
+	}, [dishToEdit, isOpen])
 
 	if (!isOpen) return null
 
+	const handleSubmit = (e) => {
+		e.preventDefault()
+
+		const formData = new FormData()
+		formData.append('name', name)
+		formData.append('category', category)
+		formData.append('price', price)
+		formData.append('status', status)
+		
+		if (imageFile) {
+			formData.append('image', imageFile)
+		}
+
+		onSave(formData)
+	}
+
 	return (
-		<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-			<div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-				<div className="flex items-center justify-between p-6 border-b border-gray-200">
-					<h2 className="text-xl font-bold text-gray-900">Nuevo Platillo</h2>
-					<button
-						onClick={onClose}
-						className="text-gray-500 hover:text-gray-700 transition-colors"
-					>
+		<div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-x-hidden overflow-y-auto outline-none focus:outline-none">
+			<div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={onClose}></div>
+			
+			<div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all z-10">
+				<div className="bg-gray-900 px-6 py-4 flex items-center justify-between text-white">
+					<h2 className="text-xl font-bold">
+						{dishToEdit ? 'Editar Platillo' : 'Nuevo Platillo'}
+					</h2>
+					<button type="button" onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
 						<FAIcon icon="times" size="lg" />
 					</button>
 				</div>
 
 				<form onSubmit={handleSubmit} className="p-6 space-y-4">
 					<div>
-						<label className="block text-sm font-semibold text-gray-700 mb-2">
-							Nombre del Platillo
-						</label>
+						<label className="block text-sm font-medium text-gray-700 mb-1">Nombre del Platillo</label>
 						<input
 							type="text"
-							name="title"
-							value={formData.title}
-							onChange={handleChange}
-							placeholder="Ej: Corte Tomahawk"
-							className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-red-600"
 							required
+							className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+							value={name}
+							onChange={(e) => setName(e.target.value)}
+							placeholder="Ej. Corte Tomahawk"
 						/>
 					</div>
 
 					<div>
-						<label className="block text-sm font-semibold text-gray-700 mb-2">
-							Precio
-						</label>
-						<input
-							type="number"
-							name="price"
-							value={formData.price}
-							onChange={handleChange}
-							placeholder="Ej: 1250.00"
-							step="0.01"
-							className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-red-600"
-							required
-						/>
-					</div>
-
-					<div>
-						<label className="block text-sm font-semibold text-gray-700 mb-2">
-							Categoría
-						</label>
+						<label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
 						<select
-							name="category"
-							value={formData.category}
-							onChange={handleChange}
-							className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-red-600"
+							className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+							value={category}
+							onChange={(e) => setCategory(e.target.value)}
 						>
-							<option value="meat">Carnes</option>
-							<option value="poultry">Aves</option>
-							<option value="seafood">Mariscos</option>
-							<option value="pasta">Pastas</option>
-							<option value="vegetables">Vegetariano</option>
+							<option value="Carnes">Carnes</option>
+							<option value="Bebidas">Bebidas</option>
+							<option value="Combos">Combos</option>
+							<option value="Extras">Extras</option>
 						</select>
 					</div>
 
-					<div>
-						<label className="block text-sm font-semibold text-gray-700 mb-2">
-							Descripción
-						</label>
-						<textarea
-							name="description"
-							value={formData.description}
-							onChange={handleChange}
-							placeholder="Describe el platillo..."
-							rows="2"
-							className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-red-600"
-						/>
+					<div className="grid grid-cols-2 gap-4">
+						<div>
+							<label className="block text-sm font-medium text-gray-700 mb-1">Precio ($)</label>
+							<input
+								type="number"
+								step="0.01"
+								required
+								className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+								value={price}
+								onChange={(e) => setPrice(e.target.value)}
+								placeholder="0.00"
+							/>
+						</div>
+
+						<div>
+							<label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+							<select
+								className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+								value={status}
+								onChange={(e) => setStatus(e.target.value)}
+							>
+								<option value="Activo">Activo</option>
+								<option value="Inactivo">Inactivo</option>
+							</select>
+						</div>
 					</div>
 
 					<div>
-						<label className="block text-sm font-semibold text-gray-700 mb-2">
-							URL de Imagen
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Imagen del Platillo {dishToEdit && <span className="text-xs text-gray-400">(Opcional)</span>}
 						</label>
 						<input
-							type="url"
-							name="image"
-							value={formData.image}
-							onChange={handleChange}
-							placeholder="Ej: https://..."
-							className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-red-600"
-							required
+							type="file"
+							accept="image/*"
+							required={!dishToEdit} 
+							className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
+							onChange={(e) => setImageFile(e.target.files[0])}
 						/>
 					</div>
 
-					<div className="flex gap-3 pt-4">
+					<div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
 						<button
 							type="button"
 							onClick={onClose}
-							className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+							className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors"
 						>
 							Cancelar
 						</button>
 						<button
 							type="submit"
-							className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+							className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors"
 						>
-							Guardar Platillo
+							{dishToEdit ? 'Actualizar' : 'Guardar'}
 						</button>
 					</div>
 				</form>
@@ -137,5 +143,3 @@ const AddDishModal = ({ isOpen, onClose, onSave }) => {
 		</div>
 	)
 }
-
-export default AddDishModal
