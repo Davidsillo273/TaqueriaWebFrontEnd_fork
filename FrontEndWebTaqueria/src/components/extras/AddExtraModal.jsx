@@ -5,21 +5,21 @@ const AddExtraModal = ({ isOpen, onClose, onAdd, editingExtra = null }) => {
 	const [formData, setFormData] = useState({
 		name: '',
 		price: '',
-		description: '',
-		image: '',
-		availability: 'DISPONIBLE'
+		status: 'DISPONIBLE'
 	})
 
 	useEffect(() => {
 		if (editingExtra) {
-			setFormData(editingExtra)
+			setFormData({
+				name: editingExtra.name || '',
+				price: editingExtra.price || '',
+				status: editingExtra.status || 'DISPONIBLE'
+			})
 		} else {
 			setFormData({
 				name: '',
 				price: '',
-				description: '',
-				image: '',
-				availability: 'DISPONIBLE'
+				status: 'DISPONIBLE'
 			})
 		}
 	}, [editingExtra, isOpen])
@@ -32,92 +32,37 @@ const AddExtraModal = ({ isOpen, onClose, onAdd, editingExtra = null }) => {
 		}))
 	}
 
-	const handleImageChange = (e) => {
-		const file = e.target.files[0]
-		if (file) {
-			const reader = new FileReader()
-			reader.onloadend = () => {
-				setFormData(prev => ({
-					...prev,
-					image: reader.result
-				}))
-			}
-			reader.readAsDataURL(file)
-		}
-	}
-
 	const handleSubmit = (e) => {
 		e.preventDefault()
-		if (formData.name && formData.price && formData.image) {
+		if (formData.name && formData.price) {
 			onAdd(formData)
-			setFormData({
-				name: '',
-				price: '',
-				description: '',
-				image: '',
-				availability: 'DISPONIBLE'
-			})
-			onClose()
 		} else {
-			alert('Por favor completa todos los campos requeridos (Nombre, Precio e Imagen)')
+			alert('Por favor completa todos los campos requeridos (Nombre, precio y estado).')
 		}
 	}
 
 	if (!isOpen) return null
 
 	return (
-		<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+		<div className="fixed inset-0 border border-gray-400 flex items-center justify-center z-50">
 			<div className="bg-white rounded-lg shadow-lg max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
-				<div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white">
-					<h2 className="text-xl font-bold text-gray-900">
-						{editingExtra ? 'Editar Extra' : 'Nuevo Extra'}
+				<div className="flex items-center justify-between p-6 border-b sticky top-0 bg-red-600">
+					<h2 className="text-xl font-bold text-white">
+						{editingExtra ? 'Editar extra' : 'Nuevo extra'}
 					</h2>
 					<button
 						onClick={onClose}
-						className="text-gray-500 hover:text-gray-700 transition-colors"
+						className="text-white hover:text-gray-200 transition-colors"
 					>
 						<FAIcon icon="times" size="lg" />
 					</button>
 				</div>
 
 				<form onSubmit={handleSubmit} className="p-6 space-y-4">
-					{/* Image Upload */}
+					{/* Nombre */}
 					<div>
 						<label className="block text-sm font-semibold text-gray-700 mb-2">
-							Imagen del Extra
-						</label>
-						<div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50 transition-colors">
-							<input
-								type="file"
-								accept="image/*"
-								onChange={handleImageChange}
-								className="hidden"
-								id="imageInput"
-							/>
-							<label htmlFor="imageInput" className="cursor-pointer block">
-								{formData.image ? (
-									<div className="space-y-2">
-										<img 
-											src={formData.image} 
-											alt="Preview" 
-											className="w-full h-32 object-cover rounded"
-										/>
-										<p className="text-xs text-gray-500">Click para cambiar imagen</p>
-									</div>
-								) : (
-									<div className="space-y-2">
-										<FAIcon icon="cloud-upload-alt" size="lg" className="text-gray-400 mx-auto" />
-										<p className="text-sm text-gray-600">Selecciona una imagen</p>
-									</div>
-								)}
-							</label>
-						</div>
-					</div>
-
-					{/* Name */}
-					<div>
-						<label className="block text-sm font-semibold text-gray-700 mb-2">
-							Nombre del Extra
+							Nombre del extra
 						</label>
 						<input
 							type="text"
@@ -130,45 +75,31 @@ const AddExtraModal = ({ isOpen, onClose, onAdd, editingExtra = null }) => {
 						/>
 					</div>
 
-					{/* Price */}
+					{/* precio */}
 					<div>
 						<label className="block text-sm font-semibold text-gray-700 mb-2">
-							Precio
+							Precio ($)
 						</label>
 						<input
-							type="text"
+							type="number"
+							step="0.01"
 							name="price"
 							value={formData.price}
 							onChange={handleChange}
-							placeholder="Ej: $1.50"
+							placeholder="Ej: 1.50"
 							className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 text-sm"
 							required
 						/>
 					</div>
 
-					{/* Description */}
+					{/* Status */}
 					<div>
 						<label className="block text-sm font-semibold text-gray-700 mb-2">
-							Descripción
-						</label>
-						<textarea
-							name="description"
-							value={formData.description}
-							onChange={handleChange}
-							placeholder="Describe el extra..."
-							className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 text-sm"
-							rows="3"
-						/>
-					</div>
-
-					{/* Availability */}
-					<div>
-						<label className="block text-sm font-semibold text-gray-700 mb-2">
-							Disponibilidad
+							Estado
 						</label>
 						<select
-							name="availability"
-							value={formData.availability}
+							name="status"
+							value={formData.status}
 							onChange={handleChange}
 							className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 text-sm"
 						>
@@ -181,10 +112,10 @@ const AddExtraModal = ({ isOpen, onClose, onAdd, editingExtra = null }) => {
 					<div className="pt-4 space-y-2">
 						<button
 							type="submit"
-							className="w-full text-white font-semibold py-3 rounded-md shadow-sm transition-opacity hover:opacity-90 disabled:opacity-60"
+							className="w-full text-white font-semibold py-3 rounded-md shadow-sm transition-opacity hover:opacity-90"
 							style={{ background: 'linear-gradient(180deg,#c71b1b,#b10f0f)' }}
 						>
-							{editingExtra ? 'Actualizar Extra' : 'Agregar Extra'}
+							{editingExtra ? 'Actualizar extra' : 'Agregar extra'}
 						</button>
 						<button
 							type="button"
