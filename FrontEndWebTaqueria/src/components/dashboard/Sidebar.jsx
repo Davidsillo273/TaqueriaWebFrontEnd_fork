@@ -21,13 +21,11 @@ const Sidebar = ({ activeMenu }) => {
 		<aside className="w-56 bg-white border-r border-gray-200 h-screen sticky top-0 overflow-y-auto">
 			<div className="p-6 border-b border-gray-200">
 				<div className="flex items-center gap-3">
-					<div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-sm font-bold">
-						EC
+					<div className="w-30 h-20 flex items-center justify-center">
+						<img src={"../public/logo.png"} className=" h-30 w-60" />
 					</div>
-					<div className="flex flex-col">
-						<h1 className="font-bold text-gray-900">El Corral Admin</h1>
-						<p className="text-xs text-gray-500">Administración</p>
-					</div>
+					
+					
 				</div>
 			</div>
 

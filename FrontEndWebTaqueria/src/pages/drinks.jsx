@@ -95,7 +95,7 @@ export default function Drinks() {
 
 						{/* Catálogo */}
 						<div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-8">
-							<div className="lg:col-span-3">
+							<div className="lg:col-span-4">
 								<div className="bg-white rounded-lg border border-gray-200 p-6 mb-6 min-h-[400px]">
 									<h2 className="text-lg font-bold text-gray-900 mb-6">Todas las Bebidas</h2>
 									{drinks.length === 0 && !loading ? (
