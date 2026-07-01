@@ -6,11 +6,7 @@ const TopBar = () => {
 	return (
 		<div className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
 			<div className="flex-1 max-w-md">
-				<input
-					type="text"
-					placeholder="Buscar combos, productos..."
-					className="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-red-600"
-				/>
+				
 			</div>
 
 			<div className="flex items-center gap-6">

@@ -5,61 +5,38 @@ import ExtraCard from '../components/extras/ExtraCard'
 import ExtraStats from '../components/extras/ExtraStats'
 import AddExtraModal from '../components/extras/AddExtraModal'
 import FAIcon from '../components/commons/FAIcon'
-import PrimaryButton from '../components/commons/PrimaryButton'
+import useExtras from '../hooks/useExtras'
 
 export default function Extras() {
 	const [activeMenu] = useState('extras')
 	const [isModalOpen, setIsModalOpen] = useState(false)
 	const [editingExtra, setEditingExtra] = useState(null)
-	const [extras, setExtras] = useState([
-		{
-			id: 1,
-			image: 'https://images.unsplash.com/photo-1589985643453-d5eaa7e62eac?w=300&h=300&fit=crop',
-			name: 'Queso Cheddar',
-			price: '$1.50',
-			description: 'Queso Cheddar madurado tipo gourmet.',
-			availability: 'DISPONIBLE',
-		},
-		{
-			id: 2,
-			image: 'https://images.unsplash.com/photo-1585238341710-4913001fd63d?w=300&h=300&fit=crop',
-			name: 'Tocineta Ahumada',
-			price: '$2.00',
-			description: 'Dos tiras crujientes de tocineta ahumada al manzano.',
-			availability: 'DISPONIBLE',
-		},
-		{
-			id: 3,
-			image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300&h=300&fit=crop',
-			name: 'Salsa Especial',
-			price: '$0.75',
-			description: 'Nuestra receta secreta de la casa con especias naturales.',
-			availability: 'DISPONIBLE',
-		},
-		{
-			id: 4,
-			image: 'https://images.unsplash.com/photo-1599599810694-b5ac4dd33fbe?w=300&h=300&fit=crop',
-			name: 'Jalapenos',
-			price: '$1.00',
-			description: 'Rodajas de jalapeno fresco encurtido con un toque picante.',
-			availability: 'AGOTADO',
-		},
-	])
+	
+	const { extras, loading, error, addExtra, updateExtra, deleteExtra } = useExtras();
 
-	const handleAddExtra = (formData) => {
+	const handleAddOrUpdateExtra = async (formData) => {
+		// Formateamos el precio para asegurarnos de enviar un Number puro al backend
+		const cleanPrice = parseFloat(String(formData.price).replace(/[^0-9.]/g, ''));
+
+		const payload = {
+			name: formData.name,
+			price: cleanPrice,
+			status: formData.status
+		};
+
+		let result;
 		if (editingExtra) {
-			setExtras(extras.map(extra =>
-				extra.id === editingExtra.id ? { ...extra, ...formData } : extra
-			))
-			setEditingExtra(null)
+			result = await updateExtra(editingExtra._id, payload);
 		} else {
-			const newExtra = {
-				id: Math.max(...extras.map(e => e.id), 0) + 1,
-				...formData,
-			}
-			setExtras([...extras, newExtra])
+			result = await addExtra(payload);
 		}
-		setIsModalOpen(false)
+
+		if (result.success) {
+			setIsModalOpen(false);
+			setEditingExtra(null);
+		} else {
+			alert('Error: ' + result.message);
+		}
 	}
 
 	const handleEditExtra = (extra) => {
@@ -67,8 +44,11 @@ export default function Extras() {
 		setIsModalOpen(true)
 	}
 
-	const handleDeleteExtra = (extraId) => {
-		setExtras(extras.filter(extra => extra.id !== extraId))
+	const handleDelete = async (extraId) => {
+		if (window.confirm('¿Estás seguro de eliminar este extra?')) {
+			const result = await deleteExtra(extraId);
+			if (!result.success) alert('No se pudo eliminar el extra');
+		}
 	}
 
 	const handleOpenNewModal = () => {
@@ -81,10 +61,8 @@ export default function Extras() {
 		setEditingExtra(null)
 	}
 
-	// Stats calculations
 	const totalExtras = extras.length
-	const mostRequestedExtra = 'Queso Cheddar'
-	const lowInventoryCount = extras.filter(e => e.availability === 'AGOTADO').length
+	const lowInventoryCount = extras.filter(e => e.status === 'AGOTADO').length
 
 	return (
 		<div className="flex h-screen bg-gray-100">
@@ -98,49 +76,49 @@ export default function Extras() {
 						{/* Header */}
 						<div className="mb-8 flex items-center justify-between">
 							<div>
-								<h1 className="text-3xl font-bold text-gray-900 mb-2">Gestión de Extras</h1>
-								<p className="text-gray-600">Controla los complementos y adicionales disponibles en el menu.</p>
+								<h1 className="text-3xl font-bold text-gray-900 mb-2">Gestión de extras</h1>
+								<p className="text-gray-600">Controla los acompañamientos extras disponibles en el menú.</p>
 							</div>
 							<div className="flex gap-3">
-								<button className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold">
-									<FAIcon icon="download" size="sm" />
-									Descargar Reporte
-								</button>
 								<button
 									onClick={handleOpenNewModal}
 									className="flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
 								>
 									<FAIcon icon="plus" size="sm" />
-									Nuevo Extra
+									Nuevo extra
 								</button>
 							</div>
 						</div>
 
-						{/* Stats Cards */}
+						{/* Estadísticas */}
 						<ExtraStats
 							totalExtras={totalExtras}
-							mostRequestedExtra={mostRequestedExtra}
+							mostRequestedExtra={extras[0]?.name || "N/A"}
 							lowInventoryCount={lowInventoryCount}
 						/>
 
-						{/* Extras Grid */}
-						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-							{extras.map(extra => (
-								<ExtraCard
-									key={extra.id}
-									image={extra.image}
-									title={extra.name}
-									price={extra.price}
-									description={extra.description}
-									availability={extra.availability}
-									onEdit={() => handleEditExtra(extra)}
-									onDelete={() => handleDeleteExtra(extra.id)}
-								/>
-							))}
-						</div>
+						{/* Mensajes de error o carga */}
+						{loading && <p className="text-center text-gray-600 font-medium py-4">Cargando extras...</p>}
+						{error && <p className="text-center text-red-600 font-medium py-4">Error: {error}</p>}
 
-						{/* Empty State */}
-						{extras.length === 0 && (
+						{/* Grilla de Extras */}
+						{!loading && (
+							<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+								{extras.map(extra => (
+									<ExtraCard
+										key={extra._id}
+										title={extra.name}
+										price={`$${extra.price}`}
+										status={extra.status}
+										onEdit={() => handleEditExtra(extra)}
+										onDelete={() => handleDelete(extra._id)}
+									/>
+								))}
+							</div>
+						)}
+
+						{/* Estado Vacío */}
+						{!loading && extras.length === 0 && (
 							<div className="text-center py-12">
 								<FAIcon icon="inbox" size="3xl" className="text-gray-400 mx-auto mb-4" />
 								<h3 className="text-lg font-semibold text-gray-600 mb-2">No hay extras disponibles</h3>
@@ -149,7 +127,7 @@ export default function Extras() {
 									onClick={handleOpenNewModal}
 									className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
 								>
-									Crear Extra
+									Crear extra
 								</button>
 							</div>
 						)}
@@ -157,11 +135,10 @@ export default function Extras() {
 				</main>
 			</div>
 
-			{/* Modal */}
 			<AddExtraModal
 				isOpen={isModalOpen}
 				onClose={handleCloseModal}
-				onAdd={handleAddExtra}
+				onAdd={handleAddOrUpdateExtra}
 				editingExtra={editingExtra}
 			/>
 		</div>
