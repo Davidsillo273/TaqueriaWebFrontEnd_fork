@@ -1,61 +1,94 @@
+// src/hooks/useClientForm.js
 import { useForm } from 'react-hook-form';
+import { useEffect, useState } from 'react';
 
-// Este gancho (hook) maneja toda la data del formulario de clientes
-export const useClientForm = (onClose) => {
-  
-  // Sacamos los métodos de react-hook-form para validar sin dar tanta vuelta
-  const {
-    register,          // Para amarrar los inputs del HTML
-    handleSubmit,      // El que revisa que todo esté lleno antes de activar el submit
-    formState: { errors }, // El saquito donde caen los errores si meten la pata
-    reset              // Para vaciar las cajas después de guardar
-  } = useForm({
-    // Estructura idéntica al objeto de Miro y la base de datos
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'https://syscor.onrender.com/api';
+
+export function useClientForm(onClose, editingClient, onSuccess) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  const { register, handleSubmit, formState: { errors }, reset } = useForm({
     defaultValues: {
       personalInfo: {
-        name: '',
-        lastname: '',
-        image: '',
-        birthdate: '',
-        addresses: [
-          { tag: 'Casa', details: '', isDefault: true } // Dirección base
-        ],
+        name: '', lastname: '', birthdate: '', card: '',
         phones: { main: '' },
-        card: ''
+        addresses: [{ details: '' }]
       },
-      loginInfo: {
-        email: '',
-        password: 'PasswordDefecto123!', // Contraseña temporal por obligación del modelo
-        isVerified: true,
-        loginAttempts: 0,
-        timeOut: null
-      },
-      favorites: []
+      loginInfo: { email: '', password: 'PasswordDefault123*' } // Contraseña genérica por si la pide el backend
     }
   });
 
-  // Esto corre solo si la validación pasa limpia
-  const onSubmitClient = (data) => {
+  // Si se va a editar un cliente, rellenamos el formulario con sus datos existentes
+  useEffect(() => {
+    if (editingClient) {
+      reset({
+        personalInfo: {
+          name: editingClient.personalInfo?.name || '',
+          lastname: editingClient.personalInfo?.lastname || '',
+          birthdate: editingClient.personalInfo?.birthdate ? editingClient.personalInfo.birthdate.substring(0, 10) : '',
+          card: editingClient.personalInfo?.card || '',
+          phones: {
+            main: editingClient.personalInfo?.phones?.main || ''
+          },
+          addresses: [
+            { details: editingClient.personalInfo?.addresses?.[0]?.details || '' }
+          ]
+        },
+        loginInfo: {
+          email: editingClient.loginInfo?.email || '',
+          password: 'PasswordDefault123*'
+        }
+      });
+    } else {
+      reset({
+        personalInfo: { name: '', lastname: '', birthdate: '', card: '', phones: { main: '' }, addresses: [{ details: '' }] },
+        loginInfo: { email: '', password: 'PasswordDefault123*' }
+      });
+    }
+  }, [editingClient, reset]);
+
+  // --- GUARDAR (POST O PUT) ---
+  const onSubmitClient = async (data) => {
+    setIsSubmitting(true);
+    setSubmitError('');
+
+    const isEdit = !!editingClient;
+    const url = isEdit 
+      ? `${API_URL}/customers/${editingClient._id || editingClient.id}`
+      : `${API_URL}/customers`;
+    
+    const method = isEdit ? 'PUT' : 'POST';
+
     try {
-      // Mandamos la info estructurada a la consola para probar antes de meter Axios
-      console.log('Objeto estructurado para Mongo:', data);
-      
-      // Alerta para avisar que sí funcionó 
-      alert(`Cliente ${data.personalInfo.name} registrado con éxito`);
-      
-      reset();   // Limpiamos todo
-      onClose(); // Cerramos la ventana flotante
-    } catch (error) {
-      console.error('Tronó al guardar:', error);
-      alert('Error raro al guardar el cliente');
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      const resData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(resData.message || 'Error al procesar la solicitud');
+      }
+
+      await onSuccess(); // Refresca la tabla
+      onClose(); // Cierra el modal
+    } catch (err) {
+      console.error(err);
+      setSubmitError(err.message || 'Error al guardar en el servidor');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // Soltamos las funciones para que el modal las agarre
   return {
     register,
     handleSubmit,
     errors,
-    onSubmitClient
+    onSubmitClient,
+    isSubmitting,
+    submitError
   };
-};
+}

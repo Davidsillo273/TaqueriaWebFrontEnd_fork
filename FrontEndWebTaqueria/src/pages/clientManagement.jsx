@@ -4,14 +4,27 @@ import TopBar from '../components/dashboard/TopBar'
 import PrimaryButton from '../components/commons/PrimaryButton'
 import FAIcon from '../components/commons/FAIcon'
 
-// RUTAS CORREGIDAS: Para entrar correctamente a la subcarpeta client desde pages
 import ClientKpis from '../components/client/clientKpis'
 import ClientTable from '../components/client/clientTable'
 import ClientModal from '../components/client/clientModal'
 
+// IMPORTAMOS NUESTRO HOOK CONECTADO
+import useClients from '../hooks/useClients'
+
 export default function ClientManagement() {
     const [activeMenu] = useState('clients')
-    const [isModalOpen, setIsModalOpen] = useState(false)
+    
+    const {
+        clients,
+        isLoading,
+        isModalOpen,
+        editingClient,
+        handleOpenCreate,
+        handleOpenEdit,
+        handleCloseModal,
+        handleDelete,
+        fetchClients
+    } = useClients()
 
     return (
         <div className="flex h-screen bg-gray-100">
@@ -31,7 +44,7 @@ export default function ClientManagement() {
                             
                             <div className="w-full sm:w-48 text-sm">
                                 <PrimaryButton 
-                                    onClick={() => setIsModalOpen(true)}
+                                    onClick={handleOpenCreate}
                                     className="flex items-center justify-center gap-2 rounded-lg text-white"
                                 >
                                     <FAIcon icon="plus" /> Nuevo Cliente
@@ -39,13 +52,20 @@ export default function ClientManagement() {
                             </div>
                         </div>
 
-                        <ClientKpis />
+                        <ClientKpis clients={clients} />
 
-                        <ClientTable />
+                        <ClientTable 
+                            clients={clients}
+                            onEdit={handleOpenEdit}
+                            onDelete={handleDelete}
+                            isLoading={isLoading}
+                        />
 
                         <ClientModal 
                             isOpen={isModalOpen} 
-                            onClose={() => setIsModalOpen(false)} 
+                            onClose={handleCloseModal} 
+                            editingClient={editingClient}
+                            onSuccess={fetchClients}
                         />
 
                     </div>
