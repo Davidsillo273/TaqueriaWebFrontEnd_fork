@@ -15,6 +15,8 @@ const Sidebar = ({ activeMenu }) => {
 		{ id: 'clients', label: 'Clientes', icon: 'users', path: '/clients' },
 		{ id: 'staff', label: 'Empleados', icon: 'user-tie', path: '/employees' },
 		{ id: 'orders-list', label: 'Pedidos', icon: 'list', path: '/pedidos' },
+		{ id: 'invite-staff', label: 'Invitar staff', icon: 'users', path: '/InviteStaff' },
+
 	]
 
 	return (

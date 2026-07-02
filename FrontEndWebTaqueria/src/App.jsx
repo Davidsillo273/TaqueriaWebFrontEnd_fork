@@ -13,6 +13,8 @@ import EmployeeManagement from './pages/employeeManagement'
 import Tables from './pages/tables'
 import Inventory from './pages/inventory'
 import Orders from './pages/orders'
+import InviteStaff from './pages/inviteStaff'
+import AcceptInvitation from './pages/acceptInvitation'
 
 // App entry: setup rutas con React Router
 export default function App() {
@@ -32,6 +34,10 @@ export default function App() {
 				<Route path="/mesas" element={<Tables />} />
 				<Route path="/inventario" element={<Inventory />} />
 				<Route path="/pedidos" element={<Orders />} />
+				<Route path="/inviteStaff" element={<InviteStaff />} />
+				<Route path="/admin/accept-invitation" element={<AcceptInvitation />} />
+
+			
 			</Routes>
 		</BrowserRouter>
 	)
