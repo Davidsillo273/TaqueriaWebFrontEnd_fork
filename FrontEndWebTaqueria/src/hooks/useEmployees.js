@@ -7,7 +7,6 @@ export function useEmployees() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // Obtiene la lista completa de empleados desde el backend
     const fetchEmployees = async () => {
         setLoading(true);
         try {
@@ -22,18 +21,21 @@ export function useEmployees() {
         }
     };
 
-    // Actualiza los permisos o el estado del empleado mediante PUT
+
     const updateEmployee = async (id, updatedData) => {
         setLoading(true);
         try {
             const res = await fetch(`${API_URL}/employees/${id}`, {
-                method: 'PUT',
+                method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updatedData),
             });
 
-            if (!res.ok) throw new Error('Error al actualizar los datos del empleado');
-            await fetchEmployees(); // Sincroniza la vista reflejando los cambios
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.message || 'Error al actualizar los datos del empleado');
+            }
+            await fetchEmployees();
             return true;
         } catch (err) {
             setError(err.message);

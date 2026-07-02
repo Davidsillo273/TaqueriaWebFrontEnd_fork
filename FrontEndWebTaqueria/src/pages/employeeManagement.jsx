@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import Sidebar from '../components/dashboard/Sidebar'
 import TopBar from '../components/dashboard/TopBar'
 import FAIcon from '../components/commons/FAIcon'
@@ -16,7 +16,7 @@ export default function EmployeeManagement() {
     const { employees = [], loading, updateEmployee } = useEmployees()
 
     // Estructura de respaldo basada exactamente en el modelo de Mongoose
-    const localFallback = [
+    const localFallback = useMemo(() => [
         { 
             _id: '64f1a2b3c4d5e6f7a8b9c001', 
             personalInfo: { name: 'Elena', lastname: 'Pérez', DUI_NIT: '00000000-0', address: 'San Salvador', phone: '7000-0000', type: 'manager', image: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=150' }, 
@@ -41,7 +41,7 @@ export default function EmployeeManagement() {
             permissions: ['inventario'],
             tokenVersion: 0
         }
-    ]
+    ], [])
 
     const displayList = employees.length > 0 ? employees : localFallback
 
@@ -56,19 +56,21 @@ export default function EmployeeManagement() {
         return 'OTRO';
     }
 
-    // Filtra la lista local combinando la búsqueda por texto y el puesto seleccionado
-    const filteredEmployees = displayList.filter(emp => {
-        const firstName = emp.personalInfo?.name || ''
-        const lastName = emp.personalInfo?.lastname || ''
-        const fullName = `${firstName} ${lastName}`.trim()
-        
-        const rawType = emp.personalInfo?.type || ''
-        const translated = translateRole(rawType)
-        
-        const matchesSearch = fullName.toLowerCase().includes(searchTerm.toLowerCase())
-        const matchesRole = selectedRole === 'Todos' || translated.toUpperCase() === selectedRole.toUpperCase()
-        return matchesSearch && matchesRole
-    })
+    // Filtra la lista local de manera eficiente usando useMemo para evitar re-cálculos innecesarios
+    const filteredEmployees = useMemo(() => {
+        return displayList.filter(emp => {
+            const firstName = emp.personalInfo?.name || ''
+            const lastName = emp.personalInfo?.lastname || ''
+            const fullName = `${firstName} ${lastName}`.trim()
+            
+            const rawType = emp.personalInfo?.type || ''
+            const translated = translateRole(rawType)
+            
+            const matchesSearch = fullName.toLowerCase().includes(searchTerm.toLowerCase())
+            const matchesRole = selectedRole === 'Todos' || translated.toUpperCase() === selectedRole.toUpperCase()
+            return matchesSearch && matchesRole
+        })
+    }, [displayList, searchTerm, selectedRole])
 
     const getBadgeClass = (puesto) => {
         const p = String(puesto || '').toUpperCase()
@@ -96,6 +98,14 @@ export default function EmployeeManagement() {
         }
         
         await updateEmployee(emp._id || emp.id, payload)
+    }
+
+    // Envuelve la ejecución de guardado desde el modal refrescando el estado del empleado seleccionado
+    const handleSavePermissions = async (id, updatedPayload) => {
+        const success = await updateEmployee(id, updatedPayload);
+        if (success) {
+            setSelectedEmployee(updatedPayload);
+        }
     }
 
     return (
@@ -212,7 +222,7 @@ export default function EmployeeManagement() {
                             isOpen={isModalOpen} 
                             onClose={() => setIsModalOpen(false)} 
                             employeeData={selectedEmployee}
-                            onSave={updateEmployee}
+                            onSave={handleSavePermissions}
                         />
 
                     </div>

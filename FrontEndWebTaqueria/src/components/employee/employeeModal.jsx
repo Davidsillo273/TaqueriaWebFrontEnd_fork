@@ -11,7 +11,6 @@ export default function EmployeeModal({ isOpen, onClose, employeeData, onSave })
         inventario: false
     })
 
-    // Mapea el arreglo indexado del backend hacia el estado booleano de los switches locales
     useEffect(() => {
         const backendPerms = employeeData.permissions || []
         setPermisos({
@@ -29,14 +28,13 @@ export default function EmployeeModal({ isOpen, onClose, employeeData, onSave })
     const handleSubmit = async (e) => {
         e.preventDefault()
         
-        // Convierte el estado de los componentes switch a un arreglo plano de strings
         const arrayPermisos = Object.keys(permisos).filter(key => permisos[key])
 
-        // Clona el objeto original e incrementa tokenVersion para forzar la revalidación del JWT
+        // CORREGIDO: Enviamos un payload plano que machee con el req.body del Backend Controller
         const payload = {
-            ...employeeData,
             permissions: arrayPermisos,
-            tokenVersion: (employeeData.tokenVersion || 0) + 1
+            salary: employeeData.workInfo?.salary,
+            type: employeeData.personalInfo?.type
         }
 
         const success = await onSave(employeeData._id || employeeData.id, payload)
@@ -66,13 +64,11 @@ export default function EmployeeModal({ isOpen, onClose, employeeData, onSave })
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    
                     <div className="text-center">
                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Ajuste de privilegios de acceso</span>
                     </div>
 
                     <div className="space-y-2">
-                        
                         {/* Permiso: Menú y Platillos */}
                         <div className="flex justify-between items-center bg-gray-50/80 p-3 rounded-xl border border-gray-100">
                             <div>
@@ -99,7 +95,7 @@ export default function EmployeeModal({ isOpen, onClose, employeeData, onSave })
                         <div className="flex justify-between items-center bg-gray-50/80 p-3 rounded-xl border border-gray-100">
                             <div>
                                 <h4 className="text-xs font-bold text-gray-800">Gestión de Mesas</h4>
-                                <p className="text-[10px] text-gray-400">Mapeo y distribucion de salones</p>
+                                <p className="text-[10px] text-gray-400">Mapeo y distribución de salones</p>
                             </div>
                             <button type="button" onClick={() => togglePermiso('gestionMesas')} className={`w-10 h-5 flex items-center rounded-full p-0.5 transition-colors duration-200 border-0 cursor-pointer ${permisos.gestionMesas ? 'bg-[#4CAF50]' : 'bg-gray-300'}`}>
                                 <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${permisos.gestionMesas ? 'translate-x-5' : 'translate-x-0'}`}></div>
@@ -122,7 +118,6 @@ export default function EmployeeModal({ isOpen, onClose, employeeData, onSave })
                         <button type="button" onClick={onClose} className="flex-1 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl transition-colors cursor-pointer border-0 text-xs">Cancelar</button>
                         <button type="submit" className="flex-1 py-2 bg-[#AF101A] hover:bg-red-800 text-white font-bold rounded-xl transition-colors cursor-pointer border-0 text-xs">Aplicar Cambios</button>
                     </div>
-
                 </form>
             </div>
         </div>
