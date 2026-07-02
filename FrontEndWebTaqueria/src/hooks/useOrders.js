@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+
+const API_URL = 'http://localhost:4000/api';
 
 export default function useOrders() {
     const [orders, setOrders] = useState([]);
@@ -10,8 +11,12 @@ export default function useOrders() {
         setLoading(true);
         try {
             // Le pega al router.route("/") del back por GET
-            const response = await axios.get("/api/carts"); 
-            setOrders(response.data);
+            const response = await fetch(`${API_URL}/carts`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            setOrders(data);
         } catch (err) {
             console.error("Error al jalar los pedidos:", err);
         } finally {
@@ -23,7 +28,18 @@ export default function useOrders() {
     const createOrder = async (orderData) => {
         try {
             // Cumple con idCustomer, details y status tal cual el schema
-            await axios.post("/api/carts", orderData);
+            const response = await fetch(`${API_URL}/carts`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(orderData),
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             await fetchOrders(); // Actualizo la lista al toque
             return { success: true };
         } catch (err) {
@@ -40,7 +56,18 @@ export default function useOrders() {
             else if (currentStatus === "ready") nextStatus = "delivered";
 
             // Le pega al router.route("/:id") por PUT
-            await axios.put(`/api/carts/${id}`, { status: nextStatus });
+            const response = await fetch(`${API_URL}/carts/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ status: nextStatus }),
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             await fetchOrders(); // Recargo para que cambie de pestaña en la interfaz
         } catch (err) {
             console.error("Error al cambiar el estado del pedido:", err);
@@ -51,7 +78,14 @@ export default function useOrders() {
     const deleteOrder = async (id) => {
         try {
             // Le pega al router.route("/:id") por DELETE
-            await axios.delete(`/api/carts/${id}`);
+            const response = await fetch(`${API_URL}/carts/${id}`, {
+                method: 'DELETE',
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             await fetchOrders(); // Limpio la pantalla al instante
             return { success: true };
         } catch (err) {

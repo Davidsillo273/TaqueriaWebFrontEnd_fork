@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-const API_URL = import.meta.env.VITE_API_BASE_URL || 'https://syscor.onrender.com/api';
+const API_URL = 'http://localhost:4000/api';
 
 export function useEmployees() {
     const [employees, setEmployees] = useState([]);

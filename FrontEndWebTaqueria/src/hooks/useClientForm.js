@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { useEffect, useState } from 'react';
 
-const API_URL = import.meta.env.VITE_API_BASE_URL || 'https://syscor.onrender.com/api';
+const API_URL = 'http://localhost:4000/api';
 
 export function useClientForm(onClose, editingClient, onSuccess) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -30,23 +30,46 @@ export function useClientForm(onClose, editingClient, onSuccess) {
     setSubmitError('');
 
     try {
+      // Validar que tengamos un ID válido para actualizar
+      if (!editingClient?._id && !editingClient?.id) {
+        throw new Error('ID de cliente no válido');
+      }
+
+      const clientId = editingClient._id || editingClient.id;
+      
       // Tu backend solo tiene método PUT para el ID
-      const response = await fetch(`${API_URL}/customers/${editingClient._id || editingClient.id}`, {
+      const response = await fetch(`${API_URL}/customers/${clientId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(data), // Envía { name, lastname } directo en la raíz
       });
 
-      const resData = await response.json();
-
-      if (!response.ok) {
-        throw new Error(resData.message || 'Error al actualizar el cliente');
+      // Intentamos parsear la respuesta como JSON
+      let resData;
+      try {
+        resData = await response.json();
+      } catch (parseError) {
+        // Si no es JSON válido, creamos un objeto con el texto
+        const textResponse = await response.text();
+        resData = { message: textResponse || 'Respuesta del servidor' };
       }
 
-      await onSuccess(); 
-      onClose(); 
+      if (!response.ok) {
+        throw new Error(resData.message || `Error ${response.status}: ${response.statusText}`);
+      }
+
+      // Verificar que la actualización fue exitosa
+      if (onSuccess) {
+        await onSuccess();
+      }
+      
+      if (onClose) {
+        onClose();
+      }
     } catch (err) {
-      console.error(err);
+      console.error('Error en onSubmitClient:', err);
       setSubmitError(err.message || 'Error de conexión con el servidor');
     } finally {
       setIsSubmitting(false);

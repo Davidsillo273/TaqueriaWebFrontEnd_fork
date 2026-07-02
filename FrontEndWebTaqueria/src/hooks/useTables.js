@@ -1,71 +1,141 @@
-import { useState, useEffect } from "react";
-import axios from "axios"; // Traemos axios para pegarle al backend
+import { useState, useEffect, useCallback } from "react";
+
+const API_URL = 'http://localhost:4000/api';
 
 export default function useTables() {
-    const [tables, setTables] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+  const [tables, setTables] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-    // Función para jalar todas las mesas de la base de datos
-    const fetchTables = async () => {
-        setLoading(true);
-        try {
-            const response = await axios.get("/api/tables");
-            setTables(response.data);
-            setError(null);
-        } catch (err) {
-            console.error("Error jalando las mesas:", err);
-            setError(err.response?.data?.message || "Error al cargar las mesas");
-        } finally {
-            setLoading(false);
+  // Obtener todas las mesas
+  const fetchTables = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(`${API_URL}/tables`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         }
-    };
+      });
 
-    // Para guardar una mesa nuevita
-    const createTable = async (tableData) => {
-        try {
-            const response = await axios.post("/api/tables", tableData);
-            await fetchTables(); // Recargamos para ver los cambios en vivo
-            return { success: true, message: response.data.message };
-        } catch (err) {
-            return { success: false, message: err.response?.data?.message || "Error al crear la mesa" };
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const tablesArray = Array.isArray(data) ? data : [];
+      setTables(tablesArray);
+      
+    } catch (err) {
+      console.error("Error cargando mesas:", err);
+      setError(err.message || "Error al cargar las mesas");
+      setTables([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Crear nueva mesa
+  const createTable = useCallback(async (tableData) => {
+    try {
+      const response = await fetch(`${API_URL}/tables`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          number: Number(tableData.number),
+          status: tableData.status || 'Disponible'
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al crear mesa');
+      }
+
+      await fetchTables();
+      return { success: true, message: 'Mesa creada exitosamente' };
+      
+    } catch (err) {
+      console.error("Error creando mesa:", err);
+      return { success: false, message: err.message };
+    }
+  }, [fetchTables]);
+
+  // Actualizar mesa
+  const updateTable = useCallback(async (id, tableData) => {
+    try {
+      const response = await fetch(`${API_URL}/tables/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          number: Number(tableData.number),
+          status: tableData.status
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al actualizar mesa');
+      }
+
+      await fetchTables();
+      return { success: true, message: 'Mesa actualizada exitosamente' };
+      
+    } catch (err) {
+      console.error("Error actualizando mesa:", err);
+      return { success: false, message: err.message };
+    }
+  }, [fetchTables]);
+
+  // Eliminar mesa
+  const deleteTable = useCallback(async (id) => {
+    try {
+      const response = await fetch(`${API_URL}/tables/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         }
-    };
+      });
 
-    // Para actualizar el número o cambiarle el estado a la mesa
-    const updateTable = async (id, tableData) => {
-        try {
-            const response = await axios.put(`/api/tables/${id}`, tableData);
-            await fetchTables(); // Recargamos la lista
-            return { success: true, message: response.data.message };
-        } catch (err) {
-            return { success: false, message: err.response?.data?.message || "Error al actualizar" };
-        }
-    };
+      const data = await response.json();
 
-    // Por si queremos borrar una mesa que ya no ocupemos
-    const deleteTable = async (id) => {
-        try {
-            const response = await axios.delete(`/api/tables/${id}`);
-            await fetchTables(); // Recargamos la lista
-            return { success: true, message: response.data.message };
-        } catch (err) {
-            return { success: false, message: err.response?.data?.message || "Error al eliminar" };
-        }
-    };
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al eliminar mesa');
+      }
 
-    // Se ejecuta solito en cuanto carga la pantalla para traer los datos reales
-    useEffect(() => {
-        fetchTables();
-    }, []);
+      await fetchTables();
+      return { success: true, message: 'Mesa eliminada exitosamente' };
+      
+    } catch (err) {
+      console.error("Error eliminando mesa:", err);
+      return { success: false, message: err.message };
+    }
+  }, [fetchTables]);
 
-    return {
-        tables,
-        loading,
-        error,
-        fetchTables,
-        createTable,
-        updateTable,
-        deleteTable
-    };
+  // Cargar mesas al montar el componente
+  useEffect(() => {
+    fetchTables();
+  }, [fetchTables]);
+
+  return {
+    tables,
+    loading,
+    error,
+    fetchTables,
+    createTable,
+    updateTable,
+    deleteTable
+  };
 }
