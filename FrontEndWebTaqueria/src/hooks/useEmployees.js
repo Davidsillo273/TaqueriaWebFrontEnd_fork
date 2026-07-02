@@ -1,0 +1,53 @@
+import { useState, useEffect } from 'react';
+
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'https://syscor.onrender.com/api';
+
+export function useEmployees() {
+    const [employees, setEmployees] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+
+    const fetchEmployees = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch(`${API_URL}/employees`);
+            if (!res.ok) throw new Error('Error al obtener la lista de empleados');
+            const data = await res.json();
+            setEmployees(data);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
+    const updateEmployee = async (id, updatedData) => {
+        setLoading(true);
+        try {
+            const res = await fetch(`${API_URL}/employees/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedData),
+            });
+
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.message || 'Error al actualizar los datos del empleado');
+            }
+            await fetchEmployees();
+            return true;
+        } catch (err) {
+            setError(err.message);
+            return false;
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchEmployees();
+    }, []);
+
+    return { employees, loading, error, updateEmployee };
+}
