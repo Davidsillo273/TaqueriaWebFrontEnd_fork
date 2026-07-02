@@ -1,61 +1,64 @@
 import { useForm } from 'react-hook-form';
+import { useEffect, useState } from 'react';
 
-// Este gancho (hook) maneja toda la data del formulario de clientes
-export const useClientForm = (onClose) => {
-  
-  // Sacamos los métodos de react-hook-form para validar sin dar tanta vuelta
-  const {
-    register,          // Para amarrar los inputs del HTML
-    handleSubmit,      // El que revisa que todo esté lleno antes de activar el submit
-    formState: { errors }, // El saquito donde caen los errores si meten la pata
-    reset              // Para vaciar las cajas después de guardar
-  } = useForm({
-    // Estructura idéntica al objeto de Miro y la base de datos
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'https://syscor.onrender.com/api';
+
+export function useClientForm(onClose, editingClient, onSuccess) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  const { register, handleSubmit, formState: { errors }, reset } = useForm({
     defaultValues: {
-      personalInfo: {
-        name: '',
-        lastname: '',
-        image: '',
-        birthdate: '',
-        addresses: [
-          { tag: 'Casa', details: '', isDefault: true } // Dirección base
-        ],
-        phones: { main: '' },
-        card: ''
-      },
-      loginInfo: {
-        email: '',
-        password: 'PasswordDefecto123!', // Contraseña temporal por obligación del modelo
-        isVerified: true,
-        loginAttempts: 0,
-        timeOut: null
-      },
-      favorites: []
+      name: '',
+      lastname: ''
     }
   });
 
-  // Esto corre solo si la validación pasa limpia
-  const onSubmitClient = (data) => {
+  useEffect(() => {
+    if (editingClient) {
+      reset({
+        name: editingClient.personalInfo?.name || '',
+        lastname: editingClient.personalInfo?.lastname || ''
+      });
+    } else {
+      reset({ name: '', lastname: '' });
+    }
+  }, [editingClient, reset]);
+
+  const onSubmitClient = async (data) => {
+    setIsSubmitting(true);
+    setSubmitError('');
+
     try {
-      // Mandamos la info estructurada a la consola para probar antes de meter Axios
-      console.log('Objeto estructurado para Mongo:', data);
-      
-      // Alerta para avisar que sí funcionó 
-      alert(`Cliente ${data.personalInfo.name} registrado con éxito`);
-      
-      reset();   // Limpiamos todo
-      onClose(); // Cerramos la ventana flotante
-    } catch (error) {
-      console.error('Tronó al guardar:', error);
-      alert('Error raro al guardar el cliente');
+      // Tu backend solo tiene método PUT para el ID
+      const response = await fetch(`${API_URL}/customers/${editingClient._id || editingClient.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data), // Envía { name, lastname } directo en la raíz
+      });
+
+      const resData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(resData.message || 'Error al actualizar el cliente');
+      }
+
+      await onSuccess(); 
+      onClose(); 
+    } catch (err) {
+      console.error(err);
+      setSubmitError(err.message || 'Error de conexión con el servidor');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // Soltamos las funciones para que el modal las agarre
   return {
     register,
     handleSubmit,
     errors,
-    onSubmitClient
+    onSubmitClient,
+    isSubmitting,
+    submitError
   };
-};
+}
