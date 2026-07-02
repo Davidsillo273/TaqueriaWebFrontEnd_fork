@@ -8,9 +8,8 @@ export default function useClients() {
   const [error, setError] = useState('');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingClient, setEditingClient] = useState(null); // null = Crear, objeto = Editar
+  const [editingClient, setEditingClient] = useState(null);
 
-  // --- OBTENER CLIENTES (READ) ---
   const fetchClients = async () => {
     setIsLoading(true);
     setError('');
@@ -22,7 +21,6 @@ export default function useClients() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Error al obtener clientes');
       
-      // Manejar si viene directo el arreglo o envuelto en un objeto
       setClients(Array.isArray(data) ? data : data.customers || []);
     } catch (err) {
       console.error(err);
@@ -36,11 +34,6 @@ export default function useClients() {
     fetchClients();
   }, []);
 
-  const handleOpenCreate = () => {
-    setEditingClient(null);
-    setIsModalOpen(true);
-  };
-
   const handleOpenEdit = (client) => {
     setEditingClient(client);
     setIsModalOpen(true);
@@ -51,41 +44,14 @@ export default function useClients() {
     setEditingClient(null);
   };
 
-  // --- ELIMINAR CLIENTE (DELETE) ---
-  const handleDelete = async (id) => {
-    if (!window.confirm('¿Seguro que querés eliminar este cliente, maje?')) return;
-
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${API_URL}/customers/${id}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Error al eliminar');
-      }
-
-      await fetchClients();
-    } catch (err) {
-      console.error(err);
-      alert(err.message || 'No se pudo eliminar el registro');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return {
     clients,
     isLoading,
     error,
     isModalOpen,
     editingClient,
-    handleOpenCreate,
     handleOpenEdit,
     handleCloseModal,
-    handleDelete,
-    fetchClients, // Se lo pasaremos al modal para refrescar al guardar
+    fetchClients,
   };
 }

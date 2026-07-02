@@ -1,4 +1,3 @@
-// src/hooks/useClientForm.js
 import { useForm } from 'react-hook-form';
 import { useEffect, useState } from 'react';
 
@@ -10,74 +9,45 @@ export function useClientForm(onClose, editingClient, onSuccess) {
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm({
     defaultValues: {
-      personalInfo: {
-        name: '', lastname: '', birthdate: '', card: '',
-        phones: { main: '' },
-        addresses: [{ details: '' }]
-      },
-      loginInfo: { email: '', password: 'PasswordDefault123*' } // Contraseña genérica por si la pide el backend
+      name: '',
+      lastname: ''
     }
   });
 
-  // Si se va a editar un cliente, rellenamos el formulario con sus datos existentes
   useEffect(() => {
     if (editingClient) {
       reset({
-        personalInfo: {
-          name: editingClient.personalInfo?.name || '',
-          lastname: editingClient.personalInfo?.lastname || '',
-          birthdate: editingClient.personalInfo?.birthdate ? editingClient.personalInfo.birthdate.substring(0, 10) : '',
-          card: editingClient.personalInfo?.card || '',
-          phones: {
-            main: editingClient.personalInfo?.phones?.main || ''
-          },
-          addresses: [
-            { details: editingClient.personalInfo?.addresses?.[0]?.details || '' }
-          ]
-        },
-        loginInfo: {
-          email: editingClient.loginInfo?.email || '',
-          password: 'PasswordDefault123*'
-        }
+        name: editingClient.personalInfo?.name || '',
+        lastname: editingClient.personalInfo?.lastname || ''
       });
     } else {
-      reset({
-        personalInfo: { name: '', lastname: '', birthdate: '', card: '', phones: { main: '' }, addresses: [{ details: '' }] },
-        loginInfo: { email: '', password: 'PasswordDefault123*' }
-      });
+      reset({ name: '', lastname: '' });
     }
   }, [editingClient, reset]);
 
-  // --- GUARDAR (POST O PUT) ---
   const onSubmitClient = async (data) => {
     setIsSubmitting(true);
     setSubmitError('');
 
-    const isEdit = !!editingClient;
-    const url = isEdit 
-      ? `${API_URL}/customers/${editingClient._id || editingClient.id}`
-      : `${API_URL}/customers`;
-    
-    const method = isEdit ? 'PUT' : 'POST';
-
     try {
-      const response = await fetch(url, {
-        method,
+      // Tu backend solo tiene método PUT para el ID
+      const response = await fetch(`${API_URL}/customers/${editingClient._id || editingClient.id}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(data), // Envía { name, lastname } directo en la raíz
       });
 
       const resData = await response.json();
 
       if (!response.ok) {
-        throw new Error(resData.message || 'Error al procesar la solicitud');
+        throw new Error(resData.message || 'Error al actualizar el cliente');
       }
 
-      await onSuccess(); // Refresca la tabla
-      onClose(); // Cierra el modal
+      await onSuccess(); 
+      onClose(); 
     } catch (err) {
       console.error(err);
-      setSubmitError(err.message || 'Error al guardar en el servidor');
+      setSubmitError(err.message || 'Error de conexión con el servidor');
     } finally {
       setIsSubmitting(false);
     }
