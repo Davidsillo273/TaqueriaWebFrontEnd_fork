@@ -10,7 +10,7 @@ export default function Inventory() {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [selectedInsumo, setSelectedInsumo] = useState(null)
 
-    const { insumos = [], loading, deleteInsumo, saveInsumo } = useInventory()
+    const { insumos = [], loading, error, deleteInsumo, saveInsumo } = useInventory()
 
     const totalItems = insumos.length
     const alertasStock = insumos.filter(item => Number(item.quantity || 0) <= 10).length
@@ -68,6 +68,12 @@ export default function Inventory() {
                         </div>
                     </div>
 
+                    {error && (
+                        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl mb-6 text-sm font-semibold flex items-center gap-2">
+                            <FAIcon icon="exclamation-circle" /> {error}
+                        </div>
+                    )}
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                         <div className="bg-white p-5 rounded-xl border-l-4 border-l-[#AF101A] border-y-gray-200 border-r-gray-200 shadow-sm flex items-center justify-between">
                             <div className="flex items-center gap-4">
@@ -108,7 +114,7 @@ export default function Inventory() {
                         </div>
 
                         <div className="overflow-x-auto">
-                            {loading ? (
+                            {loading && insumos.length === 0 ? (
                                 <div className="p-8 text-center text-gray-400 text-sm">Cargando insumos...</div>
                             ) : insumos.length === 0 ? (
                                 <div className="p-8 text-center text-gray-400 text-sm">No hay insumos en el inventario. ¡Agrega uno nuevo!</div>

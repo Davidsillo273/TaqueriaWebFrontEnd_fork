@@ -8,14 +8,16 @@ export default function InventoryModal({ isOpen, onClose, insumoData, onSave }) 
     const [type, setType] = useState('Carnes')
     const [quantity, setQuantity] = useState('')
     const [status, setStatus] = useState('Disponible')
+    const [localError, setLocalError] = useState('')
 
     useEffect(() => {
+        setLocalError('');
         if (insumoData) {
             setName(insumoData.name || '')
-            setPrice(insumoData.price || '')
+            setPrice(insumoData.price !== undefined ? insumoData.price : '')
             setUbication(insumoData.ubication || '')
             setType(insumoData.type || 'Carnes')
-            setQuantity(insumoData.quantity || '')
+            setQuantity(insumoData.quantity !== undefined ? insumoData.quantity : '')
             setStatus(insumoData.status || 'Disponible')
         } else {
             setName('')
@@ -31,18 +33,33 @@ export default function InventoryModal({ isOpen, onClose, insumoData, onSave }) 
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        
+        setLocalError('')
+
+        // Validación frontend preventiva alineada al backend
+        if (name.trim().length < 3) {
+            setLocalError('El nombre debe tener al menos 3 caracteres.');
+            return;
+        }
+        if (!ubication.trim()) {
+            setLocalError('La ubicación es requerida por el sistema.');
+            return;
+        }
+
         const payload = { 
-            name, 
+            name: name.trim(), 
             price: Number(price), 
-            ubication, 
+            ubication: ubication.trim(), 
             type, 
             quantity: Number(quantity),
             status
         }
         
-        const success = await onSave(payload, insumoData?._id || insumoData?.id)
-        if (success) onClose()
+        const result = await onSave(payload, insumoData?._id || insumoData?.id)
+        if (result.success) {
+            onClose()
+        } else {
+            setLocalError(result.message || 'Error al guardar el insumo')
+        }
     }
 
     return (
@@ -57,6 +74,13 @@ export default function InventoryModal({ isOpen, onClose, insumoData, onSave }) 
                 </div>
 
                 <div className="p-6 flex flex-col gap-4">
+                    
+                    {localError && (
+                        <div className="bg-red-50 text-red-600 text-xs font-semibold p-2.5 rounded-lg border border-red-100 text-center">
+                            {localError}
+                        </div>
+                    )}
+
                     <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-bold text-gray-700">Nombre del Insumo</label>
                         <input 
@@ -75,22 +99,24 @@ export default function InventoryModal({ isOpen, onClose, insumoData, onSave }) 
                             <input 
                                 type="number" 
                                 step="0.01"
+                                min="0"
                                 required
                                 value={price}
                                 onChange={(e) => setPrice(e.target.value)}
                                 placeholder="0.00" 
-                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white text-gray-800 focus:outline-none"
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white text-gray-800 focus:outline-none focus:border-[#AF101A]"
                             />
                         </div>
                         <div className="flex flex-col gap-1.5">
                             <label className="text-xs font-bold text-gray-700">Cantidad</label>
                             <input 
                                 type="number" 
+                                min="0"
                                 required
                                 value={quantity}
                                 onChange={(e) => setQuantity(e.target.value)}
                                 placeholder="0" 
-                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white text-gray-800 focus:outline-none"
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white text-gray-800 focus:outline-none focus:border-[#AF101A]"
                             />
                         </div>
                     </div>
@@ -99,10 +125,11 @@ export default function InventoryModal({ isOpen, onClose, insumoData, onSave }) 
                         <label className="text-xs font-bold text-gray-700">Ubicación</label>
                         <input 
                             type="text" 
+                            required
                             value={ubication}
                             onChange={(e) => setUbication(e.target.value)}
                             placeholder="Estante A - Nevera 2" 
-                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white text-gray-800 focus:outline-none"
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white text-gray-800 focus:outline-none focus:border-[#AF101A]"
                         />
                     </div>
 
@@ -112,13 +139,13 @@ export default function InventoryModal({ isOpen, onClose, insumoData, onSave }) 
                             <select 
                                 value={type}
                                 onChange={(e) => setType(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white text-gray-700 focus:outline-none"
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white text-gray-700 focus:outline-none focus:border-[#AF101A]"
                             >
-                                <option>Carnes</option>
-                                <option>Verduras</option>
-                                <option>Lácteos</option>
-                                <option>Panadería</option>
-                                <option>Desechables</option>
+                                <option value="Carnes">Carnes</option>
+                                <option value="Verduras">Verduras</option>
+                                <option value="Lácteos">Lácteos</option>
+                                <option value="Panadería">Panadería</option>
+                                <option value="Desechables">Desechables</option>
                             </select>
                         </div>
 
@@ -127,11 +154,11 @@ export default function InventoryModal({ isOpen, onClose, insumoData, onSave }) 
                             <select 
                                 value={status}
                                 onChange={(e) => setStatus(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white text-gray-700 focus:outline-none"
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white text-gray-700 focus:outline-none focus:border-[#AF101A]"
                             >
-                                <option>Disponible</option>
-                                <option>Agotado</option>
-                                <option>En Pedido</option>
+                                <option value="Disponible">Disponible</option>
+                                <option value="Agotado">Agotado</option>
+                                <option value="En Pedido">En Pedido</option>
                             </select>
                         </div>
                     </div>
