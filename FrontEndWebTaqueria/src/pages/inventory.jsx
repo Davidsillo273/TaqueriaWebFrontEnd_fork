@@ -12,16 +12,24 @@ export default function Inventory() {
 
     const { insumos = [], loading, deleteInsumo, saveInsumo } = useInventory()
 
-    // KPIs Reales basados en el  Miro
     const totalItems = insumos.length
     const alertasStock = insumos.filter(item => Number(item.quantity || 0) <= 10).length
     const valorEstimado = insumos.reduce((acc, item) => acc + (Number(item.price || 0) * Number(item.quantity || 0)), 0)
 
-    const getStockBadge = (qty) => {
+    const getStatusBadge = (status, qty) => {
         const cant = Number(qty || 0);
-        if (cant === 0) return { text: 'OUT OF STOCK', className: 'bg-red-50 text-red-600 text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 w-max' }
-        if (cant <= 10) return { text: 'LOW STOCK', className: 'bg-amber-50 text-amber-600 text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 w-max' }
-        return { text: 'IN STOCK', className: 'bg-green-50 text-green-600 text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 w-max' }
+        const currentStatus = String(status || '').toLowerCase();
+
+        if (currentStatus === 'agotado' || cant === 0) {
+            return { text: 'AGOTADO', className: 'bg-red-50 text-red-600 text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 w-max' }
+        }
+        if (currentStatus === 'en pedido') {
+            return { text: 'EN PEDIDO', className: 'bg-blue-50 text-blue-600 text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 w-max' }
+        }
+        if (cant <= 10) {
+            return { text: 'LOW STOCK', className: 'bg-amber-50 text-amber-600 text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 w-max' }
+        }
+        return { text: 'DISPONIBLE', className: 'bg-green-50 text-green-600 text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 w-max' }
     }
 
     const handleEdit = (insumo) => {
@@ -119,7 +127,7 @@ export default function Inventory() {
                                     </thead>
                                     <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
                                         {insumos.map((item) => {
-                                            const badge = getStockBadge(item.quantity);
+                                            const badge = getStatusBadge(item.status, item.quantity);
                                             return (
                                                 <tr key={item._id || item.id} className="hover:bg-gray-50/40 transition-colors">
                                                     <td className="p-4 pl-6 flex items-center gap-3 font-bold text-gray-900">

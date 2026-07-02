@@ -7,6 +7,7 @@ export default function InventoryModal({ isOpen, onClose, insumoData, onSave }) 
     const [ubication, setUbication] = useState('')
     const [type, setType] = useState('Carnes')
     const [quantity, setQuantity] = useState('')
+    const [status, setStatus] = useState('Disponible')
 
     useEffect(() => {
         if (insumoData) {
@@ -15,12 +16,14 @@ export default function InventoryModal({ isOpen, onClose, insumoData, onSave }) 
             setUbication(insumoData.ubication || '')
             setType(insumoData.type || 'Carnes')
             setQuantity(insumoData.quantity || '')
+            setStatus(insumoData.status || 'Disponible')
         } else {
             setName('')
             setPrice('')
             setUbication('')
             setType('Carnes')
             setQuantity('')
+            setStatus('Disponible')
         }
     }, [insumoData, isOpen])
 
@@ -28,12 +31,14 @@ export default function InventoryModal({ isOpen, onClose, insumoData, onSave }) 
 
     const handleSubmit = async (e) => {
         e.preventDefault()
+        
         const payload = { 
             name, 
             price: Number(price), 
             ubication, 
             type, 
-            quantity: Number(quantity) 
+            quantity: Number(quantity),
+            status
         }
         
         const success = await onSave(payload, insumoData?._id || insumoData?.id)
@@ -53,7 +58,7 @@ export default function InventoryModal({ isOpen, onClose, insumoData, onSave }) 
 
                 <div className="p-6 flex flex-col gap-4">
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-gray-700">Nombre del Insumo (`name`)</label>
+                        <label className="text-xs font-bold text-gray-700">Nombre del Insumo</label>
                         <input 
                             type="text" 
                             required
@@ -66,7 +71,7 @@ export default function InventoryModal({ isOpen, onClose, insumoData, onSave }) 
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-bold text-gray-700">Precio (`price`)</label>
+                            <label className="text-xs font-bold text-gray-700">Precio</label>
                             <input 
                                 type="number" 
                                 step="0.01"
@@ -78,7 +83,7 @@ export default function InventoryModal({ isOpen, onClose, insumoData, onSave }) 
                             />
                         </div>
                         <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-bold text-gray-700">Cantidad (`quantity`)</label>
+                            <label className="text-xs font-bold text-gray-700">Cantidad</label>
                             <input 
                                 type="number" 
                                 required
@@ -91,7 +96,7 @@ export default function InventoryModal({ isOpen, onClose, insumoData, onSave }) 
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-gray-700">Ubicación (`ubication`)</label>
+                        <label className="text-xs font-bold text-gray-700">Ubicación</label>
                         <input 
                             type="text" 
                             value={ubication}
@@ -101,19 +106,34 @@ export default function InventoryModal({ isOpen, onClose, insumoData, onSave }) 
                         />
                     </div>
 
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-gray-700">Tipo/Categoría (`type`)</label>
-                        <select 
-                            value={type}
-                            onChange={(e) => setType(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white text-gray-700 focus:outline-none"
-                        >
-                            <option>Carnes</option>
-                            <option>Verduras</option>
-                            <option>Lácteos</option>
-                            <option>Panadería</option>
-                            <option>Desechables</option>
-                        </select>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-bold text-gray-700">Tipo/Categoría</label>
+                            <select 
+                                value={type}
+                                onChange={(e) => setType(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white text-gray-700 focus:outline-none"
+                            >
+                                <option>Carnes</option>
+                                <option>Verduras</option>
+                                <option>Lácteos</option>
+                                <option>Panadería</option>
+                                <option>Desechables</option>
+                            </select>
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-bold text-gray-700">Estado del Insumo</label>
+                            <select 
+                                value={status}
+                                onChange={(e) => setStatus(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white text-gray-700 focus:outline-none"
+                            >
+                                <option>Disponible</option>
+                                <option>Agotado</option>
+                                <option>En Pedido</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div className="flex gap-3 mt-4">
