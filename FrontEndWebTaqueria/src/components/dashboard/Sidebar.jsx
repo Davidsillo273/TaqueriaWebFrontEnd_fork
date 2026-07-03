@@ -1,9 +1,12 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import FAIcon from '../commons/FAIcon'
+import { useLogout } from '../../hooks/auth/useLogout'
 
 // Sidebar con navegación del dashboard
 const Sidebar = ({ activeMenu }) => {
+	const { logout, loading } = useLogout()
+
 	const menuItems = [
 		{ id: 'activity', label: 'Actividad', icon: 'chart-line', path: '/dashboard' },
 		{ id: 'orders', label: 'Combos', icon: 'shopping-bag', path: '/combos' },
@@ -18,6 +21,12 @@ const Sidebar = ({ activeMenu }) => {
 		{ id: 'invite-staff', label: 'Invitar staff', icon: 'users', path: '/InviteStaff' },
 
 	]
+
+	const handleLogout = async (e) => {
+		e.preventDefault()
+		if (loading) return
+		await logout()
+	}
 
 	return (
 		<aside className="w-56 bg-white border-r border-gray-200 h-screen sticky top-0 overflow-y-auto">
@@ -49,13 +58,15 @@ const Sidebar = ({ activeMenu }) => {
 			</nav>
 
 			<div className="absolute bottom-6 left-4 right-4">
-				<Link
-					to="/"
-					className="flex items-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors text-sm"
+				<button
+					type="button"
+					onClick={handleLogout}
+					disabled={loading}
+					className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors text-sm disabled:opacity-60 disabled:cursor-not-allowed"
 				>
 					<FAIcon icon="sign-out-alt" />
-					<span>Cerrar sesión</span>
-				</Link>
+					<span>{loading ? 'Cerrando sesión...' : 'Cerrar sesión'}</span>
+				</button>
 			</div>
 		</aside>
 	)

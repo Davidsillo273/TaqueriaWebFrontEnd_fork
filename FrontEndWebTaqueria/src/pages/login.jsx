@@ -119,7 +119,7 @@ export default function Login() {
           </form>
 
           <p className="mt-6 text-xs text-gray-400 text-center">
-            © 2024 Taquería El Corral Admin Portal.
+            © 2026 Taquería El Corral Admin Portal.
           </p>
         </AuthCard>
       </div>
@@ -205,7 +205,7 @@ export default function Login() {
         </form>
 
         <p className="mt-6 text-xs text-gray-400 text-center">
-          © 2024 Taquería El Corral Admin Portal.
+          © 2026 Taquería El Corral Admin Portal.
         </p>
       </AuthCard>
     </div>

@@ -2,10 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 // Detectar si estamos en desarrollo (localhost)
-const IS_DEV = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const API_URL = IS_DEV 
-  ? '/api' 
-  : (import.meta.env?.VITE_API_BASE_URL || 'https://syscor.onrender.com/api');
+const API_URL = 'http://localhost:4000/api';
 
 // Mapeo de roles a endpoints de login
 const LOGIN_ENDPOINTS = {

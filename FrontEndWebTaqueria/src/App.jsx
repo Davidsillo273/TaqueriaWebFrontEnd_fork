@@ -1,5 +1,7 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { AuthProvider } from './context/authContext'
+import ProtectedRoute from './components/auth/protectedRoute'
 import Login from './pages/login'
 import Recovery from './pages/recovery'
 import VerifyCode from './pages/verifyCode'
@@ -20,26 +22,28 @@ import AcceptInvitation from './pages/acceptInvitation'
 export default function App() {
 	return (
 		<BrowserRouter>
-			<Routes>
-				<Route path="/" element={<Login />} />
-				<Route path="/recovery" element={<Recovery />} />
-				<Route path="/verify-code" element={<VerifyCode />} />
-				<Route path="/dashboard" element={<Dashboard />} />
-				<Route path="/combos" element={<ComboManagement />} />
-				<Route path="/drinks" element={<Drinks />} />
-				<Route path="/dishes" element={<Dishes />} />
-				<Route path="/clients" element={<ClientManagement />} />
-				<Route path="/extras" element={<Extras />} />
-				<Route path="/employees" element={<EmployeeManagement />} />
-				<Route path="/mesas" element={<Tables />} />
-				<Route path="/inventario" element={<Inventory />} />
-				<Route path="/pedidos" element={<Orders />} />
-				<Route path="/inviteStaff" element={<InviteStaff />} />
-				<Route path="/admin/accept-invitation" element={<AcceptInvitation />} />
+			<AuthProvider>
+				<Routes>
+					{/* Rutas públicas */}
+					<Route path="/" element={<Login />} />
+					<Route path="/recovery" element={<Recovery />} />
+					<Route path="/verify-code" element={<VerifyCode />} />
+					<Route path="/admin/accept-invitation" element={<AcceptInvitation />} />
 
-			
-			</Routes>
+					{/* Rutas privadas: requieren sesión iniciada */}
+					<Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+					<Route path="/combos" element={<ProtectedRoute><ComboManagement /></ProtectedRoute>} />
+					<Route path="/drinks" element={<ProtectedRoute><Drinks /></ProtectedRoute>} />
+					<Route path="/dishes" element={<ProtectedRoute><Dishes /></ProtectedRoute>} />
+					<Route path="/clients" element={<ProtectedRoute><ClientManagement /></ProtectedRoute>} />
+					<Route path="/extras" element={<ProtectedRoute><Extras /></ProtectedRoute>} />
+					<Route path="/employees" element={<ProtectedRoute><EmployeeManagement /></ProtectedRoute>} />
+					<Route path="/mesas" element={<ProtectedRoute><Tables /></ProtectedRoute>} />
+					<Route path="/inventario" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
+					<Route path="/pedidos" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+					<Route path="/InviteStaff" element={<ProtectedRoute><InviteStaff /></ProtectedRoute>} />
+				</Routes>
+			</AuthProvider>
 		</BrowserRouter>
 	)
 }
-
