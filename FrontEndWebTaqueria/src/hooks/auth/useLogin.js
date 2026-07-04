@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from './useAuth';
 
-// Detectar si estamos en desarrollo (localhost)
 const API_URL = 'http://localhost:4000/api';
 
-// Mapeo de roles a endpoints de login
 const LOGIN_ENDPOINTS = {
   admin: '/auth/admins/login',
   employee: '/auth/employees/login',
@@ -13,15 +12,14 @@ const LOGIN_ENDPOINTS = {
 
 export default function useLogin() {
   const navigate = useNavigate();
+  const { checkAuth } = useAuth();
 
-  // Estados del formulario de login
   const [form, setForm] = useState({
     email: '',
     password: '',
     role: 'admin',
   });
 
-  // Estados para recuperación de contraseña
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotStep, setForgotStep] = useState(1);
   const [forgotForm, setForgotForm] = useState({
@@ -34,23 +32,15 @@ export default function useLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Manejar cambios en el formulario de login
   const handleChange = (event) => {
     const { name, value } = event.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setForm((prev) => ({ ...prev, [name]: value }));
     if (error) setError('');
   };
 
-  // Manejar cambios en el formulario de recuperación
   const handleForgotChange = (event) => {
     const { name, value } = event.target;
-    setForgotForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setForgotForm((prev) => ({ ...prev, [name]: value }));
     if (error) setError('');
   };
 
@@ -85,15 +75,19 @@ export default function useLogin() {
         return;
       }
 
-      // Guardar usuario en localStorage
-      const userData = { 
-        email: form.email, 
-        role: form.role,
-        id: data.id || data._id,
-      };
-      localStorage.setItem('user', JSON.stringify(userData));
+      // Sincronizamos el AuthContext ANTES de navegar, para que cuando
+      // ProtectedRoute evalúe isAuthenticated ya tenga el usuario cargado
+      // y no te rebote de vuelta al login.
+      const currentUser = await checkAuth();
 
-      // Redirigir al dashboard
+      if (!currentUser) {
+        // La cookie se guardó pero /auth/me no pudo confirmar la sesión;
+        // esto normalmente indica un problema de configuración en el backend
+        // (ver checklist más abajo) en vez de un problema del formulario.
+        setError('Sesión iniciada pero no se pudo verificar. Intenta de nuevo.');
+        return;
+      }
+
       navigate('/dashboard');
     } catch (err) {
       console.error(err);

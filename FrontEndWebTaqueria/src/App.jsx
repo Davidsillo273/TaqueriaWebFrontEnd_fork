@@ -29,6 +29,9 @@ export default function App() {
 					<Route path="/recovery" element={<Recovery />} />
 					<Route path="/verify-code" element={<VerifyCode />} />
 					<Route path="/admin/accept-invitation" element={<AcceptInvitation />} />
+					<Route path="/employee/accept-invitation" element={<AcceptInvitation />} />
+
+
 
 					{/* Rutas privadas: requieren sesión iniciada */}
 					<Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
