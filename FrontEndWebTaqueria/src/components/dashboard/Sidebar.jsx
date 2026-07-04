@@ -1,33 +1,42 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import FAIcon from '../commons/FAIcon'
+import { useLogout } from '../../hooks/auth/useLogout'
 
 // Sidebar con navegación del dashboard
 const Sidebar = ({ activeMenu }) => {
+	const { logout, loading } = useLogout()
+
 	const menuItems = [
 		{ id: 'activity', label: 'Actividad', icon: 'chart-line', path: '/dashboard' },
 		{ id: 'orders', label: 'Combos', icon: 'shopping-bag', path: '/combos' },
 		{ id: 'drinks', label: 'Bebidas', icon: 'wine-glass', path: '/drinks' },
 		{ id: 'dishes', label: 'Platillo', icon: 'utensils', path: '/dishes' },
-		{ id: 'extras', label: 'Extras', icon: 'star', path: '#' },
-		{ id: 'inventory', label: 'Inventario', icon: 'box', path: '#' },
-		{ id: 'tables', label: 'Mesas', icon: 'chair', path: '#' },
-		{ id: 'clients', label: 'Clientes', icon: 'users', path: '#' },
-		{ id: 'staff', label: 'Empleados', icon: 'user-tie', path: '#' },
-		{ id: 'orders-list', label: 'Pedidos', icon: 'list', path: '#' },
+		{ id: 'extras', label: 'Extras', icon: 'star', path: '/extras' },
+		{ id: 'inventory', label: 'Inventario', icon: 'box', path: '/inventario' },
+		{ id: 'tables', label: 'Mesas', icon: 'chair', path: '/mesas' },
+		{ id: 'clients', label: 'Clientes', icon: 'users', path: '/clients' },
+		{ id: 'staff', label: 'Empleados', icon: 'user-tie', path: '/employees' },
+		{ id: 'orders-list', label: 'Pedidos', icon: 'list', path: '/pedidos' },
+		{ id: 'invite-staff', label: 'Invitar staff', icon: 'users', path: '/InviteStaff' },
+
 	]
+
+	const handleLogout = async (e) => {
+		e.preventDefault()
+		if (loading) return
+		await logout()
+	}
 
 	return (
 		<aside className="w-56 bg-white border-r border-gray-200 h-screen sticky top-0 overflow-y-auto">
 			<div className="p-6 border-b border-gray-200">
 				<div className="flex items-center gap-3">
-					<div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-sm font-bold">
-						EC
+					<div className="w-30 h-20 flex items-center justify-center">
+						<img src={"../public/logo.png"} className=" h-30 w-60" />
 					</div>
-					<div className="flex flex-col">
-						<h1 className="font-bold text-gray-900">El Corral Admin</h1>
-						<p className="text-xs text-gray-500">Administración</p>
-					</div>
+					
+					
 				</div>
 			</div>
 
@@ -49,13 +58,15 @@ const Sidebar = ({ activeMenu }) => {
 			</nav>
 
 			<div className="absolute bottom-6 left-4 right-4">
-				<Link
-					to="/"
-					className="flex items-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors text-sm"
+				<button
+					type="button"
+					onClick={handleLogout}
+					disabled={loading}
+					className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors text-sm disabled:opacity-60 disabled:cursor-not-allowed"
 				>
 					<FAIcon icon="sign-out-alt" />
-					<span>Cerrar sesión</span>
-				</Link>
+					<span>{loading ? 'Cerrando sesión...' : 'Cerrar sesión'}</span>
+				</button>
 			</div>
 		</aside>
 	)
