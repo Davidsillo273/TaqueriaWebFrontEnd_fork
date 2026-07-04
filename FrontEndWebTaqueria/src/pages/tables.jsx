@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Sidebar from '../components/dashboard/Sidebar';
 import TopBar from '../components/dashboard/TopBar';
 import FAIcon from '../components/commons/FAIcon';
@@ -6,6 +6,17 @@ import TableModal from '../components/tables/TableModal';
 import ConfirmModal from '../components/commons/ConfirmModal';
 import useTables from '../hooks/useTables';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
+// Mismos colores que ya usas en getBadgeClass / la leyenda de estados,
+// para que el gráfico no introduzca una paleta nueva
+const STATUS_COLORS = {
+  Disponible: '#22c55e',   // green-500
+  Sirviendo: '#dc2626',    // red-600
+  Ocupada: '#dc2626',      // red-600
+  Reservada: '#f97316',    // orange-500
+  'En Limpieza': '#9ca3af', // gray-400
+};
 
 function TablesContent() {
   const [activeMenu] = useState('tables');
@@ -23,6 +34,22 @@ function TablesContent() {
   const porcentajeOcupacion = totalMesas > 0 
     ? Math.round(((totalMesas - mesasLibres) / totalMesas) * 100) 
     : 0;
+
+  // Agrupa las mesas por estado para alimentar el gráfico de dona.
+  // Solo incluye estados que realmente tienen al menos una mesa,
+  // para no llenar la leyenda con ceros.
+  const chartData = useMemo(() => {
+    const counts = tables.reduce((acc, mesa) => {
+      acc[mesa.status] = (acc[mesa.status] || 0) + 1;
+      return acc;
+    }, {});
+
+    return Object.entries(counts).map(([status, count]) => ({
+      name: status,
+      value: count,
+      color: STATUS_COLORS[status] || '#9ca3af',
+    }));
+  }, [tables]);
 
   // Badges de estado
   const getBadgeClass = (estado) => {
@@ -110,25 +137,69 @@ function TablesContent() {
               <div className="flex justify-center items-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div><span className="ml-3 text-gray-600">Cargando mesas...</span></div>
             ) : (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-                  <div className="bg-white p-4 sm:p-6 rounded-xl border-l-4 border-l-red-600 shadow-sm">
-                    <div className="text-red-600 mb-2"><FAIcon icon="utensils" /></div>
-                    <span className="text-xs font-semibold text-gray-500 uppercase">Total Mesas</span>
-                    <span className="text-2xl sm:text-3xl font-bold text-gray-900 block mt-1">{totalMesas}</span>
-                  </div>
-                  <div className="bg-white p-4 sm:p-6 rounded-xl border-l-4 border-l-red-600 shadow-sm">
-                    <div className="text-red-600 mb-2"><FAIcon icon="percentage" /></div>
-                    <span className="text-xs font-semibold text-gray-500 uppercase">Ocupación</span>
-                    <span className="text-2xl sm:text-3xl font-bold text-gray-900 block my-1">{porcentajeOcupacion}%</span>
-                    <div className="w-full bg-gray-100 h-1.5 rounded-full mt-1 overflow-hidden">
-                      <div className="bg-red-600 h-full transition-all duration-300" style={{ width: `${porcentajeOcupacion}%` }} />
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+                  {/* Tarjetas de estadísticas: ahora ocupan 2/3 en pantallas grandes */}
+                  <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+                    <div className="bg-white p-4 sm:p-6 rounded-xl border-l-4 border-l-red-600 shadow-sm">
+                      <div className="text-red-600 mb-2"><FAIcon icon="utensils" /></div>
+                      <span className="text-xs font-semibold text-gray-500 uppercase">Total Mesas</span>
+                      <span className="text-2xl sm:text-3xl font-bold text-gray-900 block mt-1">{totalMesas}</span>
                     </div>
-                    <span className="text-right text-xs text-gray-500 mt-1 block">{totalMesas - mesasLibres} / {totalMesas}</span>
+                    <div className="bg-white p-4 sm:p-6 rounded-xl border-l-4 border-l-red-600 shadow-sm">
+                      <div className="text-red-600 mb-2"><FAIcon icon="percentage" /></div>
+                      <span className="text-xs font-semibold text-gray-500 uppercase">Ocupación</span>
+                      <span className="text-2xl sm:text-3xl font-bold text-gray-900 block my-1">{porcentajeOcupacion}%</span>
+                      <div className="w-full bg-gray-100 h-1.5 rounded-full mt-1 overflow-hidden">
+                        <div className="bg-red-600 h-full transition-all duration-300" style={{ width: `${porcentajeOcupacion}%` }} />
+                      </div>
+                      <span className="text-right text-xs text-gray-500 mt-1 block">{totalMesas - mesasLibres} / {totalMesas}</span>
+                    </div>
+                    <div className="bg-white p-4 sm:p-6 rounded-xl border-l-4 border-l-red-600 shadow-sm">
+                      <div className="text-green-500 mb-2"><FAIcon icon="check-circle" /></div>
+                      <span className="text-xs font-semibold text-gray-500 uppercase">Mesas Libres</span>
+                      <span className="text-2xl sm:text-3xl font-bold text-gray-900 block mt-1">{mesasLibres}</span>
+                    </div>
                   </div>
-                  <div className="bg-white p-4 sm:p-6 rounded-xl border-l-4 border-l-red-600 shadow-sm">
-                    <div className="text-green-500 mb-2"><FAIcon icon="check-circle" /></div>
-                    <span className="text-xs font-semibold text-gray-500 uppercase">Mesas Libres</span>
-                    <span className="text-2xl sm:text-3xl font-bold text-gray-900 block mt-1">{mesasLibres}</span>
+
+                  {/* Gráfico de distribución por estado */}
+                  <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+                    <span className="text-xs font-semibold text-gray-500 uppercase mb-2">Distribución de Mesas</span>
+                    {totalMesas === 0 ? (
+                      <div className="flex-1 flex items-center justify-center text-sm text-gray-400 py-8">
+                        Aún no hay mesas registradas
+                      </div>
+                    ) : (
+                      <div className="h-48">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={chartData}
+                              dataKey="value"
+                              nameKey="name"
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={45}
+                              outerRadius={70}
+                              paddingAngle={2}
+                            >
+                              {chartData.map((entry) => (
+                                <Cell key={entry.name} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <Tooltip
+                              formatter={(value, name) => [`${value} mesa${value === 1 ? '' : 's'}`, name]}
+                            />
+                            <Legend
+                              verticalAlign="bottom"
+                              height={36}
+                              iconType="circle"
+                              iconSize={8}
+                              wrapperStyle={{ fontSize: '11px' }}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
                   </div>
                 </div>
 
