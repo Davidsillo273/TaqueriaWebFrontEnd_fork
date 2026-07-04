@@ -1,11 +1,12 @@
-// pages/admin/InviteStaff.jsx
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Shield, Briefcase, CheckCircle2, XCircle, ChevronLeft } from 'lucide-react';
-import { useInvitation } from '../hooks/auth/useInvitation';
-import InputField from '../components/commons/inputField';
-import LoadingSpinner from '../components/commons/loadingSpinner';
-import dayReadyLogo from '../../public/logo.png';
+import React, { useState } from 'react'
+import Sidebar from '../components/dashboard/Sidebar'
+import TopBar from '../components/dashboard/TopBar'
+import FAIcon from '../components/commons/FAIcon'
+import InputField from '../components/commons/inputField'
+import LoadingSpinner from '../components/commons/loadingSpinner'
+import { useInvitation } from '../hooks/auth/useInvitation'
+import { ToastProvider, useToast } from '../components/commons/ToastProvider'
+import dayReadyLogo from '../../public/logo.png'
 
 const EMPLOYEE_TYPES = [
   'kitchen',
@@ -13,15 +14,13 @@ const EMPLOYEE_TYPES = [
   'Ayudante de cocina',
   'Bartender',
   'Encargado de local',
-];
+]
 
-// Cada rol define sus propios "sub-pasos" para no saturar la vista con
-// todos los campos de una sola vez. Cada sub-paso valida sólo sus campos
-// antes de dejar avanzar al siguiente.
+// Configuración de roles y pasos del formulario
 const ROLE_CONFIG = {
   admin: {
     label: 'Administrador',
-    icon: Shield,
+    icon: 'shield-alt',
     description: 'Acceso completo a la gestión del sistema',
     steps: [
       {
@@ -33,7 +32,7 @@ const ROLE_CONFIG = {
   },
   employee: {
     label: 'Empleado',
-    icon: Briefcase,
+    icon: 'briefcase',
     description: 'Acceso operativo con permisos específicos',
     steps: [
       {
@@ -53,7 +52,7 @@ const ROLE_CONFIG = {
       },
     ],
   },
-};
+}
 
 const INITIAL_FORM_DATA = {
   email: '',
@@ -68,90 +67,69 @@ const INITIAL_FORM_DATA = {
   rent: '',
   additionalPay: '',
   workInsurance: false,
-};
+}
 
-export default function InviteStaff() {
-  const navigate = useNavigate();
-  const [step, setStep] = useState(1); // 1: elegir rol · 2: formulario por partes · 3: éxito
-  const [subStep, setSubStep] = useState(0); // índice dentro de ROLE_CONFIG[role].steps
-  const [role, setRole] = useState(null);
-  const { loading, error, success, sendInvitation, reset } = useInvitation();
+function InviteStaffContent() {
+  const [step, setStep] = useState(1) // 1: elegir rol, 2: formulario, 3: éxito
+  const [subStep, setSubStep] = useState(0) // índice del paso actual
+  const [role, setRole] = useState(null)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  const [formData, setFormData] = useState(INITIAL_FORM_DATA);
-  const [validationErrors, setValidationErrors] = useState({});
+  const { loading, error, success, sendInvitation, reset } = useInvitation()
+  const { addToast } = useToast()
+
+  const [formData, setFormData] = useState(INITIAL_FORM_DATA)
+  const [validationErrors, setValidationErrors] = useState({})
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
-    if (validationErrors[name]) {
-      setValidationErrors((prev) => ({ ...prev, [name]: null }));
-    }
-  };
+    const { name, value, type, checked } = e.target
+    setFormData((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }))
+    if (validationErrors[name]) setValidationErrors((prev) => ({ ...prev, [name]: null }))
+  }
 
-  // Valida únicamente los campos del sub-paso actual, no todo el formulario
+  // Validación específica para los campos del sub‑paso actual
   const validateFields = (fields) => {
-    const errors = {};
-
+    const errors = {}
     if (fields.includes('email')) {
-      if (!formData.email.trim()) errors.email = 'El correo electrónico es requerido';
-      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-        errors.email = 'Correo electrónico inválido';
-      }
+      if (!formData.email.trim()) errors.email = 'El correo electrónico es requerido'
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errors.email = 'Correo electrónico inválido'
     }
-    if (fields.includes('name') && !formData.name.trim()) {
-      errors.name = 'El nombre es requerido';
-    }
-    if (fields.includes('lastname') && !formData.lastname.trim()) {
-      errors.lastname = 'El apellido es requerido';
-    }
-    if (fields.includes('phone') && !formData.phone.trim()) {
-      errors.phone = 'El teléfono es requerido';
-    }
-    if (fields.includes('DUI_NIT') && !formData.DUI_NIT.trim()) {
-      errors.DUI_NIT = 'El DUI/NIT es requerido';
-    }
-    if (fields.includes('address') && !formData.address.trim()) {
-      errors.address = 'La dirección es requerida';
-    }
-    if (fields.includes('type') && !formData.type) {
-      errors.type = 'El tipo de empleado es requerido';
-    }
+    if (fields.includes('name') && !formData.name.trim()) errors.name = 'El nombre es requerido'
+    if (fields.includes('lastname') && !formData.lastname.trim()) errors.lastname = 'El apellido es requerido'
+    if (fields.includes('phone') && !formData.phone.trim()) errors.phone = 'El teléfono es requerido'
+    if (fields.includes('DUI_NIT') && !formData.DUI_NIT.trim()) errors.DUI_NIT = 'El DUI/NIT es requerido'
+    if (fields.includes('address') && !formData.address.trim()) errors.address = 'La dirección es requerida'
+    if (fields.includes('type') && !formData.type) errors.type = 'El tipo de empleado es requerido'
     if (fields.includes('salary')) {
-      if (!formData.salary) errors.salary = 'El salario es requerido';
-      else if (isNaN(formData.salary)) errors.salary = 'El salario debe ser un número';
+      if (!formData.salary) errors.salary = 'El salario es requerido'
+      else if (isNaN(formData.salary)) errors.salary = 'El salario debe ser un número'
     }
-    if (fields.includes('AFP') && formData.AFP && isNaN(formData.AFP)) {
-      errors.AFP = 'AFP debe ser un número';
-    }
-    if (fields.includes('rent') && formData.rent && isNaN(formData.rent)) {
-      errors.rent = 'La renta debe ser un número';
-    }
-    if (fields.includes('additionalPay') && formData.additionalPay && isNaN(formData.additionalPay)) {
-      errors.additionalPay = 'El pago adicional debe ser un número';
-    }
+    if (fields.includes('AFP') && formData.AFP && isNaN(formData.AFP)) errors.AFP = 'AFP debe ser un número'
+    if (fields.includes('rent') && formData.rent && isNaN(formData.rent)) errors.rent = 'La renta debe ser un número'
+    if (fields.includes('additionalPay') && formData.additionalPay && isNaN(formData.additionalPay)) errors.additionalPay = 'El pago adicional debe ser un número'
 
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
+    setValidationErrors(errors)
+    return Object.keys(errors).length === 0
+  }
 
-  const currentStepsConfig = role ? ROLE_CONFIG[role].steps : [];
-  const isLastSubStep = subStep === currentStepsConfig.length - 1;
+  const currentStepsConfig = role ? ROLE_CONFIG[role].steps : []
+  const isLastSubStep = subStep === currentStepsConfig.length - 1
 
   const handleNext = async () => {
-    const currentFields = currentStepsConfig[subStep].fields;
-    if (!validateFields(currentFields)) return;
+    const currentFields = currentStepsConfig[subStep].fields
+    if (!validateFields(currentFields)) return
 
     if (!isLastSubStep) {
-      setSubStep((prev) => prev + 1);
-      return;
+      setSubStep((prev) => prev + 1)
+      return
     }
 
-    // Último sub-paso: arma el payload completo y envía la invitación
+    // Armar payload y enviar invitación
     const data = {
       email: formData.email.trim(),
       name: formData.name.trim(),
       lastname: formData.lastname.trim(),
-    };
+    }
 
     if (role === 'employee') {
       Object.assign(data, {
@@ -164,83 +142,83 @@ export default function InviteStaff() {
         rent: formData.rent ? Number(formData.rent) : 0,
         additionalPay: formData.additionalPay ? Number(formData.additionalPay) : 0,
         workInsurance: formData.workInsurance,
-      });
+      })
     }
 
-    const result = await sendInvitation(role, data);
+    const result = await sendInvitation(role, data)
     if (result.success) {
-      setStep(3);
+      setStep(3)
+      addToast('Invitación enviada correctamente', 'success')
+    } else {
+      addToast(error || 'Error al enviar la invitación', 'error')
     }
-  };
+  }
 
   const handleBack = () => {
     if (subStep > 0) {
-      setSubStep((prev) => prev - 1);
-      return;
+      setSubStep((prev) => prev - 1)
+      return
     }
-    // Estaba en el primer sub-paso: regresa a la selección de rol
-    setRole(null);
-    setStep(1);
-    reset();
-  };
+    setRole(null)
+    setStep(1)
+    reset()
+  }
 
   const handleSelectRole = (selectedRole) => {
-    setRole(selectedRole);
-    setStep(2);
-    setSubStep(0);
-    reset();
-  };
+    setRole(selectedRole)
+    setStep(2)
+    setSubStep(0)
+    reset()
+  }
 
   const handleInviteAnother = () => {
-    setFormData(INITIAL_FORM_DATA);
-    setValidationErrors({});
-    setRole(null);
-    setSubStep(0);
-    setStep(1);
-    reset();
-  };
+    setFormData(INITIAL_FORM_DATA)
+    setValidationErrors({})
+    setRole(null)
+    setSubStep(0)
+    setStep(1)
+    reset()
+  }
 
+  // Renderizado de la selección de rol
   const renderRoleSelection = () => (
     <div className="space-y-3">
-      {Object.entries(ROLE_CONFIG).map(([key, config]) => {
-        const Icon = config.icon;
-        return (
-          <button
-            key={key}
-            type="button"
-            onClick={() => handleSelectRole(key)}
-            className="w-full flex items-center space-x-4 p-4 border-2 border-gray-200 rounded-xl hover:border-red-400 hover:bg-red-50 transition-all text-left"
-          >
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-              <Icon className="w-6 h-6 text-red-500" />
-            </div>
-            <div>
-              <p className="font-semibold text-gray-900">{config.label}</p>
-              <p className="text-xs text-gray-500">{config.description}</p>
-            </div>
-          </button>
-        );
-      })}
+      {Object.entries(ROLE_CONFIG).map(([key, config]) => (
+        <button
+          key={key}
+          type="button"
+          onClick={() => handleSelectRole(key)}
+          className="w-full flex items-center gap-4 p-4 border-2 border-gray-200 rounded-xl hover:border-red-400 hover:bg-red-50 transition-all text-left"
+        >
+          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <FAIcon icon={config.icon} className="text-red-600 text-xl" />
+          </div>
+          <div>
+            <p className="font-semibold text-gray-900">{config.label}</p>
+            <p className="text-xs text-gray-500">{config.description}</p>
+          </div>
+        </button>
+      ))}
     </div>
-  );
+  )
 
-  // Indicador de progreso entre sub-pasos (solo se ve si hay más de uno)
   const renderProgressDots = () => {
-    if (currentStepsConfig.length <= 1) return null;
+    if (currentStepsConfig.length <= 1) return null
     return (
       <div className="flex items-center justify-center gap-2 mb-5">
         {currentStepsConfig.map((_, idx) => (
           <div
             key={idx}
             className={`h-1.5 rounded-full transition-all ${
-              idx === subStep ? 'w-8 bg-red-500' : idx < subStep ? 'w-4 bg-red-300' : 'w-4 bg-gray-200'
+              idx === subStep ? 'w-8 bg-red-600' : idx < subStep ? 'w-4 bg-red-300' : 'w-4 bg-gray-200'
             }`}
           />
         ))}
       </div>
-    );
-  };
+    )
+  }
 
+  // Renderiza un campo según su nombre
   const renderField = (fieldName) => {
     switch (fieldName) {
       case 'email':
@@ -256,7 +234,7 @@ export default function InviteStaff() {
             error={validationErrors.email}
             required
           />
-        );
+        )
       case 'name':
         return (
           <InputField
@@ -270,7 +248,7 @@ export default function InviteStaff() {
             error={validationErrors.name}
             required
           />
-        );
+        )
       case 'lastname':
         return (
           <InputField
@@ -284,7 +262,7 @@ export default function InviteStaff() {
             error={validationErrors.lastname}
             required
           />
-        );
+        )
       case 'phone':
         return (
           <InputField
@@ -298,7 +276,7 @@ export default function InviteStaff() {
             error={validationErrors.phone}
             required
           />
-        );
+        )
       case 'DUI_NIT':
         return (
           <InputField
@@ -312,7 +290,7 @@ export default function InviteStaff() {
             error={validationErrors.DUI_NIT}
             required
           />
-        );
+        )
       case 'address':
         return (
           <InputField
@@ -326,7 +304,7 @@ export default function InviteStaff() {
             error={validationErrors.address}
             required
           />
-        );
+        )
       case 'type':
         return (
           <div key={fieldName} className="mb-3">
@@ -346,11 +324,9 @@ export default function InviteStaff() {
                 </option>
               ))}
             </select>
-            {validationErrors.type && (
-              <p className="text-red-500 text-xs mt-1">{validationErrors.type}</p>
-            )}
+            {validationErrors.type && <p className="text-red-500 text-xs mt-1">{validationErrors.type}</p>}
           </div>
-        );
+        )
       case 'salary':
         return (
           <InputField
@@ -364,7 +340,7 @@ export default function InviteStaff() {
             error={validationErrors.salary}
             required
           />
-        );
+        )
       case 'AFP':
         return (
           <InputField
@@ -377,7 +353,7 @@ export default function InviteStaff() {
             onChange={handleChange}
             error={validationErrors.AFP}
           />
-        );
+        )
       case 'rent':
         return (
           <InputField
@@ -390,7 +366,7 @@ export default function InviteStaff() {
             onChange={handleChange}
             error={validationErrors.rent}
           />
-        );
+        )
       case 'additionalPay':
         return (
           <InputField
@@ -403,7 +379,7 @@ export default function InviteStaff() {
             onChange={handleChange}
             error={validationErrors.additionalPay}
           />
-        );
+        )
       case 'workInsurance':
         return (
           <label
@@ -415,33 +391,26 @@ export default function InviteStaff() {
               name="workInsurance"
               checked={formData.workInsurance}
               onChange={handleChange}
-              className="w-4 h-4 accent-red-500"
+              className="w-4 h-4 accent-red-600"
             />
             <span className="text-sm text-gray-700">Cuenta con seguro de trabajo</span>
           </label>
-        );
+        )
       default:
-        return null;
+        return null
     }
-  };
+  }
 
   const renderForm = () => {
-    if (!role) return null;
-    const config = ROLE_CONFIG[role];
-    const currentStep = config.steps[subStep];
+    if (!role) return null
+    const config = ROLE_CONFIG[role]
+    const currentStep = config.steps[subStep]
 
-    // Campos que van en pares dentro de la misma fila (visual, no funcional)
-    const paired = ['AFP', 'rent'];
-    const remainingFields = currentStep.fields.filter((f) => !paired.includes(f));
+    const paired = ['AFP', 'rent']
+    const remainingFields = currentStep.fields.filter((f) => !paired.includes(f))
 
     return (
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleNext();
-        }}
-        className="space-y-1"
-      >
+      <form onSubmit={(e) => { e.preventDefault(); handleNext() }} className="space-y-1">
         <div className="mb-4">
           <p className="text-sm font-semibold text-gray-900">{currentStep.title}</p>
           <p className="text-xs text-gray-500">{currentStep.subtitle}</p>
@@ -451,18 +420,14 @@ export default function InviteStaff() {
 
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-            <XCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <FAIcon icon="times-circle" className="text-red-500 mt-0.5" />
             <p className="text-red-600 text-sm">{error}</p>
           </div>
         )}
 
         {currentStep.fields.includes('AFP') && currentStep.fields.includes('rent') ? (
           <>
-            {remainingFields
-              .filter((f) => f !== 'AFP' && f !== 'rent')
-              .filter((f) => f !== 'additionalPay' && f !== 'workInsurance')
-              .map(renderField)}
-            {remainingFields.filter((f) => f !== 'AFP' && f !== 'rent').length === 0 && null}
+            {remainingFields.filter(f => f !== 'AFP' && f !== 'rent').map(renderField)}
             <div className="grid grid-cols-2 gap-3">
               {renderField('AFP')}
               {renderField('rent')}
@@ -481,31 +446,24 @@ export default function InviteStaff() {
             disabled={loading}
             className="w-1/3 flex items-center justify-center gap-1 border border-gray-300 text-gray-600 py-3 rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
           >
-            <ChevronLeft className="w-4 h-4" />
-            Volver
+            <FAIcon icon="chevron-left" /> Volver
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="w-2/3 bg-red-400 hover:bg-red-500 active:bg-red-600 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50 flex items-center justify-center"
+            className="w-2/3 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50 flex items-center justify-center"
           >
-            {loading ? (
-              <LoadingSpinner />
-            ) : isLastSubStep ? (
-              'Enviar invitación'
-            ) : (
-              'Continuar'
-            )}
+            {loading ? <LoadingSpinner color="white" size="sm" /> : isLastSubStep ? 'Enviar invitación' : 'Continuar'}
           </button>
         </div>
       </form>
-    );
-  };
+    )
+  }
 
   const renderSuccess = () => (
     <div className="text-center space-y-4">
       <div className="flex justify-center">
-        <CheckCircle2 className="w-16 h-16 text-green-500" />
+        <FAIcon icon="check-circle" className="text-green-500 text-6xl" />
       </div>
       <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
         <p className="text-green-700 text-sm font-medium">
@@ -515,38 +473,52 @@ export default function InviteStaff() {
       <p className="text-gray-500 text-xs">
         El {ROLE_CONFIG[role].label.toLowerCase()} recibirá un enlace para completar su registro.
       </p>
-
       <button
         type="button"
         onClick={handleInviteAnother}
-        className="w-full mt-2 bg-red-400 hover:bg-red-500 active:bg-red-600 text-white font-semibold py-3 rounded-lg transition"
+        className="w-full mt-2 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg transition"
       >
         Invitar a otra persona
       </button>
     </div>
-  );
+  )
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-red-50 to-white p-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-lg p-8">
-          <div className="text-center mb-6">
-            <img src={dayReadyLogo} alt="SYSCOR Logo" className="w-48 h-auto mx-auto object-contain" />
+    <div className="flex h-screen bg-gray-100 overflow-hidden">
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+      <Sidebar activeMenu="invite-staff" isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="flex-1 flex flex-col min-w-0">
+        <TopBar onMenuClick={() => setSidebarOpen(true)} />
+        <main className="flex-1 overflow-y-auto flex items-center justify-center p-4 sm:p-6">
+          <div className="w-full max-w-md">
+            <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+              <div className="text-center mb-6">
+                <img src={dayReadyLogo} alt="Logo" className="w-48 h-auto mx-auto object-contain" />
+              </div>
+              <div className="text-center mb-6">
+                <p className="text-gray-600 text-sm font-medium">
+                  {step === 1 && 'Invitar Usuario'}
+                  {step === 2 && `Datos del nuevo ${ROLE_CONFIG[role]?.label.toLowerCase() || ''}`}
+                  {step === 3 && 'Invitación enviada'}
+                </p>
+              </div>
+              {step === 1 && renderRoleSelection()}
+              {step === 2 && renderForm()}
+              {step === 3 && renderSuccess()}
+            </div>
           </div>
-
-          <div className="text-center mb-6">
-            <p className="text-gray-600 text-sm font-medium">
-              {step === 1 && 'Invitar Usuario'}
-              {step === 2 && `Datos del nuevo ${ROLE_CONFIG[role]?.label.toLowerCase() || ''}`}
-              {step === 3 && 'Invitación enviada'}
-            </p>
-          </div>
-
-          {step === 1 && renderRoleSelection()}
-          {step === 2 && renderForm()}
-          {step === 3 && renderSuccess()}
-        </div>
+        </main>
       </div>
     </div>
-  );
+  )
+}
+
+export default function InviteStaff() {
+  return (
+    <ToastProvider>
+      <InviteStaffContent />
+    </ToastProvider>
+  )
 }

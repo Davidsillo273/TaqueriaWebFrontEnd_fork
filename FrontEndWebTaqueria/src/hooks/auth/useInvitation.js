@@ -1,4 +1,3 @@
-// hooks/useInvitation.js
 import { useState, useCallback } from 'react';
 import axios from 'axios';
 

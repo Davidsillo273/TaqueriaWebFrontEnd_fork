@@ -1,99 +1,63 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
 import FAIcon from '../commons/FAIcon';
+import { useToast } from '../commons/ToastProvider';
 
 export default function TableModal({ isOpen, onClose, onSave, currentTable }) {
-    const [number, setNumber] = useState('');
-    const [status, setStatus] = useState('Disponible');
+  const { addToast } = useToast();
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm({
+    defaultValues: { number: '', status: 'Disponible' }
+  });
 
-    // Si le damos a editar, cargamos los datos de la mesa en los inputs
-    useEffect(() => {
-        if (currentTable) {
-            setNumber(currentTable.number || '');
-            setStatus(currentTable.status || 'Disponible');
-        } else {
-            setNumber('');
-            setStatus('Disponible');
-        }
-    }, [currentTable, isOpen]);
+  useEffect(() => {
+    if (isOpen) {
+      if (currentTable) {
+        setValue('number', currentTable.number || '');
+        setValue('status', currentTable.status || 'Disponible');
+      } else reset({ number: '', status: 'Disponible' });
+    }
+  }, [currentTable, isOpen, setValue, reset]);
 
-    // Si la pantalla dice que está cerrado, no renderiza nada
-    if (!isOpen) return null;
+  const onSubmit = (data) => {
+    const num = parseInt(data.number);
+    if (isNaN(num) || num <= 0) {
+      addToast('El número de mesa debe ser un entero positivo', 'error');
+      return;
+    }
+    onSave({ number: num, status: data.status });
+  };
 
-    // Cuando mandamos el formulario de la mesa
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (!number) return alert("Por favor ingresa el número de mesa");
-        
-        // Pasamos los datos convirtiendo el número a entero para que no llore Mongoose
-        onSave({
-            number: Number(number),
-            status
-        });
-    };
+  if (!isOpen) return null;
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-            <div className="bg-white w-full max-w-md rounded-2xl overflow-hidden shadow-xl animate-in fade-in zoom-in-95 duration-200">
-                
-                {/* Encabezado Rojo Chulo */}
-                <div className="bg-[#AF101A] text-white p-4 flex justify-between items-center">
-                    <h3 className="font-bold text-base m-0">
-                        {currentTable ? 'Editar Mesa' : 'Añadir Nueva Mesa'}
-                    </h3>
-                    <button onClick={onClose} className="text-white/80 hover:text-white bg-transparent border-0 cursor-pointer text-lg">
-                        <FAIcon icon="times" />
-                    </button>
-                </div>
-
-                {/* Formulario que conecta con los estados locales */}
-                <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
-                    
-                    {/* Input para el Número de la mesa */}
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-gray-700">Número de la Mesa (ID numérico)</label>
-                        <input 
-                            type="number" 
-                            placeholder="Ej: 8" 
-                            value={number}
-                            onChange={(e) => setNumber(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white text-gray-800 focus:outline-none focus:border-[#AF101A]"
-                            required
-                        />
-                    </div>
-
-                    {/* Selector de Estado */}
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-gray-700">Estado de la Mesa</label>
-                        <select 
-                            value={status}
-                            onChange={(e) => setStatus(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white text-gray-700 focus:outline-none"
-                        >
-                            <option value="Disponible">Disponible</option>
-                            <option value="Sirviendo">Sirviendo</option>
-                            <option value="Reservada">Reservada</option>
-                            <option value="En Limpieza">En Limpieza</option>
-                        </select>
-                    </div>
-
-                    {/* Botones de acción del Modal */}
-                    <div className="flex gap-3 mt-4">
-                        <button 
-                            type="button"
-                            onClick={onClose}
-                            className="flex-1 py-2.5 bg-gray-100 text-gray-700 font-bold text-sm rounded-xl border-0 cursor-pointer hover:bg-gray-200 transition-colors"
-                        >
-                            Cancelar
-                        </button>
-                        <button 
-                            type="submit"
-                            className="flex-1 py-2.5 bg-[#AF101A] text-white font-bold text-sm rounded-xl border-0 cursor-pointer hover:bg-red-800 transition-colors"
-                        >
-                            Guardar
-                        </button>
-                    </div>
-                </form>
-            </div>
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose}></div>
+      <div className="relative bg-white w-full max-w-md rounded-xl overflow-hidden shadow-xl z-10">
+        <div className="bg-red-600 text-white px-4 sm:px-6 py-4 flex items-center justify-between">
+          <h3 className="text-lg sm:text-xl font-bold">{currentTable ? 'Editar Mesa' : 'Añadir Nueva Mesa'}</h3>
+          <button onClick={onClose} className="text-white/80 hover:text-white"><FAIcon icon="times" /></button>
         </div>
-    );
+        <form onSubmit={handleSubmit(onSubmit)} className="p-4 sm:p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Número de la Mesa</label>
+            <input type="number" {...register('number', { required: 'El número es obligatorio', min: { value: 1, message: 'Debe ser positivo' }, valueAsNumber: true })} placeholder="Ej: 8" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-gray-900 text-sm" />
+            {errors.number && <span className="text-red-500 text-xs mt-1 block">{errors.number.message}</span>}
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Estado</label>
+            <select {...register('status')} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 bg-white text-gray-900 text-sm">
+              <option value="Disponible">Disponible</option>
+              <option value="Sirviendo">Sirviendo</option>
+              <option value="Reservada">Reservada</option>
+              <option value="En Limpieza">En Limpieza</option>
+            </select>
+          </div>
+          <div className="flex gap-3 pt-4">
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 bg-gray-200 text-gray-700 font-semibold text-sm rounded-lg hover:bg-gray-300">Cancelar</button>
+            <button type="submit" className="flex-1 py-2.5 bg-red-600 text-white font-semibold text-sm rounded-lg hover:bg-red-700">Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 }
