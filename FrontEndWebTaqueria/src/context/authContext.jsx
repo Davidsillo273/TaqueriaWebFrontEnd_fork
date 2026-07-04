@@ -34,7 +34,7 @@ export function AuthProvider({ children }) {
 
   const value = {
     user,
-    isAuthenticated: !!user, // 👈 corregido: antes era `!user`
+    isAuthenticated: !!user, 
     isLoading,
     checkAuth,
     setUser,
