@@ -1,4 +1,3 @@
-// src/pages/login.jsx
 import AuthCard from '../components/commons/AuthCard';
 import PrimaryButton from '../components/commons/PrimaryButton';
 import TextInput from '../components/commons/TextInput';
@@ -19,10 +18,9 @@ export default function Login() {
     handleForgotStep1,
     handleForgotStep2,
     goBackToLogin,
-    // No extraemos navigate porque no lo usamos en la vista
   } = useLogin();
 
-  // Si está en modo recuperación
+  // Recuperación de contraseña
   if (showForgotPassword) {
     return (
       <div className="min-h-screen bg-rose-50 flex items-center justify-center relative overflow-hidden">
@@ -114,13 +112,9 @@ export default function Login() {
               onClick={goBackToLogin}
               className="mt-4 cursor-pointer text-center text-sm text-red-600 hover:underline"
             >
-              Volver al login
+              Volver al inicio de sesión
             </p>
           </form>
-
-          <p className="mt-6 text-xs text-gray-400 text-center">
-            © 2026 Taquería El Corral Admin Portal.
-          </p>
         </AuthCard>
       </div>
     );
@@ -166,7 +160,7 @@ export default function Login() {
             error={error && !form.password ? error : ''}
           />
 
-          {/* Selector de rol */}
+          {/* combo de rol */}
           <div className="w-full">
             <label className="block text-xs font-semibold text-gray-500 mb-2">
               Tipo de usuario
@@ -180,7 +174,6 @@ export default function Login() {
             >
               <option value="admin">Administrador</option>
               <option value="employee">Empleado</option>
-              <option value="customer">Cliente</option>
             </select>
           </div>
 
@@ -203,10 +196,6 @@ export default function Login() {
             {isLoading ? 'Iniciando...' : 'Iniciar Sesión'}
           </PrimaryButton>
         </form>
-
-        <p className="mt-6 text-xs text-gray-400 text-center">
-          © 2026 Taquería El Corral Admin Portal.
-        </p>
       </AuthCard>
     </div>
   );
