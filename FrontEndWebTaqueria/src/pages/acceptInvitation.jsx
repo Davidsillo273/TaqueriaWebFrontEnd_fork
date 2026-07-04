@@ -4,7 +4,6 @@ import { useInvitation } from '../hooks/auth/useInvitation';
 import InputField from '../components/commons/inputField';
 import LoadingSpinner from '../components/commons/loadingSpinner';
 import dayReadyLogo from '../../public/logo.png';
-import backgroundImage from '../../public/logo.png';
 
 const ROLE_PATHS = {
   admin: '/admin/accept-invitation',
@@ -110,7 +109,6 @@ export default function AcceptInvitation() {
     return (
       <div className="min-h-screen w-screen flex items-center justify-center bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url(${backgroundImage})`
         }}
       >
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full">
@@ -129,9 +127,7 @@ export default function AcceptInvitation() {
   if (!invitationValid) {
     return (
       <div className="min-h-screen w-screen flex items-center justify-center bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url(${backgroundImage})`
-        }}
+       
       >
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full">
           <div className="text-center">
@@ -143,7 +139,7 @@ export default function AcceptInvitation() {
             </div>
             <button
               type="button"
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('//')}
               className="text-red-400 hover:text-red-500 text-sm font-medium"
             >
               Volver al inicio de sesión
@@ -158,7 +154,6 @@ export default function AcceptInvitation() {
     return (
       <div className="min-h-screen w-screen flex items-center justify-center bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url(${backgroundImage})`
         }}
       >
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full">
@@ -180,7 +175,6 @@ export default function AcceptInvitation() {
   return (
     <div className="min-h-screen w-screen flex items-center justify-center bg-cover bg-center bg-no-repeat"
       style={{
-        backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url(${backgroundImage})`
       }}
     >
       <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full">
