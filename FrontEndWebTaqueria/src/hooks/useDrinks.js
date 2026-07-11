@@ -7,7 +7,7 @@ export default function useDrinks() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // 1. OBTENER BEBIDAS (GET)
+  // Obtener bebidas (GET)
   const fetchDrinks = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -20,12 +20,11 @@ export default function useDrinks() {
       if (!response.ok) throw new Error('Error al obtener el catálogo');
       const data = await response.json();
 
-      // Mapeo adaptando el formato de MongoDB al Frontend
       const adapted = data.map((drink) => ({
         id: drink._id,
         image: drink.image,
         title: drink.name,
-        price: drink.price, 
+        price: drink.price,
         stock: drink.quantity,
         status: drink.status,
         isMostSold: drink.status === 'Más Vendido',
@@ -44,23 +43,14 @@ export default function useDrinks() {
     fetchDrinks();
   }, [fetchDrinks]);
 
-  // 2. CREAR BEBIDA (POST)
+  // Crear bebida (POST) - recibe directamente FormData
   const addDrink = async (formData) => {
     setLoading(true);
     try {
-      const dataToSend = new FormData();
-      dataToSend.append('name', formData.title);
-      dataToSend.append('price', formData.price);
-      dataToSend.append('quantity', formData.stock);
-      dataToSend.append('status', formData.status);
-      if (formData.imageFile) {
-        dataToSend.append('image', formData.imageFile); // Archivo binario para Multer
-      }
-
       const response = await fetch(API_URL, {
         method: 'POST',
         credentials: 'include',
-        body: dataToSend, // FormData define automáticamente el Content-Type multipart/form-data
+        body: formData, // El FormData ya incluye todos los campos
       });
 
       if (!response.ok) {
@@ -78,23 +68,14 @@ export default function useDrinks() {
     }
   };
 
-  // 3. ACTUALIZAR BEBIDA (PUT)
+  // Actualizar bebida (PUT) - recibe directamente FormData
   const updateDrink = async (id, formData) => {
     setLoading(true);
     try {
-      const dataToSend = new FormData();
-      dataToSend.append('name', formData.title);
-      dataToSend.append('price', formData.price);
-      dataToSend.append('quantity', formData.stock);
-      dataToSend.append('status', formData.status);
-      if (formData.imageFile) {
-        dataToSend.append('image', formData.imageFile);
-      }
-
       const response = await fetch(`${API_URL}/${id}`, {
         method: 'PUT',
         credentials: 'include',
-        body: dataToSend,
+        body: formData,
       });
 
       if (!response.ok) {
@@ -112,9 +93,8 @@ export default function useDrinks() {
     }
   };
 
-  // 4. ELIMINAR BEBIDA (DELETE)
+  // Eliminar bebida (DELETE)
   const deleteDrink = async (id) => {
-    if (!window.confirm('¿Estás seguro de que deseas eliminar esta bebida?')) return;
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/${id}`, {

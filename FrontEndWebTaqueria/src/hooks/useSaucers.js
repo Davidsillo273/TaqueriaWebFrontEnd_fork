@@ -1,91 +1,102 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
-// Cambia esta URL por la dirección real de tu servidor backend si es diferente
-const API_URL = 'http://localhost:4000/api/saucers'; 
+const API_URL = 'http://localhost:4000/api/saucers';
 
 export default function useSaucers() {
   const [saucers, setSaucers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // 1. OBTENER TODOS LOS PLATILLOS (GET)
-  const fetchSaucers = async () => {
+  const fetchSaucers = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      const response = await fetch(API_URL);
-      if (!response.isMostSold && !response.ok) throw new Error('Error al obtener platillos');
+      const response = await fetch(API_URL, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Error al obtener los platillos');
       const data = await response.json();
-      setSaucers(data);
+      setSaucers(data); // Asume que la API devuelve el array directamente
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  };
-
-  // 2. CREAR UN PLATILLO (POST - multipart/form-data)
-  const createSaucer = async (formData) => {
-    try {
-      // Nota: Cuando enviamos un objeto FormData, NO debemos definir el 'Content-Type' manualmente,
-      // el navegador añadirá automáticamente el boundary correcto.
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        body: formData,
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al crear el platillo');
-      }
-      await fetchSaucers(); // Recargar la lista
-      return { success: true };
-    } catch (err) {
-      return { success: false, error: err.message };
-    }
-  };
-
-  // 3. ACTUALIZAR UN PLATILLO (PUT - multipart/form-data)
-  const updateSaucer = async (id, formData) => {
-    try {
-      const response = await fetch(`${API_URL}/${id}`, {
-        method: 'PUT',
-        body: formData,
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al actualizar el platillo');
-      }
-      await fetchSaucers(); // Recargar la lista
-      return { success: true };
-    } catch (err) {
-      return { success: false, error: err.message };
-    }
-  };
-
-  // 4. ELIMINAR UN PLATILLO (DELETE)
-  const deleteSaucer = async (id) => {
-    try {
-      const response = await fetch(`${API_URL}/${id}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) throw new Error('Error al eliminar el platillo');
-      await fetchSaucers(); // Recargar la lista
-      return { success: true };
-    } catch (err) {
-      return { success: false, error: err.message };
-    }
-  };
+  }, []);
 
   useEffect(() => {
     fetchSaucers();
-  }, []);
+  }, [fetchSaucers]);
 
-  return {
-    saucers,
-    loading,
-    error,
-    createSaucer,
-    updateSaucer,
-    deleteSaucer,
-    refetch: fetchSaucers
+  // Crear platillo (POST)
+  const createSaucer = async (formData) => {
+    setLoading(true);
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData, // FormData con campos: name, category, price, status, image
+      });
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.message || 'Error al crear el platillo');
+      }
+      await fetchSaucers();
+      return { success: true };
+    } catch (err) {
+      setError(err.message);
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // Actualizar platillo (PUT)
+  const updateSaucer = async (id, formData) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/${id}`, {
+        method: 'PUT',
+        credentials: 'include',
+        body: formData,
+      });
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.message || 'Error al actualizar el platillo');
+      }
+      await fetchSaucers();
+      return { success: true };
+    } catch (err) {
+      setError(err.message);
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Eliminar platillo (DELETE)
+  const deleteSaucer = async (id) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.message || 'Error al eliminar el platillo');
+      }
+      // Actualiza la lista local sin necesidad de refetch completo
+      setSaucers(prev => prev.filter(s => s._id !== id));
+      return { success: true };
+    } catch (err) {
+      setError(err.message);
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { saucers, loading, error, createSaucer, updateSaucer, deleteSaucer, refetch: fetchSaucers };
 }
