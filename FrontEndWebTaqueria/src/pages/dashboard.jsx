@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import Sidebar from '../components/dashboard/Sidebar'
 import TopBar from '../components/dashboard/TopBar'
 import StatCard from '../components/dashboard/StatCard'
+import Stats2Card from '../components/commons/Stats2Card'
 import ActivityRow from '../components/dashboard/ActivityRow'
 import StaffCard from '../components/dashboard/StaffCard'
 import AlertCard from '../components/dashboard/AlertCard'
@@ -53,6 +54,13 @@ function DashboardContent() {
 
             {/* Sección de tarjetas de estadísticas principales */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <Stats2Card 
+              title="Revenue" 
+              value="$12,450" 
+              percentage={12} 
+              progress={95} 
+            />
+
               <StatCard
                 icon="list"
                 title="Órdenes Hoy"
