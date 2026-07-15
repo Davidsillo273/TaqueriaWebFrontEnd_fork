@@ -1,78 +1,78 @@
-import React, { useState } from 'react'
-import Sidebar from '../components/dashboard/Sidebar'
-import TopBar from '../components/dashboard/TopBar'
-import StatCard from '../components/dashboard/StatCard'
-import DrinkCard from '../components/drinks/DrinkCard'
-import AddDrinkModal from '../components/drinks/AddDrinkModal'
-import ConfirmModal from '../components/commons/ConfirmModal'
-import FAIcon from '../components/commons/FAIcon'
-import useDrinks from '../hooks/useDrinks'
-import { ToastProvider, useToast } from '../components/commons/ToastProvider'
+// src/pages/Drinks.jsx
+import React, { useState } from 'react';
+import Sidebar from '../components/dashboard/Sidebar';
+import TopBar from '../components/dashboard/TopBar';
+import ComboStats from '../components/dashboard/ComboStats'; // 👈 mismo componente que en Combos
+import DrinkCard from '../components/drinks/DrinkCard';
+import AddDrinkModal from '../components/drinks/AddDrinkModal';
+import ConfirmModal from '../components/commons/ConfirmModal';
+import FAIcon from '../components/commons/FAIcon';
+import useDrinks from '../hooks/useDrinks';
+import { ToastProvider, useToast } from '../components/commons/ToastProvider';
 
 function DrinksContent() {
-  const [activeMenu] = useState('drinks')
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [selectedDrink, setSelectedDrink] = useState(null)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, drinkId: null })
+  const [activeMenu] = useState('drinks');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedDrink, setSelectedDrink] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, drinkId: null });
 
-  const { drinks, loading, error, addDrink, updateDrink, deleteDrink } = useDrinks()
-  const { addToast } = useToast()
+  const { drinks, loading, error, addDrink, updateDrink, deleteDrink } = useDrinks();
+  const { addToast } = useToast();
 
-  // Cálculos derivados de los datos
-  const totalDrinksInCatalog = drinks.length
-  const criticalStockCount = drinks.filter(drink => drink.stock < 10).length
-  const currentMostSold = drinks.find(drink => drink.isMostSold)?.title || 'Ninguna'
+  // Datos para las tres tarjetas de estadísticas
+  const totalBebidas = drinks.length;
+  const stockCritico = drinks.filter(drink => drink.stock < 10).length;
+  const bebidaMasVendida = drinks.find(drink => drink.isMostSold)?.title || 'Ninguna';
 
   const handleOpenCreateModal = () => {
-    setSelectedDrink(null)
-    setIsModalOpen(true)
-  }
+    setSelectedDrink(null);
+    setIsModalOpen(true);
+  };
 
   const handleOpenEditModal = (drink) => {
-    setSelectedDrink(drink)
-    setIsModalOpen(true)
-  }
+    setSelectedDrink(drink);
+    setIsModalOpen(true);
+  };
 
   const handleSaveDrink = async (formData) => {
     try {
-      let success = false
+      let success = false;
       if (selectedDrink) {
-        success = await updateDrink(selectedDrink.id, formData)
-        if (success) addToast('Bebida actualizada correctamente', 'success')
+        success = await updateDrink(selectedDrink.id, formData);
+        if (success) addToast('Bebida actualizada correctamente', 'success');
       } else {
-        success = await addDrink(formData)
-        if (success) addToast('Bebida creada correctamente', 'success')
+        success = await addDrink(formData);
+        if (success) addToast('Bebida creada correctamente', 'success');
       }
       if (success) {
-        setIsModalOpen(false)
-        setSelectedDrink(null)
+        setIsModalOpen(false);
+        setSelectedDrink(null);
       }
     } catch (err) {
-      addToast(err.message || 'Error al guardar la bebida', 'error')
+      addToast(err.message || 'Error al guardar la bebida', 'error');
     }
-  }
+  };
 
   const handleRequestDelete = (id) => {
-    setConfirmDelete({ isOpen: true, drinkId: id })
-  }
+    setConfirmDelete({ isOpen: true, drinkId: id });
+  };
 
   const handleDeleteConfirm = async () => {
-    const id = confirmDelete.drinkId
-    if (!id) return
+    const id = confirmDelete.drinkId;
+    if (!id) return;
     try {
-      await deleteDrink(id)
-      addToast('Bebida eliminada correctamente', 'success')
+      await deleteDrink(id);
+      addToast('Bebida eliminada correctamente', 'success');
     } catch (err) {
-      addToast(err.message || 'Error al eliminar la bebida', 'error')
+      addToast(err.message || 'Error al eliminar la bebida', 'error');
     } finally {
-      setConfirmDelete({ isOpen: false, drinkId: null })
+      setConfirmDelete({ isOpen: false, drinkId: null });
     }
-  }
+  };
 
   return (
-    <div className="flex h-screen bg-gray-100 overflow-hidden">
-      {/* Overlay para cerrar sidebar en móvil/tableta */}
+    <div className="flex h-screen overflow-hidden bg-[#f3f0eb]">
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
@@ -87,88 +87,100 @@ function DrinksContent() {
 
         <main className="flex-1 overflow-y-auto">
           <div className="p-4 sm:p-6 lg:p-8">
-            {/* Encabezado */}
+            {/* Encabezado (mismo estilo que Combos) */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 sm:mb-8 gap-4">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">
-                  Categoría: Bebidas
+                <h1 className="text-2xl sm:text-3xl font-display font-bold text-gray-900 mb-1 sm:mb-2">
+                  Gestión de Bebidas
                 </h1>
                 <p className="text-sm sm:text-base text-gray-600">
-                  Gestión de inventario en tiempo real
+                  Administra el catálogo de bebidas y su disponibilidad.
                 </p>
               </div>
               <button
                 onClick={handleOpenCreateModal}
-                className="flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm sm:text-base shadow-md"
+                className="flex items-center gap-2 px-4 py-2.5 bg-red-500 text-white rounded-xl font-display font-semibold text-sm
+                  shadow-[0_6px_16px_rgba(220,38,38,0.35),inset_1px_1px_2px_rgba(255,255,255,0.3)]
+                  hover:bg-red-600 hover:shadow-[0_8px_20px_rgba(220,38,38,0.4)]
+                  transition-all disabled:opacity-60"
+                disabled={loading}
               >
                 <FAIcon icon="plus" />
                 Nueva Bebida
               </button>
             </div>
 
-            {/* Estados de carga y error */}
-            {loading && (
-              <div className="flex justify-center items-center py-8">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-red-600"></div>
-                <span className="ml-3 text-gray-600">Sincronizando con el servidor...</span>
-              </div>
-            )}
+            {/* Error banner */}
             {error && (
-              <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded text-sm">
+              <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-2xl text-sm shadow-sm">
                 {error}
               </div>
             )}
 
-            {/* Sección de Estadísticas */}
+            {/* 👇 Tres tarjetas de estadísticas con el MISMO diseño que en Combos */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-              <StatCard
+              <ComboStats
                 icon="wine-glass"
-                title="Total de Bebidas"
-                value={totalDrinksInCatalog.toString()}
-                change="En catálogo"
+                title="TOTAL BEBIDAS"
+                value={loading ? '...' : totalBebidas}
+                label={`${totalBebidas} bebidas registradas`}
+                highlighted={true}
               />
-              <StatCard
+              <ComboStats
                 icon="exclamation-triangle"
-                title="Stock Crítico"
-                value={criticalStockCount.toString()}
-                change="Menos de 10 uds"
-                alert={criticalStockCount > 0}
+                title="STOCK CRÍTICO"
+                value={loading ? '...' : stockCritico}
+                label={stockCritico > 0 ? 'Menos de 10 unidades' : 'Todo en orden'}
+                highlighted={true}
               />
-              <StatCard
+              <ComboStats
                 icon="chart-line"
-                title="Más Vendida"
-                value={currentMostSold}
-                change="Destacado"
+                title="MÁS VENDIDA"
+                value={loading ? '...' : bebidaMasVendida}
+                label="Bebida destacada"
+                highlighted={true}
               />
             </div>
 
-            {/* Catálogo de bebidas */}
-            <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 min-h-[400px]">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">
-                Todas las Bebidas
-              </h2>
-              {!loading && drinks.length === 0 ? (
-                <p className="text-gray-400 text-center py-12">
-                  No hay bebidas registradas en este momento.
+            {/* Loader */}
+            {loading && (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500"></div>
+                <span className="ml-3 text-gray-600 font-medium">Cargando bebidas...</span>
+              </div>
+            )}
+
+            {/* Grid de bebidas (sin contenedor extra) */}
+            {!loading && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                {drinks.map((drink) => (
+                  <DrinkCard
+                    key={drink.id}
+                    {...drink}
+                    onEdit={handleOpenEditModal}
+                    onDelete={handleRequestDelete}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Estado vacío */}
+            {!loading && drinks.length === 0 && !error && (
+              <div className="text-center py-12">
+                <FAIcon icon="wine-glass" size="3x" className="text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-500 text-base sm:text-lg font-display font-semibold">
+                  No hay bebidas agregadas
                 </p>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                  {drinks.map((drink) => (
-                    <DrinkCard
-                      key={drink.id}
-                      {...drink}
-                      onEdit={handleOpenEditModal}
-                      onDelete={handleRequestDelete}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+                <p className="text-gray-400 text-xs sm:text-sm mb-4">
+                  Haz click en "Nueva Bebida" para crear una
+                </p>
+              </div>
+            )}
           </div>
         </main>
       </div>
 
-      {/* Modal de creación/edición */}
+      {/* Modales (conservan el diseño clay de siempre) */}
       <AddDrinkModal
         isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); setSelectedDrink(null); }}
@@ -176,7 +188,6 @@ function DrinksContent() {
         editData={selectedDrink}
       />
 
-      {/* Modal de confirmación para eliminar */}
       <ConfirmModal
         isOpen={confirmDelete.isOpen}
         onClose={() => setConfirmDelete({ isOpen: false, drinkId: null })}
@@ -187,7 +198,7 @@ function DrinksContent() {
         loading={loading}
       />
     </div>
-  )
+  );
 }
 
 export default function Drinks() {
@@ -195,5 +206,5 @@ export default function Drinks() {
     <ToastProvider>
       <DrinksContent />
     </ToastProvider>
-  )
+  );
 }

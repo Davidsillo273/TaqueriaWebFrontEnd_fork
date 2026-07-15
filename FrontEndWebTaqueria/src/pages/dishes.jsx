@@ -1,81 +1,72 @@
-import React, { useState } from 'react'
-import Sidebar from '../components/dashboard/Sidebar'
-import TopBar from '../components/dashboard/TopBar'
-import DishCard from '../components/dishes/DishCard'
-import AddDishModal from '../components/dishes/AddDishModal'
-import ConfirmModal from '../components/commons/ConfirmModal'
-import FAIcon from '../components/commons/FAIcon'
-import useSaucers from '../hooks/useSaucers'
-import { ToastProvider, useToast } from '../components/commons/ToastProvider'
+// src/pages/Dishes.jsx
+import React, { useState } from 'react';
+import Sidebar from '../components/dashboard/Sidebar';
+import TopBar from '../components/dashboard/TopBar';
+import ComboStats from '../components/dashboard/ComboStats'; 
+import DishCard from '../components/dishes/DishCard';
+import AddDishModal from '../components/dishes/AddDishModal';
+import ConfirmModal from '../components/commons/ConfirmModal';
+import FAIcon from '../components/commons/FAIcon';
+import useSaucers from '../hooks/useSaucers';
+import { ToastProvider, useToast } from '../components/commons/ToastProvider';
 
 function DishesContent() {
-  const [activeMenu] = useState('dishes')
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingDish, setEditingDish] = useState(null)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, dishId: null })
+  const [activeMenu] = useState('dishes');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingDish, setEditingDish] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, dishId: null });
 
-  const { saucers, loading, error, createSaucer, updateSaucer, deleteSaucer } = useSaucers()
-  const { addToast } = useToast()
+  const { saucers, loading, error, createSaucer, updateSaucer, deleteSaucer } = useSaucers();
+  const { addToast } = useToast();
 
-  // Cálculo de estadísticas basado en datos reales
-  const totalDishes = saucers.length
-  const outOfStockDishes = saucers.filter(dish => dish.status === 'AGOTADO' || dish.status === 'Inactivo').length
+  // Datos para las estadísticas
+  const totalDishes = saucers.length;
+  const outOfStockDishes = saucers.filter(dish => dish.status === 'AGOTADO' || dish.status === 'Inactivo').length;
+  const platoEstrella = saucers.find(dish => dish.isMostSold)?.name || 'Ninguno';
 
   const handleSaveDish = async (formData) => {
     try {
-      let success = false
+      let success = false;
       if (editingDish) {
-        success = await updateSaucer(editingDish._id, formData)
-        if (success) addToast('Platillo actualizado exitosamente', 'success')
+        success = await updateSaucer(editingDish._id, formData);
+        if (success) addToast('Platillo actualizado exitosamente', 'success');
       } else {
-        success = await createSaucer(formData)
-        if (success) addToast('Platillo creado exitosamente', 'success')
+        success = await createSaucer(formData);
+        if (success) addToast('Platillo creado exitosamente', 'success');
       }
-
       if (success) {
-        setIsModalOpen(false)
-        setEditingDish(null)
+        setIsModalOpen(false);
+        setEditingDish(null);
       }
     } catch (err) {
-      addToast(err.message || 'Error al guardar el platillo', 'error')
+      addToast(err.message || 'Error al guardar el platillo', 'error');
     }
-  }
+  };
 
   const handleRequestDelete = (id) => {
-    setConfirmDelete({ isOpen: true, dishId: id })
-  }
+    setConfirmDelete({ isOpen: true, dishId: id });
+  };
 
   const handleDeleteConfirm = async () => {
-    const id = confirmDelete.dishId
-    if (!id) return
+    const id = confirmDelete.dishId;
+    if (!id) return;
     try {
-      const result = await deleteSaucer(id)
+      const result = await deleteSaucer(id);
       if (result.success) {
-        addToast('Platillo eliminado correctamente', 'success')
+        addToast('Platillo eliminado correctamente', 'success');
       } else {
-        addToast(result.error || 'No se pudo eliminar el platillo', 'error')
+        addToast(result.error || 'No se pudo eliminar el platillo', 'error');
       }
     } catch (err) {
-      addToast(err.message || 'Error al eliminar', 'error')
+      addToast(err.message || 'Error al eliminar', 'error');
     } finally {
-      setConfirmDelete({ isOpen: false, dishId: null })
+      setConfirmDelete({ isOpen: false, dishId: null });
     }
-  }
-
-  const handleEditClick = (dish) => {
-    setEditingDish(dish)
-    setIsModalOpen(true)
-  }
-
-  const handleOpenNewModal = () => {
-    setEditingDish(null)
-    setIsModalOpen(true)
-  }
+  };
 
   return (
-    <div className="flex h-screen bg-gray-100 overflow-hidden">
-      {/* Overlay para cerrar sidebar en móvil/tableta */}
+    <div className="flex h-screen overflow-hidden bg-[#f3f0eb]">
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
@@ -93,94 +84,100 @@ function DishesContent() {
             {/* Encabezado */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 sm:mb-8 gap-4">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">
-                  GESTIÓN DE PLATILLOS
+                <h1 className="text-2xl sm:text-3xl font-display font-bold text-gray-900 mb-1 sm:mb-2">
+                  Gestión de Platillos
                 </h1>
                 <p className="text-sm sm:text-base text-gray-600">
                   Administra el menú de carnes y disponibilidad en tiempo real.
                 </p>
               </div>
               <button
-                onClick={handleOpenNewModal}
-                className="flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm sm:text-base"
+                onClick={() => { setEditingDish(null); setIsModalOpen(true); }}
+                className="flex items-center gap-2 px-4 py-2.5 bg-red-500 text-white rounded-xl font-display font-semibold text-sm
+                  shadow-[0_6px_16px_rgba(220,38,38,0.35),inset_1px_1px_2px_rgba(255,255,255,0.3)]
+                  hover:bg-red-600 hover:shadow-[0_8px_20px_rgba(220,38,38,0.4)]
+                  transition-all disabled:opacity-60"
+                disabled={loading}
               >
                 <FAIcon icon="plus" />
                 Nuevo Platillo
               </button>
             </div>
 
-            {/* Mensaje de error general */}
+            {/* Error */}
             {error && (
-              <div className="mb-4 p-3 sm:p-4 bg-red-100 text-red-700 rounded-lg font-medium text-sm">
+              <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-2xl text-sm shadow-sm">
                 Error de conexión: {error}
               </div>
             )}
 
-            {/* Sección de Estadísticas */}
+            {/* Estadísticas (mismo diseño que Combos y Bebidas) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-              <div className="bg-white rounded-lg p-4 sm:p-6 border-l-4 border-red-600 shadow-sm">
-                <div className="flex items-start justify-between mb-3">
-                  <FAIcon icon="utensils" size="2xl" className="text-red-600" />
-                </div>
-                <p className="text-gray-600 text-xs sm:text-sm mb-2">TOTAL PLATILLOS</p>
-                <h3 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                  {loading ? '...' : totalDishes}
-                </h3>
-              </div>
-
-              <div className="bg-white rounded-lg p-4 sm:p-6 border-l-4 border-red-600 shadow-sm">
-                <div className="flex items-start justify-between mb-3">
-                  <FAIcon icon="star" size="2xl" className="text-red-600" />
-                </div>
-                <p className="text-gray-600 text-xs sm:text-sm mb-2">PLATO ESTRELLA</p>
-                <h3 className="text-xl sm:text-2xl font-bold text-gray-900">Corte Tomahawk</h3>
-              </div>
-
-              <div className="bg-white rounded-lg p-4 sm:p-6 border-l-4 border-red-600 shadow-sm">
-                <div className="flex items-start justify-between mb-3">
-                  <FAIcon icon="exclamation-triangle" size="2xl" className="text-red-600" />
-                </div>
-                <p className="text-gray-600 text-xs sm:text-sm mb-2">PLATILLOS AGOTADOS</p>
-                <h3 className="text-2xl sm:text-3xl font-bold text-red-600">
-                  {loading ? '...' : outOfStockDishes}
-                </h3>
-              </div>
+              <ComboStats
+                icon="utensils"
+                title="TOTAL PLATILLOS"
+                value={loading ? '...' : totalDishes}
+                label={`${totalDishes} platillos registrados`}
+                highlighted={true}
+              />
+              <ComboStats
+                icon="star"
+                title="PLATO ESTRELLA"
+                value={platoEstrella}
+                label="Más vendido"
+                highlighted={true}
+              />
+              <ComboStats
+                icon="exclamation-triangle"
+                title="PLATILLOS AGOTADOS"
+                value={loading ? '...' : outOfStockDishes}
+                label={outOfStockDishes > 0 ? 'Fuera de stock' : 'Todos disponibles'}
+                highlighted={true}
+              />
             </div>
 
-            {/* Catálogo de Platillos */}
-            <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 shadow-sm">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">
-                Todos los Platillos
-              </h2>
+            {/* Loader */}
+            {loading && (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500"></div>
+                <span className="ml-3 text-gray-600 font-medium">Cargando platillos...</span>
+              </div>
+            )}
 
-              {loading ? (
-                <div className="flex items-center gap-2 text-gray-500 py-4 text-sm">
-                  <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></span>
-                  Cargando menú desde el servidor...
-                </div>
-              ) : saucers.length === 0 ? (
-                <p className="text-gray-500 py-4">No hay platillos registrados en el sistema.</p>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-                  {saucers.map((dish) => (
-                    <DishCard
-                      key={dish._id}
-                      image={dish.image}
-                      name={dish.name}
-                      price={`$${parseFloat(dish.price).toFixed(2)}`}
-                      status={dish.status}
-                      onEdit={() => handleEditClick(dish)}
-                      onDelete={() => handleRequestDelete(dish._id)}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* Grid de platillos (sin contenedor blanco) */}
+            {!loading && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                {saucers.map((dish) => (
+                  <DishCard
+                    key={dish._id}
+                    image={dish.image}
+                    name={dish.name}
+                    price={`$${parseFloat(dish.price).toFixed(2)}`}
+                    status={dish.status}
+                    isMostSold={dish.isMostSold}
+                    onEdit={() => { setEditingDish(dish); setIsModalOpen(true); }}
+                    onDelete={() => handleRequestDelete(dish._id)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Estado vacío */}
+            {!loading && saucers.length === 0 && !error && (
+              <div className="text-center py-12">
+                <FAIcon icon="utensils" size="3x" className="text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-500 text-base sm:text-lg font-display font-semibold">
+                  No hay platillos registrados
+                </p>
+                <p className="text-gray-400 text-xs sm:text-sm mb-4">
+                  Haz click en "Nuevo Platillo" para agregar uno
+                </p>
+              </div>
+            )}
           </div>
         </main>
       </div>
 
-      {/* Modal de Agregar/Editar */}
       <AddDishModal
         isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); setEditingDish(null); }}
@@ -188,7 +185,6 @@ function DishesContent() {
         dishToEdit={editingDish}
       />
 
-      {/* Modal de confirmación para eliminar */}
       <ConfirmModal
         isOpen={confirmDelete.isOpen}
         onClose={() => setConfirmDelete({ isOpen: false, dishId: null })}
@@ -199,7 +195,7 @@ function DishesContent() {
         loading={loading}
       />
     </div>
-  )
+  );
 }
 
 export default function Dishes() {
@@ -207,5 +203,5 @@ export default function Dishes() {
     <ToastProvider>
       <DishesContent />
     </ToastProvider>
-  )
+  );
 }

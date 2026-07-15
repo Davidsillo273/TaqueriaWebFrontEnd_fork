@@ -1,3 +1,4 @@
+// src/pages/ClientManagement.jsx
 import React, { useState } from 'react'
 import Sidebar from '../components/dashboard/Sidebar'
 import TopBar from '../components/dashboard/TopBar'
@@ -29,7 +30,7 @@ function ClientManagementContent() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100 overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-[#f3f0eb]">
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
@@ -44,7 +45,7 @@ function ClientManagementContent() {
         <main className="flex-1 overflow-y-auto">
           <div className="p-4 sm:p-6 lg:p-8">
             <div className="mb-6 sm:mb-8">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">
+              <h1 className="text-2xl sm:text-3xl font-display font-bold text-gray-900 mb-1 sm:mb-2">
                 Gestión de Clientes
               </h1>
               <p className="text-sm sm:text-base text-gray-600">
