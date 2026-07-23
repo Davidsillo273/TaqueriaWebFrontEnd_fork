@@ -1,30 +1,20 @@
-// src/pages/Recovery.jsx
-import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import TextInput from '../components/commons/TextInput'
-import PrimaryButton from '../components/commons/PrimaryButton'
-import AuthCard from '../components/commons/AuthCard'
+import React from 'react';
+import { Link } from 'react-router-dom';
+import TextInput from '../components/commons/TextInput';
+import PrimaryButton from '../components/commons/PrimaryButton';
+import AuthCard from '../components/commons/AuthCard';
+import useRecoveryPassword from '../hooks/auth/useRecoveryPassword';
 
 export default function Recovery() {
-  const navigate = useNavigate()
-  const [email, setEmail] = useState('')
-  const [errors, setErrors] = useState({})
-  const [success, setSuccess] = useState(false)
-
-  const validate = () => {
-    const newErrors = {}
-    if (!email) newErrors.email = 'El correo es requerido'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = 'Ingresa un correo válido'
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (!validate()) return
-    setSuccess(true)
-    setTimeout(() => navigate('/verify-code'), 1500)
-  }
+  const {
+    email,
+    inputError,
+    apiError,
+    isLoading,
+    success,
+    handleEmailChange,
+    handleRequestCode,
+  } = useRecoveryPassword();
 
   return (
     <div className="min-h-screen bg-[#f3f0eb] flex items-center justify-center relative overflow-hidden p-4">
@@ -36,27 +26,44 @@ export default function Recovery() {
           <div className="mb-6">
             <img src="/logo.png" alt="Taquería El Corral" className="w-24 h-24 mx-auto" />
           </div>
-          <h1 className="text-2xl font-display font-bold text-gray-800 mb-1">Admin Portal</h1>
-          <p className="text-sm text-gray-500 mb-6">Recuperación de contraseña</p>
+          <h1 className="text-2xl font-display font-bold text-gray-800 mb-1">Recuperar contraseña</h1>
+          <p className="text-sm text-gray-500 mb-6">Ingresa tu correo para recibir un código de recuperación</p>
         </div>
 
         {!success ? (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleRequestCode} className="space-y-4">
             <TextInput
-              id="email"
+              key="recovery-email"
+              id="recovery-email"
               label="Correo electrónico"
               type="email"
-              placeholder="correo@ejemplo.com"
+              placeholder="admin@corral.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              error={errors.email}
+              disabled={isLoading}
+              onChange={handleEmailChange}
+              error={inputError}
             />
-            <p className="text-xs text-gray-500 text-center">
-              Ingresa tu correo para recibir un código de recuperación
-            </p>
-            <PrimaryButton type="submit">Enviar código</PrimaryButton>
+
+            {/* Renderizado de errores estructurados provenientes de la API */}
+            {apiError && (
+              <div className="bg-red-50 p-3 rounded-2xl border border-red-200 text-center shadow-sm flex flex-col gap-0.5">
+                <p className="text-sm font-bold text-red-600">{apiError.title}</p>
+                {apiError.message && <p className="text-xs text-red-500">{apiError.message}</p>}
+              </div>
+            )}
+
+            <PrimaryButton type="submit" disabled={isLoading}>
+              {isLoading ? 'Enviando...' : 'Enviar código'}
+            </PrimaryButton>
+
             <div className="text-center">
-              <Link className="text-sm text-red-500 hover:text-red-600 font-medium transition-colors" to="/">Volver al login</Link>
+              <button
+                type="button"
+                onClick={() => window.location.href = '/'}
+                className="text-xs text-gray-500 hover:text-red-500 font-medium transition-colors cursor-pointer underline underline-offset-2"
+              >
+                Volver al inicio de sesión
+              </button>
             </div>
           </form>
         ) : (
@@ -65,14 +72,12 @@ export default function Recovery() {
               <p className="text-sm text-green-700 font-medium">Correo enviado correctamente</p>
               <p className="text-xs text-green-600 mt-1">Revisa tu bandeja de entrada para el código de recuperación</p>
             </div>
-            <Link className="block text-sm text-red-500 hover:text-red-600 font-medium transition-colors" to="/">Volver al login</Link>
+            <Link className="block text-sm text-red-500 hover:text-red-600 font-medium transition-colors" to="/">
+              Volver al login
+            </Link>
           </div>
         )}
-
-        <p className="mt-6 text-xs text-gray-400 text-center">
-          © 2024 Taquería El Corral Admin Portal. Acceso restringido a personal autorizado.
-        </p>
       </AuthCard>
     </div>
-  )
+  );
 }

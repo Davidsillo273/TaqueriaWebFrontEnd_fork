@@ -1,43 +1,44 @@
-// src/pages/VerifyCode.jsx
-import React, { useState, useRef } from 'react'
-import { Link } from 'react-router-dom'
-import DigitInput from '../components/auth/DigitInput'
-import PrimaryButton from '../components/commons/PrimaryButton'
-import AuthCard from '../components/commons/AuthCard'
+import React, { useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import DigitInput from '../components/auth/DigitInput';
+import PrimaryButton from '../components/commons/PrimaryButton';
+import AuthCard from '../components/commons/AuthCard';
+import ConfirmModal from '../components/commons/confirmModal';
+import useRecoveryPassword from '../hooks/auth/useRecoveryPassword';
 
 export default function VerifyCode() {
-  const [digits, setDigits] = useState(['', '', '', '', '', ''])
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
-  const inputRefs = useRef([])
+  const {
+    digits,
+    inputError,
+    apiError,
+    isLoading,
+    isLoadingResend,
+    resendSuccess,
+    timer,
+    success,
+    showConfirmModal,
+    openConfirmModal,
+    closeConfirmModal,
+    handleConfirmLeave,
+    validateVerifyStep, 
+    handleDigitChange,
+    handleKeyDown,
+    handleVerifyCode,
+    handleResendCode,
+  } = useRecoveryPassword();
 
-  const handleDigitChange = (value, index) => {
-    const newDigits = [...digits]
-    newDigits[index] = value
-    setDigits(newDigits)
-    if (value && index < 5) inputRefs.current[index + 1]?.focus()
-  }
+  const inputRefs = useRef([]);
 
-  const handleKeyDown = (e, index) => {
-    if (e.key === 'Backspace' && !digits[index] && index > 0) inputRefs.current[index - 1]?.focus()
-    if (e.key === 'ArrowLeft' && index > 0) inputRefs.current[index - 1]?.focus()
-    if (e.key === 'ArrowRight' && index < 5) inputRefs.current[index + 1]?.focus()
-  }
+  // Validar al cargar la pantalla
+  useEffect(() => {
+    validateVerifyStep();
+  }, []);
 
-  const validate = () => {
-    if (digits.join('').length < 6) {
-      setError('Ingresa el código completo')
-      return false
-    }
-    setError('')
-    return true
-  }
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (!validate()) return
-    setSuccess(true)
-  }
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
 
   return (
     <div className="min-h-screen bg-[#f3f0eb] flex items-center justify-center relative overflow-hidden p-4">
@@ -54,23 +55,72 @@ export default function VerifyCode() {
         </div>
 
         {!success ? (
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleVerifyCode} className="space-y-6">
             <div className="space-y-4">
               <h2 className="text-lg font-display font-bold text-gray-800 text-center">Ingresa el código</h2>
-              <p className="text-sm text-gray-600 text-center">Por favor, escribe el código de 6 dígitos que hemos enviado a tu correo.</p>
+              <p className="text-sm text-gray-600 text-center">
+                Por favor, escribe el código de 6 dígitos que hemos enviado a tu correo.
+              </p>
             </div>
-            <div className="flex justify-center gap-3">
+
+            <div className="flex justify-center gap-2 sm:gap-3">
               {digits.map((digit, index) => (
-                <DigitInput key={index} value={digit} onChange={handleDigitChange} onKeyDown={handleKeyDown} inputRef={(el) => (inputRefs.current[index] = el)} index={index} />
+                <DigitInput
+                  key={index}
+                  value={digit}
+                  onChange={(val, i) => handleDigitChange(val, i, inputRefs)}
+                  onKeyDown={(e, i) => handleKeyDown(e, i, inputRefs)}
+                  inputRef={(el) => (inputRefs.current[index] = el)}
+                  index={index}
+                />
               ))}
             </div>
-            {error && <p className="text-sm text-red-500 text-center">{error}</p>}
-            <PrimaryButton type="submit">Verificar</PrimaryButton>
-            <div className="text-center">
+
+            {resendSuccess && (
+              <div className="p-3 bg-green-50 rounded-2xl border border-green-200 text-center shadow-sm">
+                <p className="text-xs font-semibold text-green-700">{resendSuccess}</p>
+              </div>
+            )}
+
+            {inputError && (
+              <p className="text-sm text-red-500 text-center font-medium">{inputError}</p>
+            )}
+
+            {apiError && (
+              <div className="bg-red-50 p-3 rounded-2xl border border-red-200 text-center shadow-sm flex flex-col gap-0.5">
+                <p className="text-sm font-bold text-red-600">{apiError.title}</p>
+                {apiError.message && <p className="text-xs text-red-500">{apiError.message}</p>}
+              </div>
+            )}
+
+            <PrimaryButton type="submit" disabled={isLoading}>
+              {isLoading ? 'Verificando...' : 'Verificar'}
+            </PrimaryButton>
+
+            <div className="flex flex-col items-center gap-3 text-center">
               <p className="text-xs text-gray-600">
                 ¿No recibiste el código?{' '}
-                <Link className="text-red-500 hover:text-red-600 font-semibold transition-colors" to="/recovery">Reenviar</Link>
+                <button
+                  type="button"
+                  onClick={handleResendCode}
+                  disabled={timer > 0 || isLoadingResend}
+                  className="text-red-500 hover:text-red-600 font-semibold transition-colors disabled:text-gray-400 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {isLoadingResend
+                    ? 'Reenviando...'
+                    : timer > 0
+                    ? `Reenviar en (${formatTime(timer)})`
+                    : 'Reenviar'}
+                </button>
               </p>
+
+              <button
+                type="button"
+                onClick={openConfirmModal}
+                className="text-xs text-gray-500 hover:text-red-500 font-medium transition-colors cursor-pointer underline underline-offset-2"
+              >
+                Volver al inicio de sesión
+              </button>
             </div>
           </form>
         ) : (
@@ -79,14 +129,26 @@ export default function VerifyCode() {
               <p className="text-sm text-green-700 font-medium">Código verificado correctamente</p>
               <p className="text-xs text-green-600 mt-1">Tu identidad ha sido confirmada</p>
             </div>
-            <Link className="block text-sm text-red-500 hover:text-red-600 font-medium transition-colors" to="/">Volver al login</Link>
+            <Link className="block text-sm text-red-500 hover:text-red-600 font-medium transition-colors" to="/reset-password">
+              Continuar a restablecer contraseña
+            </Link>
           </div>
         )}
 
         <p className="mt-6 text-xs text-gray-400 text-center">
-          © 2024 Taquería El Corral Admin Portal. Acceso restringido a personal autorizado.
+          © Taquería El Corral Admin Portal. Acceso restringido a personal autorizado.
         </p>
       </AuthCard>
+
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        onClose={closeConfirmModal}
+        onConfirm={handleConfirmLeave}
+        title="¿Volver al inicio de sesión?"
+        message="¿Estás seguro de que deseas salir? Perderás el código ingresado y tendrás que volver a solicitarlo."
+        confirmText="Sí, salir"
+        cancelText="Continuar aquí"
+      />
     </div>
-  )
+  );
 }
