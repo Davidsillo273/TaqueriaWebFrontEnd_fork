@@ -11,7 +11,9 @@ export function useInventory() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/inventory`);
+      // credentials: 'include' manda la cookie de sesión, para que el backend
+      // sepa qué usuario realizó el movimiento y lo registre en notificaciones.
+      const res = await fetch(`${API_URL}/inventory`, { credentials: 'include' });
       if (!res.ok) throw new Error('Error al traer los insumos');
       const data = await res.json();
       setInsumos(Array.isArray(data) ? data : []);
@@ -30,6 +32,7 @@ export function useInventory() {
       const method = id ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
+        credentials: 'include',
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(insumoData),
@@ -55,7 +58,7 @@ export function useInventory() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/inventory/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${API_URL}/inventory/${id}`, { credentials: 'include', method: 'DELETE' });
       const resData = await res.json();
       if (!res.ok) {
         throw new Error(resData.message || 'Error al eliminar el insumo');

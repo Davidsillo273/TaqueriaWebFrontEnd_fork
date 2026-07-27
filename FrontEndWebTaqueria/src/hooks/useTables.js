@@ -10,7 +10,9 @@ export default function useTables() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/tables`);
+      // credentials: 'include' manda la cookie de sesión, para que el backend
+      // sepa qué usuario realizó el movimiento y lo registre en notificaciones.
+      const res = await fetch(`${API_URL}/tables`, { credentials: 'include' });
       if (!res.ok) throw new Error(`Error HTTP: ${res.status}`);
       const data = await res.json();
       setTables(Array.isArray(data) ? data : []);
@@ -25,6 +27,7 @@ export default function useTables() {
   const createTable = async (tableData) => {
     try {
       const res = await fetch(`${API_URL}/tables`, {
+        credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ number: Number(tableData.number), status: tableData.status || 'Disponible' })
@@ -41,6 +44,7 @@ export default function useTables() {
   const updateTable = async (id, tableData) => {
     try {
       const res = await fetch(`${API_URL}/tables/${id}`, {
+        credentials: 'include',
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ number: Number(tableData.number), status: tableData.status })
@@ -56,7 +60,7 @@ export default function useTables() {
 
   const deleteTable = async (id) => {
     try {
-      const res = await fetch(`${API_URL}/tables/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${API_URL}/tables/${id}`, { credentials: 'include', method: 'DELETE' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Error al eliminar mesa');
       setTables(prev => prev.filter(t => t._id !== id));

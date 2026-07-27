@@ -1,6 +1,7 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/authContext'
+import { NotificationsProvider } from './context/notificationsContext'
 import ProtectedRoute from './components/auth/protectedRoute'
 import PublicRoute from './components/auth/publicRoute'
 import Login from './pages/login'
@@ -19,12 +20,17 @@ import Inventory from './pages/inventory'
 import Orders from './pages/orders'
 import InviteStaff from './pages/inviteStaff'
 import AcceptInvitation from './pages/acceptInvitation'
+import Notifications from './pages/notifications'
+import Settings from './pages/settings'
 
 // App entry: setup rutas con React Router
 export default function App() {
 	return (
 		<BrowserRouter>
 			<AuthProvider>
+				{/* El provider de notificaciones va dentro del de sesión porque
+				    necesita saber si hay usuario para empezar a consultar */}
+				<NotificationsProvider>
 				<Routes>
 					{/* Rutas públicas: si ya hay sesión iniciada, PublicRoute
 					    redirige automáticamente al dashboard */}
@@ -52,7 +58,10 @@ export default function App() {
 					<Route path="/inventario" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
 					<Route path="/pedidos" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
 					<Route path="/InviteStaff" element={<ProtectedRoute><InviteStaff /></ProtectedRoute>} />
+					<Route path="/notificaciones" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+					<Route path="/ajustes" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
 				</Routes>
+				</NotificationsProvider>
 			</AuthProvider>
 		</BrowserRouter>
 	)

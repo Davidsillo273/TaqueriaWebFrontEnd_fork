@@ -11,7 +11,9 @@ export default function useOrders() {
         setLoading(true);
         try {
             // Le pega al router.route("/") del back por GET
-            const response = await fetch(`${API_URL}/carts`);
+            // credentials: 'include' manda la cookie de sesión, para que el
+            // backend sepa qué empleado realizó el movimiento y lo registre.
+            const response = await fetch(`${API_URL}/carts`, { credentials: 'include' });
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -29,6 +31,7 @@ export default function useOrders() {
         try {
             // Cumple con idCustomer, details y status tal cual el schema
             const response = await fetch(`${API_URL}/carts`, {
+                credentials: 'include',
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -57,6 +60,7 @@ export default function useOrders() {
 
             // Le pega al router.route("/:id") por PUT
             const response = await fetch(`${API_URL}/carts/${id}`, {
+                credentials: 'include',
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -79,6 +83,7 @@ export default function useOrders() {
         try {
             // Le pega al router.route("/:id") por DELETE
             const response = await fetch(`${API_URL}/carts/${id}`, {
+                credentials: 'include',
                 method: 'DELETE',
             });
             

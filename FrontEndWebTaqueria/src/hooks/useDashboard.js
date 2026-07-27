@@ -4,6 +4,7 @@ import { useEmployees } from './useEmployees';
 import useTables from './useTables';
 import { useInventory } from './useInventory';
 import useClients from './useClients';
+import { useSettings } from './useSettings';
 
 // Etiquetas en español para el estado del pedido (ajustar si el enum del back cambia)
 const ORDER_STATUS_LABELS = {
@@ -13,9 +14,6 @@ const ORDER_STATUS_LABELS = {
   delivered: 'COMPLETADO',
 };
 
-// Umbral para marcar un insumo como "stock bajo" (ajustar según regla de negocio real)
-const LOW_STOCK_THRESHOLD = 10;
-
 // Hook exclusivo para el Dashboard: combina orders, employees, tables,
 // inventory y clients en los datos que necesita la vista de Actividad.
 export default function useDashboard() {
@@ -24,6 +22,10 @@ export default function useDashboard() {
   const { tables, loading: loadingTables, error: tablesError } = useTables();
   const { insumos, loading: loadingInventory, error: inventoryError } = useInventory();
   const { clients, isLoading: loadingClients, error: clientsError } = useClients();
+  // El umbral de stock bajo ya no está fijo en el código: lo define el
+  // administrador desde Ajustes y se comparte con las alertas del backend.
+  const { settings } = useSettings();
+  const lowStockThreshold = settings.operation.lowStockThreshold;
 
   const isLoading =
     loadingOrders || loadingEmployees || loadingTables || loadingInventory || loadingClients;
@@ -91,8 +93,8 @@ export default function useDashboard() {
 
   // --- Inventario ---
   const insumosBajoStock = useMemo(
-    () => insumos.filter((i) => Number(i.quantity ?? i.stock) <= LOW_STOCK_THRESHOLD),
-    [insumos]
+    () => insumos.filter((i) => Number(i.quantity ?? i.stock) <= lowStockThreshold),
+    [insumos, lowStockThreshold]
   );
 
   const primerAlertaStock = insumosBajoStock[0]

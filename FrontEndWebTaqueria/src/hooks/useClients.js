@@ -15,6 +15,9 @@ export default function useClients() {
     setError('');
     try {
       const response = await fetch(`${API_URL}/customers`, {
+        // credentials: 'include' manda la cookie de sesión, para que el backend
+        // sepa qué usuario realizó el movimiento y lo registre en notificaciones.
+        credentials: 'include',
         method: 'GET',
         headers: { 
           'Content-Type': 'application/json',
