@@ -189,11 +189,12 @@ const InventoryModal = ({ isOpen, onClose, insumoData, onSave }) => {
                 {...register('type')}
                 className={selectClasses}
               >
+                <option value="Aves">Aves</option>
                 <option value="Carnes">Carnes</option>
                 <option value="Verduras">Verduras</option>
-                <option value="Lácteos">Lácteos</option>
-                <option value="Panadería">Panadería</option>
-                <option value="Desechables">Desechables</option>
+                <option value="Frutas">Frutas</option>
+                <option value="Minerales">Minerales</option>
+                <option value="Otros">Otros</option>
               </select>
             </div>
 

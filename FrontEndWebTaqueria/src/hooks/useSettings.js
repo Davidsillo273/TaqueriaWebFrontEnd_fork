@@ -8,7 +8,13 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 // con los mismos valores por defecto que define el backend.
 const DEFAULT_SETTINGS = {
   operation: {
-    lowStockThreshold: 10,
+    lowStockThresholds: {
+      inventory: 10,
+      drinks: 10,
+      saucers: 10,
+      extras: 10,
+      combos: 10,
+    },
     autoRefreshDashboard: true,
     dashboardRefreshSeconds: 60,
   },
@@ -35,8 +41,16 @@ export function useSettings() {
     setError(null);
     try {
       const response = await axios.get(`${BASE_URL}/settings`, { withCredentials: true });
+      const operation = response.data.operation || {};
       setSettings({
-        operation: { ...DEFAULT_SETTINGS.operation, ...(response.data.operation || {}) },
+        operation: {
+          ...DEFAULT_SETTINGS.operation,
+          ...operation,
+          lowStockThresholds: {
+            ...DEFAULT_SETTINGS.operation.lowStockThresholds,
+            ...(operation.lowStockThresholds || {}),
+          },
+        },
         notifications: { ...DEFAULT_SETTINGS.notifications, ...(response.data.notifications || {}) },
       });
     } catch (err) {
@@ -55,8 +69,16 @@ export function useSettings() {
         withCredentials: true,
       });
       const updated = response.data.data || {};
+      const operation = updated.operation || {};
       setSettings({
-        operation: { ...DEFAULT_SETTINGS.operation, ...(updated.operation || {}) },
+        operation: {
+          ...DEFAULT_SETTINGS.operation,
+          ...operation,
+          lowStockThresholds: {
+            ...DEFAULT_SETTINGS.operation.lowStockThresholds,
+            ...(operation.lowStockThresholds || {}),
+          },
+        },
         notifications: { ...DEFAULT_SETTINGS.notifications, ...(updated.notifications || {}) },
       });
       return { success: true };

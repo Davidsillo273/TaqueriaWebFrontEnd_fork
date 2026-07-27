@@ -26,6 +26,15 @@ const NOTIFICATION_CATEGORIES = [
   { id: 'clients', label: 'Clientes', icon: 'users', description: 'Registro y actualización de clientes' },
 ];
 
+// Secciones que tienen su propio umbral de "agotado" configurable
+const LOW_STOCK_SECTIONS = [
+  { id: 'inventory', label: 'Inventario' },
+  { id: 'drinks', label: 'Bebidas' },
+  { id: 'saucers', label: 'Platillos' },
+  { id: 'extras', label: 'Extras' },
+  { id: 'combos', label: 'Combos' },
+];
+
 // Interruptor reutilizable con el estilo del sistema
 const Toggle = ({ checked, onChange, disabled }) => (
   <button
@@ -375,24 +384,38 @@ function SettingsContent() {
 
           <form onSubmit={handleOperationSubmit} className="space-y-5">
             <div>
-              <label className={labelClass} htmlFor="low-stock">
-                Umbral de stock bajo
-              </label>
-              <input
-                id="low-stock"
-                type="number"
-                min="0"
-                value={operationForm.lowStockThreshold}
-                onChange={(e) =>
-                  setOperationDraft({ ...operationForm, lowStockThreshold: e.target.value })
-                }
-                className={inputClass}
-                disabled={!isAdmin || loading}
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Cuando un insumo baje de esta cantidad, el sistema genera una alerta automática
-                y lo marca como crítico en el panel.
+              <label className={labelClass}>Umbral de "agotado" por sección</label>
+              <p className="text-xs text-gray-500 mb-3">
+                Cuando una sección baje de su propio umbral, el sistema genera una alerta
+                automática y la marca como crítica en el panel. Cada área puede tener un
+                número distinto.
               </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {LOW_STOCK_SECTIONS.map((section) => (
+                  <div key={section.id}>
+                    <label className="block text-xs font-display font-medium text-gray-600 mb-1" htmlFor={`low-stock-${section.id}`}>
+                      {section.label}
+                    </label>
+                    <input
+                      id={`low-stock-${section.id}`}
+                      type="number"
+                      min="0"
+                      value={operationForm.lowStockThresholds?.[section.id] ?? 10}
+                      onChange={(e) =>
+                        setOperationDraft({
+                          ...operationForm,
+                          lowStockThresholds: {
+                            ...operationForm.lowStockThresholds,
+                            [section.id]: e.target.value,
+                          },
+                        })
+                      }
+                      className={inputClass}
+                      disabled={!isAdmin || loading}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="flex items-start justify-between gap-4 py-3 border-t border-gray-100">

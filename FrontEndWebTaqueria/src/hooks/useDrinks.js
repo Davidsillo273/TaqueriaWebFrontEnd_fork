@@ -22,13 +22,17 @@ export default function useDrinks() {
 
       const adapted = data.map((drink) => ({
         id: drink._id,
-        image: drink.image,
+        image: drink.image || null,
         title: drink.name,
         price: drink.price,
-        stock: drink.quantity,
+        category: drink.category,
+        subcategory: drink.subcategory || '',
+        // Solo las de tercero llevan stock propio
+        stock: drink.category === 'tercero' ? drink.quantity : null,
         status: drink.status,
-        isMostSold: drink.status === 'Más Vendido',
-        isAvailable: drink.quantity > 0,
+        recipe: Array.isArray(drink.recipe) ? drink.recipe : [],
+        isMostSold: false,
+        isAvailable: drink.status === 'disponible',
       }));
 
       setDrinks(adapted);

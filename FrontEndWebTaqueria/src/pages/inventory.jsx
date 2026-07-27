@@ -6,7 +6,11 @@ import ComboStats from '../components/dashboard/ComboStats';
 import FAIcon from '../components/commons/FAIcon';
 import InventoryModal from '../components/inventory/InventoryModal';
 import ConfirmModal from '../components/commons/ConfirmModal';
+import PaginationControls from '../components/commons/PaginationControls';
+import MissingInfoBanner from '../components/commons/MissingInfoBanner';
 import { useInventory } from '../hooks/useInventory';
+import { usePagination } from '../hooks/usePagination';
+import { useSettings } from '../hooks/useSettings';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
 
 function InventoryContent() {
@@ -17,11 +21,15 @@ function InventoryContent() {
   const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, insumoId: null });
 
   const { insumos = [], loading, error, deleteInsumo, saveInsumo } = useInventory();
+  const { settings } = useSettings();
   const { addToast } = useToast();
+  const { page, totalPages, paginatedItems, goTo, next, prev } = usePagination(insumos, 6);
+
+  const lowStockThreshold = settings.operation.lowStockThresholds?.inventory ?? 10;
 
   // Cálculos de estadísticas
   const totalItems = insumos.length;
-  const alertasStock = insumos.filter(item => Number(item.quantity || 0) <= 10).length;
+  const alertasStock = insumos.filter(item => Number(item.quantity || 0) <= lowStockThreshold).length;
   const valorEstimado = insumos.reduce((acc, item) => acc + (Number(item.price || 0) * Number(item.quantity || 0)), 0);
 
   // Badge de estado según cantidad y status
@@ -41,7 +49,7 @@ function InventoryContent() {
         className: 'bg-blue-100 text-blue-700 border border-blue-200',
       };
     }
-    if (cant <= 10) {
+    if (cant <= lowStockThreshold) {
       return {
         text: 'LOW STOCK',
         className: 'bg-yellow-100 text-yellow-700 border border-yellow-200',
@@ -131,6 +139,12 @@ function InventoryContent() {
               </div>
             )}
 
+            {/* Aviso de insumos pendientes de completar (creados desde el builder de recetas) */}
+            <MissingInfoBanner
+              message="Hay insumos por terminar de agregar información"
+              names={insumos.filter((i) => i.pending).map((i) => i.name)}
+            />
+
             {/* Estadísticas (usando ComboStats, mismo diseño que en Combos) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
               <ComboStats
@@ -186,7 +200,7 @@ function InventoryContent() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
-                      {insumos.map((item) => {
+                      {paginatedItems.map((item) => {
                         const badge = getStatusBadge(item.status, item.quantity);
                         return (
                           <tr key={item._id || item.id} className="hover:bg-gray-50/80 transition-colors">
@@ -196,6 +210,11 @@ function InventoryContent() {
                                   <FAIcon icon="image" size="sm" />
                                 </div>
                                 <span className="font-display font-semibold text-gray-900">{item.name}</span>
+                                {item.pending && (
+                                  <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-semibold uppercase">
+                                    Pendiente
+                                  </span>
+                                )}
                               </div>
                             </td>
                             <td className="p-3 sm:p-4 text-gray-600 font-medium">{item.type || 'Insumo'}</td>
@@ -232,6 +251,8 @@ function InventoryContent() {
                 </div>
               )}
             </div>
+
+            <PaginationControls page={page} totalPages={totalPages} onPrev={prev} onNext={next} onGoTo={goTo} />
           </div>
         </main>
       </div>

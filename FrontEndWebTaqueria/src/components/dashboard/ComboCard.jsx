@@ -32,8 +32,7 @@ const ComboCard = ({
           {isMostSold && (
             <span className="inline-flex items-center gap-1 bg-orange-500 text-white px-2.5 py-1 rounded-full text-xs font-semibold shadow-[0_2px_8px_rgba(0,0,0,0.15)] backdrop-blur-sm">
               <FAIcon icon="star" size="xs" />
-              <span className="hidden sm:inline">Más vendido</span>
-              <span className="sm:hidden">TOP</span>
+              <span>Estrella</span>
             </span>
           )}
           {isAvailable ? (

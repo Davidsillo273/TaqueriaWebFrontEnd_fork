@@ -1,14 +1,26 @@
 // src/pages/Dishes.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/dashboard/Sidebar';
 import TopBar from '../components/dashboard/TopBar';
-import ComboStats from '../components/dashboard/ComboStats'; 
+import ComboStats from '../components/dashboard/ComboStats';
 import DishCard from '../components/dishes/DishCard';
 import AddDishModal from '../components/dishes/AddDishModal';
 import ConfirmModal from '../components/commons/ConfirmModal';
+import PaginationControls from '../components/commons/PaginationControls';
+import MissingInfoBanner from '../components/commons/MissingInfoBanner';
 import FAIcon from '../components/commons/FAIcon';
 import useSaucers from '../hooks/useSaucers';
+import { usePagination } from '../hooks/usePagination';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
+
+const CATEGORY_FILTERS = [
+  { id: 'all', label: 'Todos' },
+  { id: 'Burritos', label: 'Burritos' },
+  { id: 'Tortas', label: 'Tortas' },
+  { id: 'Tacos', label: 'Tacos' },
+  { id: 'Sopas', label: 'Sopas' },
+  { id: 'Especiales', label: 'Especiales' },
+];
 
 function DishesContent() {
   const [activeMenu] = useState('dishes');
@@ -16,14 +28,29 @@ function DishesContent() {
   const [editingDish, setEditingDish] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, dishId: null });
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [bestSeller, setBestSeller] = useState(null);
 
   const { saucers, loading, error, createSaucer, updateSaucer, deleteSaucer } = useSaucers();
   const { addToast } = useToast();
 
+  useEffect(() => {
+    fetch('http://localhost:4000/api/saucers/best-sellers?limit=1', { credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => setBestSeller(data[0] || null))
+      .catch(() => setBestSeller(null));
+  }, [saucers.length]);
+
+  const filteredDishes = categoryFilter === 'all'
+    ? saucers
+    : saucers.filter((d) => d.category === categoryFilter);
+
+  const { page, totalPages, paginatedItems, goTo, next, prev } = usePagination(filteredDishes, 6);
+
   // Datos para las estadísticas
-  const totalDishes = saucers.length;
-  const outOfStockDishes = saucers.filter(dish => dish.status === 'AGOTADO' || dish.status === 'Inactivo').length;
-  const platoEstrella = saucers.find(dish => dish.isMostSold)?.name || 'Ninguno';
+  const totalDishes = filteredDishes.length;
+  const outOfStockDishes = saucers.filter(dish => dish.status !== 'Activo').length;
+  const platoEstrella = bestSeller?.saucer?.name || 'Sin datos aún';
 
   const handleSaveDish = async (formData) => {
     try {
@@ -111,18 +138,39 @@ function DishesContent() {
               </div>
             )}
 
+            {/* Aviso de platillos sin imagen */}
+            <MissingInfoBanner
+              message="Hay platillos faltantes de imágenes"
+              names={saucers.filter((d) => !d.image).map((d) => d.name)}
+            />
+
             {/* Estadísticas (mismo diseño que Combos y Bebidas) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
               <ComboStats
                 icon="utensils"
                 title="TOTAL PLATILLOS"
                 value={loading ? '...' : totalDishes}
-                label={`${totalDishes} platillos registrados`}
+                label={
+                  <span className="flex gap-1.5 flex-wrap mt-1">
+                    {CATEGORY_FILTERS.map((f) => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setCategoryFilter(f.id); }}
+                        className={`px-2 py-0.5 rounded-full text-[11px] font-semibold transition-colors ${
+                          categoryFilter === f.id ? 'bg-red-500 text-white' : 'bg-white/60 text-gray-600 hover:bg-white'
+                        }`}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </span>
+                }
                 highlighted={true}
               />
               <ComboStats
                 icon="star"
-                title="PLATO ESTRELLA"
+                title="PLATILLO ESTRELLA"
                 value={platoEstrella}
                 label="Más vendido"
                 highlighted={true}
@@ -146,28 +194,32 @@ function DishesContent() {
 
             {/* Grid de platillos (sin contenedor blanco) */}
             {!loading && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-                {saucers.map((dish) => (
-                  <DishCard
-                    key={dish._id}
-                    image={dish.image}
-                    name={dish.name}
-                    price={`$${parseFloat(dish.price).toFixed(2)}`}
-                    status={dish.status}
-                    isMostSold={dish.isMostSold}
-                    onEdit={() => { setEditingDish(dish); setIsModalOpen(true); }}
-                    onDelete={() => handleRequestDelete(dish._id)}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                  {paginatedItems.map((dish) => (
+                    <DishCard
+                      key={dish._id}
+                      image={dish.image}
+                      name={dish.name}
+                      category={dish.category}
+                      price={`$${parseFloat(dish.price).toFixed(2)}`}
+                      status={dish.status}
+                      isMostSold={bestSeller?.saucer?._id === dish._id}
+                      onEdit={() => { setEditingDish(dish); setIsModalOpen(true); }}
+                      onDelete={() => handleRequestDelete(dish._id)}
+                    />
+                  ))}
+                </div>
+                <PaginationControls page={page} totalPages={totalPages} onPrev={prev} onNext={next} onGoTo={goTo} />
+              </>
             )}
 
             {/* Estado vacío */}
-            {!loading && saucers.length === 0 && !error && (
+            {!loading && filteredDishes.length === 0 && !error && (
               <div className="text-center py-12">
                 <FAIcon icon="utensils" size="3x" className="text-gray-400 mx-auto mb-3" />
                 <p className="text-gray-500 text-base sm:text-lg font-display font-semibold">
-                  No hay platillos registrados
+                  No hay platillos {categoryFilter !== 'all' ? 'en esta categoría' : 'registrados'}
                 </p>
                 <p className="text-gray-400 text-xs sm:text-sm mb-4">
                   Haz click en "Nuevo Platillo" para agregar uno

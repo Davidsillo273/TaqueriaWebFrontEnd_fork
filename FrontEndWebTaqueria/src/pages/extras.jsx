@@ -1,13 +1,15 @@
 // src/pages/Extras.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/dashboard/Sidebar';
 import TopBar from '../components/dashboard/TopBar';
-import ComboStats from '../components/dashboard/ComboStats'; 
+import ComboStats from '../components/dashboard/ComboStats';
 import ExtraCard from '../components/extras/ExtraCard';
 import AddExtraModal from '../components/extras/AddExtraModal';
 import ConfirmModal from '../components/commons/ConfirmModal';
+import PaginationControls from '../components/commons/PaginationControls';
 import FAIcon from '../components/commons/FAIcon';
 import useExtras from '../hooks/useExtras';
+import { usePagination } from '../hooks/usePagination';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
 
 function ExtrasContent() {
@@ -16,14 +18,30 @@ function ExtrasContent() {
   const [editingExtra, setEditingExtra] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, extraId: null });
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [bestSeller, setBestSeller] = useState(null);
 
   const { extras, loading, error, addExtra, updateExtra, deleteExtra } = useExtras();
   const { addToast } = useToast();
 
+  useEffect(() => {
+    fetch('http://localhost:4000/api/extras/best-sellers?limit=1', { credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => setBestSeller(data[0] || null))
+      .catch(() => setBestSeller(null));
+  }, [extras.length]);
+
+  const categoryOptions = ['all', ...new Set(extras.map((e) => e.category).filter(Boolean))];
+  const filteredExtras = categoryFilter === 'all'
+    ? extras
+    : extras.filter((e) => e.category === categoryFilter);
+
+  const { page, totalPages, paginatedItems, goTo, next, prev } = usePagination(filteredExtras, 6);
+
   // Datos para las tarjetas de estadísticas
-  const totalExtras = extras.length;
+  const totalExtras = filteredExtras.length;
   const lowInventoryCount = extras.filter(e => e.status === 'AGOTADO').length;
-  const mostRequestedExtra = extras[0]?.name || 'N/A';
+  const mostRequestedExtra = bestSeller?.extra?.name || 'Sin datos aún';
 
   const handleSave = async (formData) => {
     try {
@@ -31,6 +49,7 @@ function ExtrasContent() {
       const payload = {
         name: formData.name,
         price: cleanPrice,
+        category: formData.category,
         status: formData.status,
       };
 
@@ -127,7 +146,22 @@ function ExtrasContent() {
                 icon="box"
                 title="TOTAL EXTRAS"
                 value={loading ? '...' : totalExtras}
-                label={`${totalExtras} extras registrados`}
+                label={
+                  <span className="flex gap-1.5 flex-wrap mt-1">
+                    {categoryOptions.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setCategoryFilter(c); }}
+                        className={`px-2 py-0.5 rounded-full text-[11px] font-semibold transition-colors ${
+                          categoryFilter === c ? 'bg-red-500 text-white' : 'bg-white/60 text-gray-600 hover:bg-white'
+                        }`}
+                      >
+                        {c === 'all' ? 'Todos' : c}
+                      </button>
+                    ))}
+                  </span>
+                }
                 highlighted={true}
               />
               <ComboStats
@@ -156,22 +190,25 @@ function ExtrasContent() {
 
             {/* Grid de extras (sin contenedor blanco) */}
             {!loading && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-                {extras.map(extra => (
-                  <ExtraCard
-                    key={extra._id}
-                    title={extra.name}
-                    price={`$${extra.price}`}
-                    status={extra.status}
-                    onEdit={() => { setEditingExtra(extra); setIsModalOpen(true); }}
-                    onDelete={() => handleRequestDelete(extra._id)}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                  {paginatedItems.map(extra => (
+                    <ExtraCard
+                      key={extra._id}
+                      title={extra.name}
+                      price={`$${extra.price}`}
+                      status={extra.status}
+                      onEdit={() => { setEditingExtra(extra); setIsModalOpen(true); }}
+                      onDelete={() => handleRequestDelete(extra._id)}
+                    />
+                  ))}
+                </div>
+                <PaginationControls page={page} totalPages={totalPages} onPrev={prev} onNext={next} onGoTo={goTo} />
+              </>
             )}
 
             {/* Estado vacío */}
-            {!loading && extras.length === 0 && !error && (
+            {!loading && filteredExtras.length === 0 && !error && (
               <div className="text-center py-12">
                 <FAIcon icon="inbox" size="3x" className="text-gray-400 mx-auto mb-3" />
                 <p className="text-gray-500 text-base sm:text-lg font-display font-semibold">

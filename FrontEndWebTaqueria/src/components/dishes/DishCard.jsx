@@ -2,22 +2,23 @@
 import React from 'react';
 import FAIcon from '../commons/FAIcon';
 
-export default function DishCard({ image, name, price, status, isMostSold = false, onEdit, onDelete }) {
+const PLACEHOLDER_IMAGE = 'https://placehold.co/400x300/f3f0eb/9ca3af?text=Platillo';
+
+export default function DishCard({ image, name, category, price, status, isMostSold = false, onEdit, onDelete }) {
   const isAvailable = status === 'Activo';
 
   return (
     <div className="bg-white rounded-3xl overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.08),inset_1px_1px_3px_rgba(255,255,255,0.7),inset_-1px_-1px_3px_rgba(0,0,0,0.05)] border border-white/80 flex flex-col h-full transition-transform duration-200 hover:scale-[1.02]">
       {/* Imagen con overlay y badges */}
       <div className="relative h-44 sm:h-48">
-        <img src={image} alt={name} className="w-full h-full object-cover rounded-t-3xl" />
+        <img src={image || PLACEHOLDER_IMAGE} alt={name} className="w-full h-full object-cover rounded-t-3xl" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-t-3xl" />
 
         <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
           {isMostSold && (
             <span className="inline-flex items-center gap-1 bg-orange-500 text-white px-2.5 py-1 rounded-full text-xs font-semibold shadow-[0_2px_8px_rgba(0,0,0,0.15)] backdrop-blur-sm">
               <FAIcon icon="star" size="xs" />
-              <span className="hidden sm:inline">Más vendido</span>
-              <span className="sm:hidden">TOP</span>
+              <span>Estrella</span>
             </span>
           )}
           {isAvailable ? (
@@ -48,6 +49,11 @@ export default function DishCard({ image, name, price, status, isMostSold = fals
         <h3 className="font-display font-bold text-gray-900 mb-1 text-sm sm:text-base line-clamp-2">
           {name}
         </h3>
+        {category && (
+          <span className="inline-block mb-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[11px] font-semibold uppercase w-fit">
+            {category}
+          </span>
+        )}
         <p className="text-red-500 font-display font-bold text-lg sm:text-xl mb-2">
           {price}
         </p>

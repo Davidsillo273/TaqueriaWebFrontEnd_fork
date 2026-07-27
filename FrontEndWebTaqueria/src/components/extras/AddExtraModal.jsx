@@ -16,6 +16,7 @@ const AddExtraModal = ({ isOpen, onClose, onAdd, editingExtra = null }) => {
     defaultValues: {
       name: '',
       price: '',
+      category: '',
       status: 'DISPONIBLE',
     },
   });
@@ -25,11 +26,13 @@ const AddExtraModal = ({ isOpen, onClose, onAdd, editingExtra = null }) => {
       if (editingExtra) {
         setValue('name', editingExtra.name || '');
         setValue('price', editingExtra.price || '');
+        setValue('category', editingExtra.category || '');
         setValue('status', editingExtra.status || 'DISPONIBLE');
       } else {
         reset({
           name: '',
           price: '',
+          category: '',
           status: 'DISPONIBLE',
         });
       }
@@ -105,6 +108,27 @@ const AddExtraModal = ({ isOpen, onClose, onAdd, editingExtra = null }) => {
               className={inputClasses}
             />
             {errors.price && <span className="text-red-500 text-xs mt-1 block font-medium">{errors.price.message}</span>}
+          </div>
+
+          {/* Categoría */}
+          <div>
+            <label className="block text-xs font-display font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+              Categoría
+            </label>
+            <input
+              type="text"
+              list="extra-category-suggestions"
+              {...register('category')}
+              placeholder="Ej: Verduras, Lácteos, Salsas, Especial..."
+              className={inputClasses}
+            />
+            <datalist id="extra-category-suggestions">
+              <option value="Verduras" />
+              <option value="Lácteos" />
+              <option value="Salsas" />
+              <option value="Especial" />
+              <option value="Otros" />
+            </datalist>
           </div>
 
           {/* Estado */}

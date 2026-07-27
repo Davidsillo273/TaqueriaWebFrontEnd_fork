@@ -22,6 +22,7 @@ import InviteStaff from './pages/inviteStaff'
 import AcceptInvitation from './pages/acceptInvitation'
 import Notifications from './pages/notifications'
 import Settings from './pages/settings'
+import Recipes from './pages/recipes'
 
 // App entry: setup rutas con React Router
 export default function App() {
@@ -60,6 +61,7 @@ export default function App() {
 					<Route path="/InviteStaff" element={<ProtectedRoute><InviteStaff /></ProtectedRoute>} />
 					<Route path="/notificaciones" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
 					<Route path="/ajustes" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+					<Route path="/recetas" element={<ProtectedRoute><Recipes /></ProtectedRoute>} />
 				</Routes>
 				</NotificationsProvider>
 			</AuthProvider>

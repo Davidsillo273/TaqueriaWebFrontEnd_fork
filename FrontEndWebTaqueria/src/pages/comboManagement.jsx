@@ -1,14 +1,24 @@
 // src/pages/Combos.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/dashboard/Sidebar';
 import TopBar from '../components/dashboard/TopBar';
 import ComboCard from '../components/dashboard/ComboCard';
 import ComboStats from '../components/dashboard/ComboStats';
 import AddComboModal from '../components/dashboard/AddComboModal';
 import ConfirmModal from '../components/commons/confirmModal';
+import PaginationControls from '../components/commons/PaginationControls';
+import MissingInfoBanner from '../components/commons/MissingInfoBanner';
 import FAIcon from '../components/commons/FAIcon';
 import { useCombos } from '../hooks/useCombos';
+import { usePagination } from '../hooks/usePagination';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
+
+const CATEGORY_FILTERS = [
+  { id: 'all', label: 'Todos' },
+  { id: 'familiar', label: 'Familiares' },
+  { id: 'duo', label: 'Duos' },
+  { id: 'individual', label: 'Individuales' },
+];
 
 function ComboManagementContent() {
   const [activeMenu] = useState('combos');
@@ -16,9 +26,24 @@ function ComboManagementContent() {
   const [selectedCombo, setSelectedCombo] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, comboId: null });
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [bestSellers, setBestSellers] = useState([]);
 
   const { combos, loading, error, addCombo, updateCombo, deleteCombo } = useCombos();
   const { addToast } = useToast();
+
+  useEffect(() => {
+    fetch('http://localhost:4000/api/combos/best-sellers?limit=1', { credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : []))
+      .then(setBestSellers)
+      .catch(() => setBestSellers([]));
+  }, [combos.length]);
+
+  const filteredCombos = categoryFilter === 'all'
+    ? combos
+    : combos.filter((c) => c.category === categoryFilter);
+
+  const { page, totalPages, paginatedItems, goTo, next, prev } = usePagination(filteredCombos, 6);
 
   const handleOpenAddModal = () => {
     setSelectedCombo(null);
@@ -65,12 +90,12 @@ function ComboManagementContent() {
 
   const formatComboForDisplay = (combo) => ({
     id: combo._id,
-    image: combo.image || 'https://via.placeholder.com/300x200?text=Combo',
+    image: combo.image || 'https://placehold.co/300x200/f3f0eb/9ca3af?text=Combo',
     title: combo.name || 'Sin nombre',
     price: `$${(combo.price || 0).toFixed(2)}`,
     description: combo.description || 'Sin descripción',
-    isMostSold: false,
-    isAvailable: combo.status === 'available',
+    isMostSold: bestSellers[0]?.combo?._id === combo._id,
+    isAvailable: combo.status === 'disponible',
   });
 
   return (
@@ -124,20 +149,48 @@ function ComboManagementContent() {
               </div>
             )}
 
+            {/* Aviso de combos sin imagen */}
+            <MissingInfoBanner
+              message="Hay combos faltantes de imágenes"
+              names={combos.filter((c) => !c.image).map((c) => c.name)}
+            />
+
             {/* Estadísticas */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 sm:mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 sm:mb-8">
               <ComboStats
                 icon="list"
                 title="TOTAL COMBOS"
-                value={loading ? '...' : combos.length}
-                label={`${combos.length} combos registrados`}
+                value={loading ? '...' : filteredCombos.length}
+                label={
+                  <span className="flex gap-1.5 flex-wrap mt-1">
+                    {CATEGORY_FILTERS.map((f) => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setCategoryFilter(f.id); }}
+                        className={`px-2 py-0.5 rounded-full text-[11px] font-semibold transition-colors ${
+                          categoryFilter === f.id ? 'bg-red-500 text-white' : 'bg-white/60 text-gray-600 hover:bg-white'
+                        }`}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </span>
+                }
                 highlighted={true}
               />
               <ComboStats
                 icon="check-circle"
                 title="COMBOS DISPONIBLES"
-                value={loading ? '...' : combos.filter(c => c.status === 'available').length}
-                label={`${combos.filter(c => c.status === 'available').length} combos disponibles`}
+                value={loading ? '...' : combos.filter(c => c.status === 'disponible').length}
+                label={`${combos.filter(c => c.status === 'disponible').length} combos disponibles`}
+                highlighted={true}
+              />
+              <ComboStats
+                icon="star"
+                title="COMBO ESTRELLA"
+                value={loading ? '...' : (bestSellers[0]?.combo?.name || 'Sin datos aún')}
+                label={bestSellers[0] ? `${bestSellers[0].totalSold} vendidos` : 'Aún no hay ventas registradas'}
                 highlighted={true}
               />
             </div>
@@ -152,24 +205,27 @@ function ComboManagementContent() {
 
             {/* Grid de combos */}
             {!loading && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                {combos.map((combo) => (
-                  <ComboCard
-                    key={combo._id}
-                    {...formatComboForDisplay(combo)}
-                    onEdit={() => handleOpenEditModal(combo)}
-                    onDelete={() => handleRequestDelete(combo._id)}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                  {paginatedItems.map((combo) => (
+                    <ComboCard
+                      key={combo._id}
+                      {...formatComboForDisplay(combo)}
+                      onEdit={() => handleOpenEditModal(combo)}
+                      onDelete={() => handleRequestDelete(combo._id)}
+                    />
+                  ))}
+                </div>
+                <PaginationControls page={page} totalPages={totalPages} onPrev={prev} onNext={next} onGoTo={goTo} />
+              </>
             )}
 
             {/* Estado vacío */}
-            {!loading && combos.length === 0 && !error && (
+            {!loading && filteredCombos.length === 0 && !error && (
               <div className="text-center py-12">
                 <FAIcon icon="inbox" size="3x" className="text-gray-400 mx-auto mb-3" />
                 <p className="text-gray-500 text-base sm:text-lg font-display font-semibold">
-                  No hay combos agregados
+                  No hay combos {categoryFilter !== 'all' ? 'en esta categoría' : 'agregados'}
                 </p>
                 <p className="text-gray-400 text-xs sm:text-sm mb-4">
                   Haz click en "Nuevo combo" para crear uno

@@ -25,7 +25,7 @@ export default function useDashboard() {
   // El umbral de stock bajo ya no está fijo en el código: lo define el
   // administrador desde Ajustes y se comparte con las alertas del backend.
   const { settings } = useSettings();
-  const lowStockThreshold = settings.operation.lowStockThreshold;
+  const lowStockThreshold = settings.operation.lowStockThresholds?.inventory ?? 10;
 
   const isLoading =
     loadingOrders || loadingEmployees || loadingTables || loadingInventory || loadingClients;

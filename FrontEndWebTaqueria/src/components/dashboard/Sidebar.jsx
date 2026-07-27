@@ -7,18 +7,47 @@ import { useLogout } from '../../hooks/auth/useLogout';
 const Sidebar = ({ activeMenu, isOpen, onClose }) => {
   const { logout, loading } = useLogout();
 
-  const menuItems = [
-    { id: 'activity', label: 'Actividad', icon: 'chart-line', path: '/dashboard' },
-    { id: 'combos', label: 'Combos', icon: 'shopping-bag', path: '/combos' },
-    { id: 'drinks', label: 'Bebidas', icon: 'wine-glass', path: '/drinks' },
-    { id: 'dishes', label: 'Platillo', icon: 'utensils', path: '/dishes' },
-    { id: 'extras', label: 'Extras', icon: 'star', path: '/extras' },
-    { id: 'inventory', label: 'Inventario', icon: 'box', path: '/inventario' },
-    { id: 'tables', label: 'Mesas', icon: 'chair', path: '/mesas' },
-    { id: 'clients', label: 'Clientes', icon: 'users', path: '/clients' },
-    { id: 'staff', label: 'Empleados', icon: 'user-tie', path: '/employees' },
-    { id: 'orders-list', label: 'Pedidos', icon: 'list', path: '/pedidos' },
-    { id: 'invite-staff', label: 'Invitar staff', icon: 'users', path: '/InviteStaff' },
+  // Agrupamos los items por categorías para un mejor orden visual
+  const menuCategories = [
+    {
+      title: 'Principal',
+      items: [
+        { id: 'activity', label: 'Actividad', icon: 'chart-line', path: '/dashboard' },
+      ],
+    },
+    {
+      title: 'Menú',
+      items: [
+        { id: 'combos', label: 'Combos', icon: 'shopping-bag', path: '/combos' },
+        { id: 'drinks', label: 'Bebidas', icon: 'wine-glass', path: '/drinks' },
+        { id: 'dishes', label: 'Platillos', icon: 'utensils', path: '/dishes' },
+        { id: 'extras', label: 'Extras', icon: 'star', path: '/extras' },
+        { id: 'recipes', label: 'Recetas', icon: 'flask', path: '/recetas' },
+      ],
+    },
+    {
+      title: 'Operaciones',
+      items: [
+        { id: 'orders-list', label: 'Pedidos', icon: 'list', path: '/pedidos' },
+        { id: 'tables', label: 'Mesas', icon: 'chair', path: '/mesas' },
+        { id: 'inventory', label: 'Inventario', icon: 'box', path: '/inventario' },
+      ],
+    },
+    {
+      title: 'Administración',
+      items: [
+        { id: 'clients', label: 'Clientes', icon: 'users', path: '/clients' },
+        { id: 'staff', label: 'Empleados', icon: 'user-tie', path: '/employees' },
+        { id: 'invite-staff', label: 'Invitar staff', icon: 'user-plus', path: '/InviteStaff' },
+      ],
+    },
+    {
+      title: 'Sistema',
+      items: [
+        { id: 'notifications', label: 'Notificaciones', icon: 'bell', path: '/notificaciones' },
+        { id: 'settings', label: 'Ajustes', icon: 'cog', path: '/ajustes' },
+      ],
+    },
   ];
 
   const handleLogout = async (e) => {
@@ -34,10 +63,11 @@ const Sidebar = ({ activeMenu, isOpen, onClose }) => {
         key={item.id}
         to={item.path}
         onClick={onItemClick}
-        className={`group relative flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-display font-medium transition-all duration-200 ${isActive
-          ? 'bg-red-500 text-white shadow-[0_4px_12px_rgba(220,38,38,0.3),inset_1px_1px_2px_rgba(255,255,255,0.3)]'
-          : 'text-gray-600 hover:bg-white/60 hover:text-gray-900 hover:shadow-sm'
-          }`}
+        className={`group relative flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-display font-medium transition-all duration-200 ${
+          isActive
+            ? 'bg-red-500 text-white shadow-[0_4px_12px_rgba(220,38,38,0.3),inset_1px_1px_2px_rgba(255,255,255,0.3)]'
+            : 'text-gray-600 hover:bg-white/60 hover:text-gray-900 hover:shadow-sm'
+        }`}
       >
         <FAIcon
           icon={item.icon}
@@ -50,6 +80,21 @@ const Sidebar = ({ activeMenu, isOpen, onClose }) => {
       </Link>
     );
   };
+
+  const renderLogoutButton = () => (
+    <button
+      type="button"
+      onClick={handleLogout}
+      disabled={loading}
+      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-500 text-white rounded-2xl font-display font-semibold transition-all text-sm
+        shadow-[0_6px_16px_rgba(220,38,38,0.35),inset_1px_1px_2px_rgba(255,255,255,0.3)]
+        hover:bg-red-600 hover:shadow-[0_8px_20px_rgba(220,38,38,0.4)]
+        disabled:opacity-60 disabled:cursor-not-allowed"
+    >
+      <FAIcon icon="sign-out-alt" />
+      <span>{loading ? 'Cerrando sesión...' : 'Cerrar sesión'}</span>
+    </button>
+  );
 
   // Función auxiliar para renderizar los bloques de navegación con sus títulos
   const renderNavigation = (onItemClick = undefined) => (
@@ -71,26 +116,31 @@ const Sidebar = ({ activeMenu, isOpen, onClose }) => {
     <>
       {/* Escritorio */}
       <aside className="hidden lg:flex lg:flex-col relative w-64 bg-white/90 backdrop-blur-sm rounded-r-3xl shadow-[0_10px_40px_rgba(0,0,0,0.08),inset_1px_1px_3px_rgba(255,255,255,0.7)] border border-white/60 h-screen sticky top-0">
-        <div className="relative p-6 border-b border-white/80 shrink-0">
-          <div className="w-full h-16 flex items-center justify-center">
-            <img src="../public/logo.png" className="h-14 w-auto object-contain" alt="SYSCOR" />
+        <div className="relative p-4 border-b border-white/80 shrink-0">
+          <div className="w-full flex items-center justify-center py-4">
+            <img src="../public/logo.png" className="h-24 w-auto object-contain" alt="SYSCOR" />
           </div>
         </div>
 
         <nav className="relative p-4 flex-1 overflow-y-auto custom-scrollbar">
           {renderNavigation()}
         </nav>
+
+        <div className="relative p-4 border-t border-white/80 shrink-0">
+          {renderLogoutButton()}
+        </div>
       </aside>
 
       {/* Móvil */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white/90 backdrop-blur-sm rounded-r-3xl shadow-2xl transform transition-transform duration-300 ease-in-out lg:hidden ${isOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white/90 backdrop-blur-sm rounded-r-3xl shadow-2xl transform transition-transform duration-300 ease-in-out lg:hidden ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
       >
         <div className="flex flex-col h-full relative overflow-hidden">
           <div className="relative flex items-center justify-between p-4 border-b border-white/80 shrink-0">
-            <div className="h-14 flex items-center justify-center">
-              <img src="../public/logo.png" className="h-12 w-auto object-contain" alt="SYSCOR" />
+            <div className="flex items-center justify-center">
+              <img src="../public/logo.png" className="h-16 w-auto object-contain" alt="SYSCOR" />
             </div>
             <button
               onClick={onClose}
@@ -105,6 +155,9 @@ const Sidebar = ({ activeMenu, isOpen, onClose }) => {
             {renderNavigation(onClose)}
           </nav>
 
+          <div className="relative p-4 border-t border-white/80 shrink-0">
+            {renderLogoutButton()}
+          </div>
         </div>
       </div>
     </>

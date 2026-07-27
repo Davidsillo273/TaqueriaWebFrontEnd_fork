@@ -1,14 +1,24 @@
 // src/pages/Drinks.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/dashboard/Sidebar';
 import TopBar from '../components/dashboard/TopBar';
 import ComboStats from '../components/dashboard/ComboStats'; // 👈 mismo componente que en Combos
 import DrinkCard from '../components/drinks/DrinkCard';
 import AddDrinkModal from '../components/drinks/AddDrinkModal';
 import ConfirmModal from '../components/commons/ConfirmModal';
+import PaginationControls from '../components/commons/PaginationControls';
+import MissingInfoBanner from '../components/commons/MissingInfoBanner';
 import FAIcon from '../components/commons/FAIcon';
 import useDrinks from '../hooks/useDrinks';
+import { usePagination } from '../hooks/usePagination';
+import { useSettings } from '../hooks/useSettings';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
+
+const CATEGORY_FILTERS = [
+  { id: 'all', label: 'Todas' },
+  { id: 'casa', label: 'De Casa' },
+  { id: 'tercero', label: 'De Terceros' },
+];
 
 function DrinksContent() {
   const [activeMenu] = useState('drinks');
@@ -16,14 +26,32 @@ function DrinksContent() {
   const [selectedDrink, setSelectedDrink] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, drinkId: null });
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [bestSeller, setBestSeller] = useState(null);
 
   const { drinks, loading, error, addDrink, updateDrink, deleteDrink } = useDrinks();
+  const { settings } = useSettings();
   const { addToast } = useToast();
 
+  useEffect(() => {
+    fetch('http://localhost:4000/api/drinks/best-sellers?limit=1', { credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => setBestSeller(data[0] || null))
+      .catch(() => setBestSeller(null));
+  }, [drinks.length]);
+
+  const filteredDrinks = categoryFilter === 'all'
+    ? drinks
+    : drinks.filter((d) => d.category === categoryFilter);
+
+  const { page, totalPages, paginatedItems, goTo, next, prev } = usePagination(filteredDrinks, 6);
+
+  const lowStockThreshold = settings.operation.lowStockThresholds?.drinks ?? 10;
+
   // Datos para las tres tarjetas de estadísticas
-  const totalBebidas = drinks.length;
-  const stockCritico = drinks.filter(drink => drink.stock < 10).length;
-  const bebidaMasVendida = drinks.find(drink => drink.isMostSold)?.title || 'Ninguna';
+  const totalBebidas = filteredDrinks.length;
+  const stockCritico = drinks.filter((d) => d.category === 'tercero' && d.stock < lowStockThreshold).length;
+  const bebidaEstrella = bestSeller?.drink?.name || 'Sin datos aún';
 
   const handleOpenCreateModal = () => {
     setSelectedDrink(null);
@@ -117,26 +145,47 @@ function DrinksContent() {
               </div>
             )}
 
+            {/* Aviso de bebidas sin imagen */}
+            <MissingInfoBanner
+              message="Hay bebidas faltantes de imágenes"
+              names={drinks.filter((d) => !d.image).map((d) => d.title)}
+            />
+
             {/* 👇 Tres tarjetas de estadísticas con el MISMO diseño que en Combos */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
               <ComboStats
                 icon="wine-glass"
                 title="TOTAL BEBIDAS"
                 value={loading ? '...' : totalBebidas}
-                label={`${totalBebidas} bebidas registradas`}
+                label={
+                  <span className="flex gap-1.5 flex-wrap mt-1">
+                    {CATEGORY_FILTERS.map((f) => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setCategoryFilter(f.id); }}
+                        className={`px-2 py-0.5 rounded-full text-[11px] font-semibold transition-colors ${
+                          categoryFilter === f.id ? 'bg-red-500 text-white' : 'bg-white/60 text-gray-600 hover:bg-white'
+                        }`}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </span>
+                }
                 highlighted={true}
               />
               <ComboStats
                 icon="exclamation-triangle"
                 title="STOCK CRÍTICO"
                 value={loading ? '...' : stockCritico}
-                label={stockCritico > 0 ? 'Menos de 10 unidades' : 'Todo en orden'}
+                label={stockCritico > 0 ? `Menos de ${lowStockThreshold} unidades` : 'Todo en orden'}
                 highlighted={true}
               />
               <ComboStats
                 icon="chart-line"
-                title="MÁS VENDIDA"
-                value={loading ? '...' : bebidaMasVendida}
+                title="BEBIDA ESTRELLA"
+                value={loading ? '...' : bebidaEstrella}
                 label="Bebida destacada"
                 highlighted={true}
               />
@@ -152,24 +201,28 @@ function DrinksContent() {
 
             {/* Grid de bebidas (sin contenedor extra) */}
             {!loading && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                {drinks.map((drink) => (
-                  <DrinkCard
-                    key={drink.id}
-                    {...drink}
-                    onEdit={handleOpenEditModal}
-                    onDelete={handleRequestDelete}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                  {paginatedItems.map((drink) => (
+                    <DrinkCard
+                      key={drink.id}
+                      {...drink}
+                      isMostSold={bestSeller?.drink?._id === drink.id}
+                      onEdit={handleOpenEditModal}
+                      onDelete={handleRequestDelete}
+                    />
+                  ))}
+                </div>
+                <PaginationControls page={page} totalPages={totalPages} onPrev={prev} onNext={next} onGoTo={goTo} />
+              </>
             )}
 
             {/* Estado vacío */}
-            {!loading && drinks.length === 0 && !error && (
+            {!loading && filteredDrinks.length === 0 && !error && (
               <div className="text-center py-12">
                 <FAIcon icon="wine-glass" size="3x" className="text-gray-400 mx-auto mb-3" />
                 <p className="text-gray-500 text-base sm:text-lg font-display font-semibold">
-                  No hay bebidas agregadas
+                  No hay bebidas {categoryFilter !== 'all' ? 'en esta categoría' : 'agregadas'}
                 </p>
                 <p className="text-gray-400 text-xs sm:text-sm mb-4">
                   Haz click en "Nueva Bebida" para crear una

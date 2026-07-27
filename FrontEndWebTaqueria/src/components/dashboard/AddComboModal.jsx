@@ -1,9 +1,11 @@
 // src/components/dashboard/AddComboModal.jsx
-import React, { useEffect } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import React, { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import useSaucers from '../../hooks/useSaucers';
 import useDrinks from '../../hooks/useDrinks';
 import FAIcon from '../commons/FAIcon';
+import CardPicker from '../commons/CardPicker';
+import ImageCropModal from '../commons/ImageCropModal';
 import { useToast } from '../commons/ToastProvider.jsx';
 
 const AddComboModal = ({ isOpen, onClose, onSave, loading, comboToEdit = null }) => {
@@ -16,7 +18,6 @@ const AddComboModal = ({ isOpen, onClose, onSave, loading, comboToEdit = null })
     handleSubmit,
     reset,
     setValue,
-    control,
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -24,53 +25,69 @@ const AddComboModal = ({ isOpen, onClose, onSave, loading, comboToEdit = null })
       price: '',
       description: '',
       quantity: 1,
-      status: 'available',
-      drinksId: '',
-      saucers: [{ saucerId: '' }],
+      category: 'individual',
+      status: 'disponible',
+      allowHouseDrinkAddon: false,
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'saucers',
-  });
+  const [selectedSaucerIds, setSelectedSaucerIds] = useState([]);
+  const [selectedDrinkIds, setSelectedDrinkIds] = useState([]);
+  const [rawImageFile, setRawImageFile] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
+
+  const saucerCategories = [...new Set(saucers.map((s) => s.category).filter(Boolean))];
+  const thirdPartyDrinks = drinks.filter((d) => d.category === 'tercero');
 
   useEffect(() => {
-    if (isOpen) {
-      if (comboToEdit) {
-        setValue('name', comboToEdit.name);
-        setValue('price', comboToEdit.price);
-        setValue('description', comboToEdit.description);
-        setValue('quantity', comboToEdit.quantity || 1);
-        setValue('status', comboToEdit.status || 'available');
-        setValue('drinksId', comboToEdit.drinksId?._id || comboToEdit.drinksId || '');
+    if (!isOpen) return;
 
-        if (comboToEdit.saucersId) {
-          const rawId = comboToEdit.saucersId?._id || comboToEdit.saucersId;
-          setValue('saucers', [{ saucerId: rawId }]);
-        } else if (comboToEdit.saucers && comboToEdit.saucers.length > 0) {
-          setValue('saucers', comboToEdit.saucers.map(s => ({ saucerId: s._id || s })));
-        } else {
-          setValue('saucers', [{ saucerId: '' }]);
-        }
-      } else {
-        reset({
-          name: '',
-          price: '',
-          description: '',
-          quantity: 1,
-          status: 'available',
-          drinksId: '',
-          saucers: [{ saucerId: '' }],
-          image: null,
-        });
-      }
+    if (comboToEdit) {
+      setValue('name', comboToEdit.name);
+      setValue('price', comboToEdit.price);
+      setValue('description', comboToEdit.description);
+      setValue('quantity', comboToEdit.quantity || 1);
+      setValue('category', comboToEdit.category || 'individual');
+      setValue('status', comboToEdit.status || 'disponible');
+      setValue('allowHouseDrinkAddon', Boolean(comboToEdit.drinkPolicy?.allowHouseDrinkAddon));
+
+      setSelectedSaucerIds(
+        (comboToEdit.saucers || []).map((s) => s.saucerId?._id || s.saucerId).filter(Boolean)
+      );
+      setSelectedDrinkIds(
+        (comboToEdit.drinkPolicy?.thirdPartyDrinkIds || []).map((d) => d?._id || d).filter(Boolean)
+      );
+    } else {
+      reset({
+        name: '',
+        price: '',
+        description: '',
+        quantity: 1,
+        category: 'individual',
+        status: 'disponible',
+        allowHouseDrinkAddon: false,
+      });
+      setSelectedSaucerIds([]);
+      setSelectedDrinkIds([]);
     }
+    setImageFile(null);
+    setRawImageFile(null);
   }, [comboToEdit, isOpen, setValue, reset]);
 
+  const toggleSaucer = (id) =>
+    setSelectedSaucerIds((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
+
+  const toggleDrink = (id) =>
+    setSelectedDrinkIds((prev) => (prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id]));
+
   const onSubmit = async (data) => {
-    if (data.image && data.image[0] && data.image[0].size > 5 * 1024 * 1024) {
+    if (imageFile && imageFile.size > 5 * 1024 * 1024) {
       addToast('La imagen no debe superar los 5MB', 'error');
+      return;
+    }
+
+    if (selectedSaucerIds.length === 0) {
+      addToast('Selecciona al menos un platillo', 'error');
       return;
     }
 
@@ -80,16 +97,18 @@ const AddComboModal = ({ isOpen, onClose, onSave, loading, comboToEdit = null })
       formData.append('price', parseFloat(data.price));
       formData.append('description', data.description);
       formData.append('quantity', parseInt(data.quantity) || 1);
-      formData.append('status', data.status);
-      formData.append('drinksId', data.drinksId);
+      formData.append('category', data.category);
+      // Nace 'disponible' al crear (el select de estado solo se muestra al editar)
+      formData.append('status', comboToEdit ? data.status : 'disponible');
 
-      const validSaucers = data.saucers.filter(s => s.saucerId !== '').map(s => s.saucerId);
-      if (validSaucers.length > 0) {
-        formData.append('saucersId', validSaucers[0]);
-      }
+      formData.append('saucers', JSON.stringify(selectedSaucerIds.map((id) => ({ saucerId: id }))));
+      formData.append('drinkPolicy', JSON.stringify({
+        thirdPartyDrinkIds: selectedDrinkIds,
+        allowHouseDrinkAddon: data.allowHouseDrinkAddon,
+      }));
 
-      if (data.image && data.image[0]) {
-        formData.append('image', data.image[0]);
+      if (imageFile) {
+        formData.append('image', imageFile);
       }
 
       await onSave(formData, comboToEdit?._id);
@@ -101,17 +120,14 @@ const AddComboModal = ({ isOpen, onClose, onSave, loading, comboToEdit = null })
 
   if (!isOpen) return null;
 
-  // Estilo común para inputs clay
   const inputClasses =
     'w-full px-4 py-2.5 bg-[#f3f0eb] border border-white/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-400 transition-all text-gray-700 placeholder:text-gray-400 text-sm shadow-[inset_2px_2px_5px_rgba(0,0,0,0.05),inset_-2px_-2px_5px_rgba(255,255,255,0.7)]';
-
   const selectClasses = inputClasses + ' appearance-none';
+  const labelClasses = 'block text-xs font-display font-semibold text-gray-500 uppercase tracking-wider mb-1.5';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/40 backdrop-blur-sm">
-      {/* Panel clay */}
-      <div className="bg-[#f3f0eb] rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.2),inset_1px_1px_3px_rgba(255,255,255,0.7)] w-full max-w-lg max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-white/80">
-        {/* Encabezado con rojo clay */}
+      <div className="bg-[#f3f0eb] rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.2),inset_1px_1px_3px_rgba(255,255,255,0.7)] w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-white/80">
         <div className="flex items-center justify-between p-4 sm:p-5 bg-red-500 text-white shadow-[inset_0_1px_2px_rgba(255,255,255,0.3),0_4px_12px_rgba(220,38,38,0.3)]">
           <h2 className="text-base sm:text-lg font-display font-bold">
             {comboToEdit ? 'Actualizar combo' : 'Nuevo Combo'}
@@ -125,13 +141,9 @@ const AddComboModal = ({ isOpen, onClose, onSave, loading, comboToEdit = null })
           </button>
         </div>
 
-        {/* Formulario */}
         <form onSubmit={handleSubmit(onSubmit)} className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
-          {/* Nombre */}
           <div>
-            <label className="block text-xs font-display font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-              Nombre del Combo
-            </label>
+            <label className={labelClasses}>Nombre del Combo</label>
             <input
               type="text"
               {...register('name', {
@@ -142,94 +154,12 @@ const AddComboModal = ({ isOpen, onClose, onSave, loading, comboToEdit = null })
               className={inputClasses}
               disabled={loading}
             />
-            {errors.name && (
-              <span className="text-red-500 text-xs mt-1 block font-medium">{errors.name.message}</span>
-            )}
+            {errors.name && <span className="text-red-500 text-xs mt-1 block font-medium">{errors.name.message}</span>}
           </div>
 
-          {/* Platillos dinámicos */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-display font-semibold text-gray-500 uppercase tracking-wider">
-                Platillos ({fields.length})
-              </label>
-              <button
-                type="button"
-                onClick={() => append({ saucerId: '' })}
-                className="text-xs flex items-center gap-1.5 px-3 py-1.5 bg-white text-red-500 rounded-xl hover:bg-red-50 transition-colors font-semibold
-                  shadow-[0_2px_8px_rgba(0,0,0,0.05),inset_0_1px_2px_rgba(255,255,255,0.8)]
-                "
-                disabled={loading || loadingSaucers}
-              >
-                <FAIcon icon="plus" size="xs" /> Agregar
-              </button>
-            </div>
-
-            {fields.map((field, index) => (
-              <div key={field.id} className="flex items-center gap-2">
-                <div className="flex-1">
-                  <select
-                    {...register(`saucers.${index}.saucerId`, {
-                      required: 'Selecciona un platillo',
-                    })}
-                    className={selectClasses}
-                    disabled={loading || loadingSaucers}
-                  >
-                    <option value="">-- Platillo {index + 1} --</option>
-                    {saucers.map((saucer) => (
-                      <option key={saucer._id} value={saucer._id}>
-                        {saucer.name} (${parseFloat(saucer.price || 0).toFixed(2)})
-                      </option>
-                    ))}
-                  </select>
-                  {errors.saucers?.[index]?.saucerId && (
-                    <span className="text-red-500 text-xs mt-1 block">
-                      {errors.saucers[index].saucerId.message}
-                    </span>
-                  )}
-                </div>
-                {fields.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => remove(index)}
-                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                    title="Eliminar platillo"
-                  >
-                    <FAIcon icon="trash" size="sm" />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Bebida */}
-          <div>
-            <label className="block text-xs font-display font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-              Bebida
-            </label>
-            <select
-              {...register('drinksId', { required: 'Selecciona una bebida' })}
-              className={selectClasses}
-              disabled={loading || loadingDrinks}
-            >
-              <option value="">-- Selecciona una bebida --</option>
-              {drinks.map((drink) => (
-                <option key={drink.id} value={drink.id}>
-                  {drink.title} (${parseFloat(drink.price || 0).toFixed(2)})
-                </option>
-              ))}
-            </select>
-            {errors.drinksId && (
-              <span className="text-red-500 text-xs mt-1 block font-medium">{errors.drinksId.message}</span>
-            )}
-          </div>
-
-          {/* Precio y estado */}
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <div className="grid grid-cols-3 gap-3 sm:gap-4">
             <div>
-              <label className="block text-xs font-display font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                Precio ($)
-              </label>
+              <label className={labelClasses}>Precio ($)</label>
               <input
                 type="number"
                 step="0.01"
@@ -243,30 +173,40 @@ const AddComboModal = ({ isOpen, onClose, onSave, loading, comboToEdit = null })
                 className={inputClasses}
                 disabled={loading}
               />
-              {errors.price && (
-                <span className="text-red-500 text-xs mt-1 block font-medium">{errors.price.message}</span>
-              )}
+              {errors.price && <span className="text-red-500 text-xs mt-1 block font-medium">{errors.price.message}</span>}
             </div>
             <div>
-              <label className="block text-xs font-display font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                Estado
-              </label>
-              <select
-                {...register('status')}
-                className={selectClasses}
+              <label className={labelClasses}>Cantidad</label>
+              <input
+                type="number"
+                min="1"
+                {...register('quantity', { required: true, min: 1, valueAsNumber: true })}
+                className={inputClasses}
                 disabled={loading}
-              >
-                <option value="available">Disponible</option>
-                <option value="unavailable">No Disponible</option>
+              />
+            </div>
+            <div>
+              <label className={labelClasses}>Categoría</label>
+              <select {...register('category', { required: true })} className={selectClasses} disabled={loading}>
+                <option value="individual">Individual</option>
+                <option value="duo">Duo</option>
+                <option value="familiar">Familiar</option>
               </select>
             </div>
           </div>
 
-          {/* Descripción */}
+          {comboToEdit && (
+            <div>
+              <label className={labelClasses}>Estado</label>
+              <select {...register('status', { required: true })} className={selectClasses} disabled={loading}>
+                <option value="disponible">Disponible</option>
+                <option value="no disponible">No disponible</option>
+              </select>
+            </div>
+          )}
+
           <div>
-            <label className="block text-xs font-display font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-              Descripción
-            </label>
+            <label className={labelClasses}>Descripción</label>
             <textarea
               {...register('description', {
                 required: 'La descripción es obligatoria',
@@ -277,41 +217,76 @@ const AddComboModal = ({ isOpen, onClose, onSave, loading, comboToEdit = null })
               className={inputClasses + ' resize-none'}
               disabled={loading}
             />
-            {errors.description && (
-              <span className="text-red-500 text-xs mt-1 block font-medium">{errors.description.message}</span>
+            {errors.description && <span className="text-red-500 text-xs mt-1 block font-medium">{errors.description.message}</span>}
+          </div>
+
+          <div className="border-t border-white/60 pt-4">
+            <label className={labelClasses}>Platillos incluidos ({selectedSaucerIds.length})</label>
+            {loadingSaucers ? (
+              <p className="text-xs text-gray-400">Cargando platillos...</p>
+            ) : (
+              <CardPicker
+                items={saucers}
+                selectedIds={selectedSaucerIds}
+                onToggle={toggleSaucer}
+                categories={saucerCategories}
+              />
             )}
           </div>
 
-          {/* Imagen */}
-          <div>
-            <label className="block text-xs font-display font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-              Imagen
-            </label>
-            {comboToEdit && comboToEdit.image && (
+          <div className="border-t border-white/60 pt-4">
+            <label className={labelClasses}>Bebidas de tercero permitidas ({selectedDrinkIds.length})</label>
+            <p className="text-[11px] text-gray-500 mb-2">
+              El cliente elige entre estas al ordenar; ya están incluidas en el precio
+            </p>
+            {loadingDrinks ? (
+              <p className="text-xs text-gray-400">Cargando bebidas...</p>
+            ) : (
+              <CardPicker items={thirdPartyDrinks} selectedIds={selectedDrinkIds} onToggle={toggleDrink} />
+            )}
+
+            <div className="mt-3 p-3 bg-white/70 rounded-2xl border border-white/80">
+              <label className="flex items-center gap-2 text-sm text-gray-700 font-medium">
+                <input type="checkbox" {...register('allowHouseDrinkAddon')} className="accent-red-500" disabled={loading} />
+                Permitir agregar una bebida de casa (costo extra)
+              </label>
+              <p className="text-[11px] text-gray-500 mt-1">
+                El costo lo define el precio de esa bebida en Bebidas, no aquí
+              </p>
+            </div>
+          </div>
+
+          <div className="border-t border-white/60 pt-4">
+            <label className={labelClasses}>Imagen (opcional)</label>
+            {comboToEdit?.image && !imageFile && (
               <div className="mb-3 flex items-center gap-2 bg-white p-2 rounded-2xl border border-white/80 shadow-sm">
-                <img
-                  src={comboToEdit.image}
-                  alt="Actual"
-                  className="w-10 h-10 object-cover rounded-xl shadow-inner"
-                />
+                <img src={comboToEdit.image} alt="Actual" className="w-10 h-10 object-cover rounded-xl shadow-inner" />
                 <span className="text-xs text-gray-400 truncate">Conservar imagen actual</span>
               </div>
             )}
             <input
               type="file"
               accept="image/*"
-              {...register('image', {
-                required: comboToEdit ? false : 'La imagen es obligatoria',
-              })}
+              onChange={(e) => {
+                const selected = e.target.files?.[0] || null;
+                if (selected) setRawImageFile(selected);
+                e.target.value = '';
+              }}
               className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-red-500 file:text-white hover:file:bg-red-600 file:transition-colors file:shadow-[0_4px_12px_rgba(220,38,38,0.3)] cursor-pointer"
               disabled={loading}
             />
-            {errors.image && (
-              <span className="text-red-500 text-xs mt-1 block font-medium">{errors.image.message}</span>
+            {imageFile && (
+              <div className="flex items-center gap-3 mt-2">
+                <img src={URL.createObjectURL(imageFile)} alt="Vista previa" className="w-12 h-12 rounded-xl object-cover ring-2 ring-red-400" />
+                <button type="button" onClick={() => setRawImageFile(imageFile)} className="text-xs text-gray-500 hover:text-red-500">Ajustar</button>
+                <button type="button" onClick={() => setImageFile(null)} className="text-xs text-gray-400 hover:text-red-500">Quitar</button>
+              </div>
+            )}
+            {!comboToEdit?.image && !imageFile && (
+              <p className="text-[11px] text-gray-400 mt-1">Si no seleccionas una imagen se usará un diseño por defecto</p>
             )}
           </div>
 
-          {/* Botones */}
           <div className="flex gap-3 pt-4 border-t border-white/60">
             <button
               type="button"
@@ -337,6 +312,15 @@ const AddComboModal = ({ isOpen, onClose, onSave, loading, comboToEdit = null })
           </div>
         </form>
       </div>
+
+      <ImageCropModal
+        file={rawImageFile}
+        onCancel={() => setRawImageFile(null)}
+        onConfirm={(croppedFile) => {
+          setImageFile(croppedFile);
+          setRawImageFile(null);
+        }}
+      />
     </div>
   );
 };
