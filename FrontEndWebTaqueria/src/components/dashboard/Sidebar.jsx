@@ -7,39 +7,18 @@ import { useLogout } from '../../hooks/auth/useLogout';
 const Sidebar = ({ activeMenu, isOpen, onClose }) => {
   const { logout, loading } = useLogout();
 
-  // Agrupamos los items por categorías para un mejor orden visual
-  const menuCategories = [
-    {
-      title: 'Principal',
-      items: [
-        { id: 'activity', label: 'Actividad', icon: 'chart-line', path: '/dashboard' },
-      ],
-    },
-    {
-      title: 'Menú',
-      items: [
-        { id: 'orders', label: 'Combos', icon: 'shopping-bag', path: '/combos' },
-        { id: 'drinks', label: 'Bebidas', icon: 'wine-glass', path: '/drinks' },
-        { id: 'dishes', label: 'Platillos', icon: 'utensils', path: '/dishes' },
-        { id: 'extras', label: 'Extras', icon: 'star', path: '/extras' },
-      ],
-    },
-    {
-      title: 'Operaciones',
-      items: [
-        { id: 'orders-list', label: 'Pedidos', icon: 'list', path: '/pedidos' },
-        { id: 'tables', label: 'Mesas', icon: 'chair', path: '/mesas' },
-        { id: 'inventory', label: 'Inventario', icon: 'box', path: '/inventario' },
-      ],
-    },
-    {
-      title: 'Administración',
-      items: [
-        { id: 'clients', label: 'Clientes', icon: 'users', path: '/clients' },
-        { id: 'staff', label: 'Empleados', icon: 'user-tie', path: '/employees' },
-        { id: 'invite-staff', label: 'Invitar staff', icon: 'user-plus', path: '/InviteStaff' },
-      ],
-    },
+  const menuItems = [
+    { id: 'activity', label: 'Actividad', icon: 'chart-line', path: '/dashboard' },
+    { id: 'combos', label: 'Combos', icon: 'shopping-bag', path: '/combos' },
+    { id: 'drinks', label: 'Bebidas', icon: 'wine-glass', path: '/drinks' },
+    { id: 'dishes', label: 'Platillo', icon: 'utensils', path: '/dishes' },
+    { id: 'extras', label: 'Extras', icon: 'star', path: '/extras' },
+    { id: 'inventory', label: 'Inventario', icon: 'box', path: '/inventario' },
+    { id: 'tables', label: 'Mesas', icon: 'chair', path: '/mesas' },
+    { id: 'clients', label: 'Clientes', icon: 'users', path: '/clients' },
+    { id: 'staff', label: 'Empleados', icon: 'user-tie', path: '/employees' },
+    { id: 'orders-list', label: 'Pedidos', icon: 'list', path: '/pedidos' },
+    { id: 'invite-staff', label: 'Invitar staff', icon: 'users', path: '/InviteStaff' },
   ];
 
   const handleLogout = async (e) => {

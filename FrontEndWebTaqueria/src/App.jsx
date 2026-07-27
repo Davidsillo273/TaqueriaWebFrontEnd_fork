@@ -9,7 +9,7 @@ import Recovery from './pages/recovery'
 import VerifyCode from './pages/verifyCode'
 import ResetPassword from "./pages/resetPassword"
 import Dashboard from './pages/dashboard'
-import ComboManagement from './pages/comboManagement'
+import ComboManagement from './pages/ComboManagement'
 import Drinks from './pages/drinks'
 import Dishes from './pages/dishes'
 import ClientManagement from './pages/clientManagement'

@@ -11,7 +11,7 @@ import { useCombos } from '../hooks/useCombos';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
 
 function ComboManagementContent() {
-  const [activeMenu] = useState('orders');
+  const [activeMenu] = useState('combos');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCombo, setSelectedCombo] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);

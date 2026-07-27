@@ -120,12 +120,7 @@ export const useCombos = () => {
   };
 
   useEffect(() => {
-    const user = localStorage.getItem('user');
-    if (user) {
-      fetchCombos();
-    } else {
-      navigate('/');
-    }
+    fetchCombos();
   }, []);
 
   return {
