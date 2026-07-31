@@ -3,30 +3,23 @@ import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import FAIcon from '../commons/FAIcon';
 import ImageCropModal from '../commons/ImageCropModal';
+import RecipeBuilder from '../commons/RecipeBuilder';
+import { resolveRecipeRows } from '../../utils/recipeRowUtils';
+import DuplicateNameDialog from '../commons/DuplicateNameDialog';
 import { useToast } from '../commons/ToastProvider';
 import { useInventory } from '../../hooks/useInventory';
+import useSaucers from '../../hooks/useSaucers';
+import { INGREDIENT_CATEGORIES_DISHES } from '../../constants/units';
 
-const RECIPE_UNITS = ['unidad', 'g', 'kg', 'ml', 'l', 'cucharadita', 'cucharada', 'taza', 'vaso', 'pizca'];
 const DISH_CATEGORIES = ['Burritos', 'Tortas', 'Tacos', 'Sopas', 'Especiales'];
-const BIRRIA_CATEGORIES = ['Burritos', 'Tortas', 'Tacos'];
-// Al crear un insumo nuevo desde la receta de un platillo se puede elegir cualquier categoría
-const INGREDIENT_CATEGORIES_DISHES = ['Aves', 'Carnes', 'Verduras', 'Frutas', 'Minerales', 'Otros'];
+const NO_SUBCATEGORY = ['Sopas', 'Especiales'];
+const TACO_QUANTITIES = [3, 4, 5];
+const SUBCATEGORY_SUGGESTIONS = ['Al pastor', 'Pollo', 'Carne', 'Birria', 'Vegetariano', 'Mixto'];
 
-const emptyRecipeRow = () => ({
-  key: crypto.randomUUID(),
-  name: '',
-  tracked: false,
-  inventoryId: null,
-  removable: false,
-  quantity: '',
-  unit: 'unidad',
-  ingredientCategory: 'Verduras',
-  isNew: true,
-});
-
-const AddDishModal = ({ isOpen, onClose, onSave, dishToEdit = null }) => {
+const AddDishModal = ({ isOpen, onClose, onSave, onEditExisting, dishToEdit = null }) => {
   const { addToast } = useToast();
-  const { insumos } = useInventory();
+  const { quickCreateInsumo } = useInventory();
+  const { checkName } = useSaucers();
 
   const {
     register,
@@ -39,19 +32,23 @@ const AddDishModal = ({ isOpen, onClose, onSave, dishToEdit = null }) => {
     defaultValues: {
       name: '',
       category: 'Tacos',
+      subcategory: '',
+      description: '',
       price: '',
       status: 'Activo',
-      isBirria: false,
     },
   });
 
   const category = watch('category');
-  const birriaApplies = BIRRIA_CATEGORIES.includes(category);
+  const isTacoCategory = category === 'Tacos';
+  const subcategoryApplies = !NO_SUBCATEGORY.includes(category);
 
   const [rawImageFile, setRawImageFile] = useState(null);
   const [imageFile, setImageFile] = useState(null);
   const [recipeRows, setRecipeRows] = useState([]);
-  const [ingredientSearch, setIngredientSearch] = useState('');
+  const [tacoQuantity, setTacoQuantity] = useState(3);
+  const [duplicate, setDuplicate] = useState(null);
+  const [pendingSubmit, setPendingSubmit] = useState(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -59,9 +56,11 @@ const AddDishModal = ({ isOpen, onClose, onSave, dishToEdit = null }) => {
     if (dishToEdit) {
       setValue('name', dishToEdit.name || '');
       setValue('category', dishToEdit.category || 'Tacos');
+      setValue('subcategory', dishToEdit.subcategory || '');
+      setValue('description', dishToEdit.description || '');
       setValue('price', dishToEdit.price || '');
       setValue('status', dishToEdit.status || 'Activo');
-      setValue('isBirria', Boolean(dishToEdit.isBirria));
+      setTacoQuantity(TACO_QUANTITIES.includes(dishToEdit.quantity) ? dishToEdit.quantity : 3);
       setRecipeRows(
         (dishToEdit.recipe || []).map((item) => ({
           key: crypto.randomUUID(),
@@ -76,27 +75,34 @@ const AddDishModal = ({ isOpen, onClose, onSave, dishToEdit = null }) => {
         }))
       );
     } else {
-      reset({ name: '', category: 'Tacos', price: '', status: 'Activo', isBirria: false });
+      reset({ name: '', category: 'Tacos', subcategory: '', description: '', price: '', status: 'Activo' });
       setRecipeRows([]);
+      setTacoQuantity(3);
     }
     setImageFile(null);
     setRawImageFile(null);
-    setIngredientSearch('');
   }, [dishToEdit, isOpen, setValue, reset]);
 
   if (!isOpen) return null;
 
-  const matchingInsumos = ingredientSearch.trim()
-    ? insumos.filter((i) => i.name.toLowerCase().includes(ingredientSearch.trim().toLowerCase()))
-    : [];
+  const buildFormData = async (data) => {
+    const resolvedRecipe = await resolveRecipeRows({ rows: recipeRows, quickCreateInsumo, addToast });
 
-  const addRow = () => setRecipeRows((rows) => [...rows, emptyRecipeRow()]);
-  const removeRow = (key) => setRecipeRows((rows) => rows.filter((r) => r.key !== key));
-  const updateRow = (key, patch) =>
-    setRecipeRows((rows) => rows.map((r) => (r.key === key ? { ...r, ...patch } : r)));
-
-  const pickExistingInsumo = (rowKey, insumo) => {
-    updateRow(rowKey, { name: insumo.name, tracked: true, inventoryId: insumo._id, isNew: false });
+    const formData = new FormData();
+    formData.append('name', data.name);
+    formData.append('category', data.category);
+    formData.append('subcategory', subcategoryApplies ? (data.subcategory || '') : '');
+    formData.append('description', data.description || '');
+    formData.append('price', parseFloat(data.price));
+    formData.append('status', data.status);
+    if (isTacoCategory) {
+      formData.append('quantity', tacoQuantity);
+    }
+    formData.append('recipe', JSON.stringify(resolvedRecipe));
+    if (imageFile) {
+      formData.append('image', imageFile);
+    }
+    return formData;
   };
 
   const onSubmit = async (data) => {
@@ -105,49 +111,30 @@ const AddDishModal = ({ isOpen, onClose, onSave, dishToEdit = null }) => {
       return;
     }
 
-    // Crea en Inventario (como pendiente) los ingredientes marcados "guardar en
-    // inventario" que todavía no tienen un insumo existente asociado
-    const resolvedRecipe = [];
-    for (const row of recipeRows) {
-      if (!row.name.trim()) continue;
+    if (recipeRows.filter((r) => r.name.trim()).length === 0) {
+      addToast('La receta es obligatoria: agrega al menos un ingrediente', 'error');
+      return;
+    }
 
-      let inventoryId = row.inventoryId;
-      if (row.tracked && !inventoryId) {
-        const result = await fetch('http://localhost:4000/api/inventory/quick', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: row.name, unit: row.unit, type: row.ingredientCategory || 'Otros' }),
-        });
-        const resData = await result.json();
-        if (!result.ok) {
-          addToast(resData.message || `No se pudo crear el insumo ${row.name}`, 'error');
-          continue;
-        }
-        inventoryId = resData.newInventory._id;
+    if (!dishToEdit) {
+      const existing = await checkName(data.name);
+      if (existing) {
+        setDuplicate(existing);
+        setPendingSubmit(() => data);
+        return;
       }
-
-      resolvedRecipe.push({
-        name: row.name,
-        tracked: row.tracked,
-        inventoryId: row.tracked ? inventoryId : null,
-        removable: row.removable,
-        quantity: row.quantity || undefined,
-        unit: row.unit,
-      });
     }
 
-    const formData = new FormData();
-    formData.append('name', data.name);
-    formData.append('category', data.category);
-    formData.append('price', parseFloat(data.price));
-    formData.append('status', data.status);
-    formData.append('isBirria', birriaApplies ? Boolean(data.isBirria) : false);
-    formData.append('recipe', JSON.stringify(resolvedRecipe));
-    if (imageFile) {
-      formData.append('image', imageFile);
-    }
+    const formData = await buildFormData(data);
+    onSave(formData);
+  };
 
+  const handleCreateAnyway = async () => {
+    const data = pendingSubmit;
+    setDuplicate(null);
+    setPendingSubmit(null);
+    if (!data) return;
+    const formData = await buildFormData(data);
     onSave(formData);
   };
 
@@ -214,11 +201,46 @@ const AddDishModal = ({ isOpen, onClose, onSave, dishToEdit = null }) => {
             </div>
           </div>
 
-          {birriaApplies && (
-            <label className="flex items-center gap-2 text-sm text-gray-700 font-medium">
-              <input type="checkbox" {...register('isBirria')} className="accent-red-500" />
-              Es de birria
-            </label>
+          {subcategoryApplies && (
+            <div>
+              <label className={labelClasses}>Subcategoría</label>
+              <select {...register('subcategory')} className={selectClasses}>
+                <option value="">Selecciona una subcategoría...</option>
+                {SUBCATEGORY_SUGGESTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label className={labelClasses}>Descripción</label>
+            <textarea
+              {...register('description')}
+              placeholder="Breve descripción del platillo..."
+              rows={2}
+              className={inputClasses}
+            />
+          </div>
+
+          {isTacoCategory && (
+            <div>
+              <label className={labelClasses}>Cantidad de tacos por orden</label>
+              <div className="flex gap-2">
+                {TACO_QUANTITIES.map((q) => (
+                  <button
+                    key={q}
+                    type="button"
+                    onClick={() => setTacoQuantity(q)}
+                    className={`flex-1 py-2.5 rounded-2xl font-display font-semibold text-sm transition-all ${
+                      tacoQuantity === q
+                        ? 'bg-red-500 text-white shadow-[0_4px_12px_rgba(220,38,38,0.3)]'
+                        : 'bg-white text-gray-600 border border-white/80 hover:bg-gray-50'
+                    }`}
+                  >
+                    {q} tacos
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
 
           {dishToEdit && (
@@ -232,122 +254,15 @@ const AddDishModal = ({ isOpen, onClose, onSave, dishToEdit = null }) => {
           )}
 
           <div className="border-t border-white/60 pt-4">
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <p className="font-display font-semibold text-gray-800 text-sm">Receta (opcional)</p>
-                <p className="text-xs text-gray-500">Solo informativo: no descuenta nada del inventario</p>
-              </div>
-              <button
-                type="button"
-                onClick={addRow}
-                className="text-xs font-display font-semibold text-red-500 hover:text-red-600 flex items-center gap-1"
-              >
-                <FAIcon icon="plus" size="xs" /> Agregar ingrediente
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              {recipeRows.map((row) => (
-                <div key={row.key} className="p-3 bg-white/70 rounded-2xl border border-white/80 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 relative">
-                      <input
-                        type="text"
-                        value={row.name}
-                        onChange={(e) => {
-                          updateRow(row.key, { name: e.target.value, inventoryId: null, tracked: false });
-                          setIngredientSearch(e.target.value);
-                        }}
-                        placeholder="Nombre del ingrediente (ej: Cebolla, Cilantro...)"
-                        className={inputClasses}
-                      />
-                      {ingredientSearch && row.name === ingredientSearch && matchingInsumos.length > 0 && (
-                        <div className="absolute z-10 mt-1 w-full bg-white rounded-xl shadow-lg border border-gray-100 max-h-32 overflow-y-auto">
-                          {matchingInsumos.map((insumo) => (
-                            <button
-                              type="button"
-                              key={insumo._id}
-                              onClick={() => {
-                                pickExistingInsumo(row.key, insumo);
-                                setIngredientSearch('');
-                              }}
-                              className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50"
-                            >
-                              {insumo.name} {insumo.pending ? '(pendiente)' : ''}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeRow(row.key)}
-                      className="p-2 text-gray-400 hover:text-red-500"
-                      aria-label="Quitar ingrediente"
-                    >
-                      <FAIcon icon="trash" size="sm" />
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="text"
-                      value={row.quantity}
-                      onChange={(e) => updateRow(row.key, { quantity: e.target.value })}
-                      placeholder="Ej: 1/2, 2, una pizca"
-                      className={inputClasses}
-                    />
-                    <select
-                      value={row.unit}
-                      onChange={(e) => updateRow(row.key, { unit: e.target.value })}
-                      className={selectClasses}
-                    >
-                      {RECIPE_UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
-                    </select>
-                  </div>
-
-                  <div className="flex items-center gap-4 flex-wrap">
-                    <label className="flex items-center gap-1.5 text-xs text-gray-600 font-medium">
-                      <input
-                        type="checkbox"
-                        checked={row.tracked}
-                        disabled={!row.isNew && Boolean(row.inventoryId)}
-                        onChange={(e) => updateRow(row.key, { tracked: e.target.checked, inventoryId: e.target.checked ? row.inventoryId : null })}
-                        className="accent-red-500"
-                      />
-                      Guardar en inventario
-                    </label>
-                    <label className="flex items-center gap-1.5 text-xs text-gray-600 font-medium">
-                      <input
-                        type="checkbox"
-                        checked={row.removable}
-                        onChange={(e) => updateRow(row.key, { removable: e.target.checked })}
-                        className="accent-red-500"
-                      />
-                      El cliente puede quitarlo
-                    </label>
-                  </div>
-
-                  {row.tracked && !row.inventoryId && (
-                    <div className="flex items-center gap-2">
-                      <p className="text-[11px] text-amber-600 flex-1">
-                        Se creará como insumo pendiente en Inventario al guardar
-                      </p>
-                      <select
-                        value={row.ingredientCategory || 'Verduras'}
-                        onChange={(e) => updateRow(row.key, { ingredientCategory: e.target.value })}
-                        className="text-xs px-2 py-1 rounded-lg bg-white border border-white/80"
-                      >
-                        {INGREDIENT_CATEGORIES_DISHES.map((c) => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                    </div>
-                  )}
-                </div>
-              ))}
-              {recipeRows.length === 0 && (
-                <p className="text-xs text-gray-400 text-center py-2">Sin ingredientes agregados todavía</p>
-              )}
-            </div>
+            <RecipeBuilder
+              rows={recipeRows}
+              setRows={setRecipeRows}
+              categories={INGREDIENT_CATEGORIES_DISHES}
+              showRemovable
+              paginate
+              title="Receta (obligatoria)"
+              helperText="Marca 'el cliente puede quitarlo' para los ingredientes que se puedan pedir sin ellos. Los ingredientes ligados a un insumo descuentan inventario al confirmarse una orden con este platillo."
+            />
           </div>
 
           <div className="border-t border-white/60 pt-4">
@@ -411,6 +326,18 @@ const AddDishModal = ({ isOpen, onClose, onSave, dishToEdit = null }) => {
           setImageFile(croppedFile);
           setRawImageFile(null);
         }}
+      />
+
+      <DuplicateNameDialog
+        existing={duplicate}
+        onEditExisting={() => {
+          const existing = duplicate;
+          setDuplicate(null);
+          setPendingSubmit(null);
+          onEditExisting?.(existing);
+        }}
+        onCreateAnyway={handleCreateAnyway}
+        onCancel={() => { setDuplicate(null); setPendingSubmit(null); }}
       />
     </div>
   );

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import DigitInput from '../components/auth/DigitInput';
 import PrimaryButton from '../components/commons/PrimaryButton';
 import AuthCard from '../components/commons/AuthCard';
-import ConfirmModal from '../components/commons/confirmModal';
+import ConfirmModal from '../components/commons/ConfirmModal';
 import useRecoveryPassword from '../hooks/auth/useRecoveryPassword';
 
 export default function VerifyCode() {

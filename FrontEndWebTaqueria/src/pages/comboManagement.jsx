@@ -5,9 +5,12 @@ import TopBar from '../components/dashboard/TopBar';
 import ComboCard from '../components/dashboard/ComboCard';
 import ComboStats from '../components/dashboard/ComboStats';
 import AddComboModal from '../components/dashboard/AddComboModal';
-import ConfirmModal from '../components/commons/confirmModal';
+import ConfirmModal from '../components/commons/ConfirmModal';
 import PaginationControls from '../components/commons/PaginationControls';
-import MissingInfoBanner from '../components/commons/MissingInfoBanner';
+import AttentionCenter from '../components/commons/AttentionCenter';
+import FilterBar from '../components/commons/FilterBar';
+import ViewDetailsModal from '../components/commons/ViewDetailsModal';
+import DetailRow from '../components/commons/DetailRow';
 import FAIcon from '../components/commons/FAIcon';
 import { useCombos } from '../hooks/useCombos';
 import { usePagination } from '../hooks/usePagination';
@@ -24,24 +27,27 @@ function ComboManagementContent() {
   const [activeMenu] = useState('combos');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCombo, setSelectedCombo] = useState(null);
+  const [viewingCombo, setViewingCombo] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, comboId: null });
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [bestSellers, setBestSellers] = useState([]);
 
   const { combos, loading, error, addCombo, updateCombo, deleteCombo } = useCombos();
   const { addToast } = useToast();
 
   useEffect(() => {
-    fetch('http://localhost:4000/api/combos/best-sellers?limit=1', { credentials: 'include' })
+    fetch('http://localhost:4000/api/menu/combos/best-sellers?limit=1', { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : []))
       .then(setBestSellers)
       .catch(() => setBestSellers([]));
   }, [combos.length]);
 
-  const filteredCombos = categoryFilter === 'all'
-    ? combos
-    : combos.filter((c) => c.category === categoryFilter);
+  const filteredCombos = combos.filter((c) =>
+    (categoryFilter === 'all' || c.category === categoryFilter) &&
+    (statusFilter === 'all' || c.status === statusFilter)
+  );
 
   const { page, totalPages, paginatedItems, goTo, next, prev } = usePagination(filteredCombos, 6);
 
@@ -87,6 +93,60 @@ function ComboManagementContent() {
       setConfirmDelete({ isOpen: false, comboId: null });
     }
   };
+
+  const buildComboSections = (combo) => [
+    {
+      title: 'Información general',
+      content: (
+        <div>
+          <DetailRow label="Categoría" value={combo.category} />
+          <DetailRow label="Precio" value={`$${(combo.price || 0).toFixed(2)}`} />
+          <DetailRow label="Estado" value={combo.status} />
+          <DetailRow label="Modo" value={combo.selective ? `Selectivo (elige ${combo.selectiveMaxPicks})` : 'Platillos fijos'} />
+          {combo.description && (
+            <p className="text-sm text-gray-700 mt-3 whitespace-pre-wrap">{combo.description}</p>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: combo.selective ? 'Opciones de platillo' : 'Platillos incluidos',
+      content: (
+        <div className="space-y-2">
+          {(combo.selective ? combo.selectiveOptions : combo.saucers || []).length === 0 && (
+            <p className="text-xs text-gray-400 text-center py-2">Sin platillos asignados</p>
+          )}
+          {(combo.selective ? combo.selectiveOptions : combo.saucers || []).map((s, idx) => (
+            <div key={idx} className="flex items-center justify-between bg-white rounded-xl px-3 py-2 border border-white/80">
+              <span className="text-sm text-gray-800">{s.saucerId?.name || 'Platillo eliminado'}</span>
+              {s.saucerId?.category && <span className="text-xs text-gray-500">{s.saucerId.category}</span>}
+            </div>
+          ))}
+        </div>
+      ),
+    },
+    {
+      title: 'Bebidas permitidas',
+      content: (
+        <div className="space-y-2">
+          {(combo.drinkPolicy?.drinkSetIds || []).length === 0 && (combo.drinkPolicy?.thirdPartyDrinkIds || []).length === 0 && (
+            <p className="text-xs text-gray-400 text-center py-2">Combo sin bebida</p>
+          )}
+          {(combo.drinkPolicy?.drinkSetIds || []).map((set, idx) => (
+            <div key={`set-${idx}`} className="bg-white rounded-xl px-3 py-2 border border-white/80">
+              <span className="text-sm text-gray-800 font-semibold">{set.name}</span>
+              <p className="text-xs text-gray-500 mt-0.5">{(set.drinkIds || []).map((d) => d.name).join(', ')}</p>
+            </div>
+          ))}
+          {(combo.drinkPolicy?.thirdPartyDrinkIds || []).map((d, idx) => (
+            <div key={`drink-${idx}`} className="flex items-center justify-between bg-white rounded-xl px-3 py-2 border border-white/80">
+              <span className="text-sm text-gray-800">{d.name}</span>
+            </div>
+          ))}
+        </div>
+      ),
+    },
+  ];
 
   const formatComboForDisplay = (combo) => ({
     id: combo._id,
@@ -149,10 +209,29 @@ function ComboManagementContent() {
               </div>
             )}
 
-            {/* Aviso de combos sin imagen */}
-            <MissingInfoBanner
-              message="Hay combos faltantes de imágenes"
-              names={combos.filter((c) => !c.image).map((c) => c.name)}
+            {/* Combos sin imagen */}
+            <AttentionCenter
+              items={combos.filter((c) => !c.image)}
+              getKey={(c) => c._id}
+              getTitle={(c) => c.name}
+              getImage={(c) => c.image}
+              getReason={() => 'Falta imagen'}
+              onEdit={handleOpenEditModal}
+            />
+
+            <FilterBar
+              filters={[
+                {
+                  label: 'Estado',
+                  value: statusFilter,
+                  onChange: setStatusFilter,
+                  options: [
+                    { value: 'all', label: 'Todos los estados' },
+                    { value: 'disponible', label: 'Disponibles' },
+                    { value: 'no disponible', label: 'No disponibles' },
+                  ],
+                },
+              ]}
             />
 
             {/* Estadísticas */}
@@ -213,6 +292,7 @@ function ComboManagementContent() {
                       {...formatComboForDisplay(combo)}
                       onEdit={() => handleOpenEditModal(combo)}
                       onDelete={() => handleRequestDelete(combo._id)}
+                      onView={() => setViewingCombo(combo)}
                     />
                   ))}
                 </div>
@@ -241,6 +321,7 @@ function ComboManagementContent() {
         isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); setSelectedCombo(null); }}
         onSave={handleSaveCombo}
+        onEditExisting={(existing) => { setSelectedCombo(existing); setIsModalOpen(true); }}
         loading={loading}
         comboToEdit={selectedCombo}
       />
@@ -253,6 +334,15 @@ function ComboManagementContent() {
         message="¿Estás seguro de eliminar este combo? Esta acción no se puede deshacer."
         confirmText="Eliminar"
         loading={loading}
+      />
+
+      <ViewDetailsModal
+        key={viewingCombo?._id}
+        isOpen={Boolean(viewingCombo)}
+        onClose={() => setViewingCombo(null)}
+        title={viewingCombo?.name}
+        image={viewingCombo?.image}
+        sections={viewingCombo ? buildComboSections(viewingCombo) : []}
       />
     </div>
   );

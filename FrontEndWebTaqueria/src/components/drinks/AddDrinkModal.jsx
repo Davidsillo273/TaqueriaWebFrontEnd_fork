@@ -3,27 +3,20 @@ import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import FAIcon from '../commons/FAIcon';
 import ImageCropModal from '../commons/ImageCropModal';
+import RecipeBuilder from '../commons/RecipeBuilder';
+import { resolveRecipeRows } from '../../utils/recipeRowUtils';
+import DuplicateNameDialog from '../commons/DuplicateNameDialog';
 import { useToast } from '../commons/ToastProvider';
 import { useInventory } from '../../hooks/useInventory';
+import useDrinks from '../../hooks/useDrinks';
+import { INGREDIENT_CATEGORIES_DRINKS } from '../../constants/units';
 
-const RECIPE_UNITS = ['unidad', 'g', 'kg', 'ml', 'l', 'cucharadita', 'cucharada', 'taza', 'vaso', 'pizca'];
 const SUBCATEGORY_SUGGESTIONS = ['Gaseosa', 'Natural', 'Alcohólica', 'Lite', 'Cítrica', 'Caliente', 'Fría'];
-// En bebidas los ingredientes nuevos solo se clasifican como Frutas o Minerales
-const INGREDIENT_CATEGORIES_DRINKS = ['Frutas', 'Minerales'];
 
-const emptyRecipeRow = () => ({
-  key: crypto.randomUUID(),
-  name: '',
-  tracked: false,
-  inventoryId: null,
-  quantity: '',
-  unit: 'unidad',
-  isNew: true,
-});
-
-const AddDrinkModal = ({ isOpen, onClose, onSave, editData = null }) => {
+const AddDrinkModal = ({ isOpen, onClose, onSave, onEditExisting, editData = null }) => {
   const { addToast } = useToast();
-  const { insumos } = useInventory();
+  const { quickCreateInsumo } = useInventory();
+  const { checkName } = useDrinks();
 
   const {
     register,
@@ -38,6 +31,7 @@ const AddDrinkModal = ({ isOpen, onClose, onSave, editData = null }) => {
       price: '',
       category: 'tercero',
       subcategory: '',
+      description: '',
       quantity: '',
       status: 'disponible',
     },
@@ -49,7 +43,8 @@ const AddDrinkModal = ({ isOpen, onClose, onSave, editData = null }) => {
   const [imageFile, setImageFile] = useState(null);
   const [keepExistingImage, setKeepExistingImage] = useState(true);
   const [recipeRows, setRecipeRows] = useState([]);
-  const [ingredientSearch, setIngredientSearch] = useState('');
+  const [duplicate, setDuplicate] = useState(null);
+  const [pendingSubmit, setPendingSubmit] = useState(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -59,6 +54,7 @@ const AddDrinkModal = ({ isOpen, onClose, onSave, editData = null }) => {
       setValue('price', editData.price || '');
       setValue('category', editData.category || 'tercero');
       setValue('subcategory', editData.subcategory || '');
+      setValue('description', editData.description || '');
       setValue('quantity', editData.stock ?? '');
       setValue('status', editData.status || 'disponible');
       setRecipeRows(
@@ -69,77 +65,31 @@ const AddDrinkModal = ({ isOpen, onClose, onSave, editData = null }) => {
           inventoryId: item.inventoryId?._id || item.inventoryId || null,
           quantity: item.quantity ?? '',
           unit: item.unit || 'unidad',
+          ingredientCategory: 'Frutas',
           isNew: false,
         }))
       );
       setKeepExistingImage(true);
     } else {
-      reset({ name: '', price: '', category: 'tercero', subcategory: '', quantity: '' });
+      reset({ name: '', price: '', category: 'tercero', subcategory: '', description: '', quantity: '' });
       setRecipeRows([]);
       setKeepExistingImage(true);
     }
     setImageFile(null);
     setRawImageFile(null);
-    setIngredientSearch('');
   }, [editData, isOpen, setValue, reset]);
 
   if (!isOpen) return null;
 
-  const matchingInsumos = ingredientSearch.trim()
-    ? insumos.filter((i) => i.name.toLowerCase().includes(ingredientSearch.trim().toLowerCase()))
-    : [];
-
-  const addRow = () => setRecipeRows((rows) => [...rows, emptyRecipeRow()]);
-  const removeRow = (key) => setRecipeRows((rows) => rows.filter((r) => r.key !== key));
-  const updateRow = (key, patch) =>
-    setRecipeRows((rows) => rows.map((r) => (r.key === key ? { ...r, ...patch } : r)));
-
-  const pickExistingInsumo = (rowKey, insumo) => {
-    updateRow(rowKey, { name: insumo.name, tracked: true, inventoryId: insumo._id, isNew: false });
-  };
-
-  const onSubmit = async (data) => {
-    if (imageFile && imageFile.size > 5 * 1024 * 1024) {
-      addToast('La imagen no debe superar los 5MB', 'error');
-      return;
-    }
-
-    // Crea en Inventario (como pendiente) los ingredientes marcados "guardar en
-    // inventario" que todavía no tienen un insumo existente asociado
-    const resolvedRecipe = [];
-    for (const row of recipeRows) {
-      if (!row.name.trim()) continue;
-
-      let inventoryId = row.inventoryId;
-      if (row.tracked && !inventoryId) {
-        const result = await fetch('http://localhost:4000/api/inventory/quick', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: row.name, unit: row.unit, type: row.ingredientCategory || 'Frutas' }),
-        });
-        const resData = await result.json();
-        if (!result.ok) {
-          addToast(resData.message || `No se pudo crear el insumo ${row.name}`, 'error');
-          continue;
-        }
-        inventoryId = resData.newInventory._id;
-      }
-
-      resolvedRecipe.push({
-        name: row.name,
-        tracked: row.tracked,
-        inventoryId: row.tracked ? inventoryId : null,
-        quantity: row.quantity || undefined,
-        unit: row.unit,
-      });
-    }
+  const buildFormData = async (data) => {
+    const resolvedRecipe = await resolveRecipeRows({ rows: recipeRows, quickCreateInsumo, addToast });
 
     const formData = new FormData();
     formData.append('name', data.name);
     formData.append('price', parseFloat(data.price));
     formData.append('category', data.category);
     formData.append('subcategory', data.subcategory || '');
+    formData.append('description', data.description || '');
     if (data.category === 'tercero') {
       formData.append('quantity', parseInt(data.quantity));
     }
@@ -151,7 +101,40 @@ const AddDrinkModal = ({ isOpen, onClose, onSave, editData = null }) => {
     if (imageFile) {
       formData.append('image', imageFile);
     }
+    return formData;
+  };
 
+  const onSubmit = async (data) => {
+    if (imageFile && imageFile.size > 5 * 1024 * 1024) {
+      addToast('La imagen no debe superar los 5MB', 'error');
+      return;
+    }
+
+    if (data.category === 'casa' && recipeRows.filter((r) => r.name.trim()).length === 0) {
+      addToast('La receta es obligatoria: agrega al menos un ingrediente', 'error');
+      return;
+    }
+
+    // Solo se revisa duplicado al crear, no al editar el mismo registro
+    if (!editData) {
+      const existing = await checkName(data.name);
+      if (existing) {
+        setDuplicate(existing);
+        setPendingSubmit(() => data);
+        return;
+      }
+    }
+
+    const formData = await buildFormData(data);
+    await onSave(formData);
+  };
+
+  const handleCreateAnyway = async () => {
+    const data = pendingSubmit;
+    setDuplicate(null);
+    setPendingSubmit(null);
+    if (!data) return;
+    const formData = await buildFormData(data);
     await onSave(formData);
   };
 
@@ -219,16 +202,10 @@ const AddDrinkModal = ({ isOpen, onClose, onSave, editData = null }) => {
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <div>
               <label className={labelClasses}>Subcategoría</label>
-              <input
-                type="text"
-                list="subcategory-suggestions"
-                {...register('subcategory')}
-                placeholder="Ej: Gaseosa, Lite..."
-                className={inputClasses}
-              />
-              <datalist id="subcategory-suggestions">
-                {SUBCATEGORY_SUGGESTIONS.map((s) => <option key={s} value={s} />)}
-              </datalist>
+              <select {...register('subcategory')} className={selectClasses}>
+                <option value="">Selecciona una subcategoría...</option>
+                {SUBCATEGORY_SUGGESTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
             </div>
 
             {editData && (
@@ -259,111 +236,26 @@ const AddDrinkModal = ({ isOpen, onClose, onSave, editData = null }) => {
             )}
           </div>
 
+          <div>
+            <label className={labelClasses}>Descripción</label>
+            <textarea
+              {...register('description')}
+              placeholder="Breve descripción de la bebida..."
+              rows={2}
+              className={inputClasses}
+            />
+          </div>
+
           {category === 'casa' && (
             <div className="border-t border-white/60 pt-4">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <p className="font-display font-semibold text-gray-800 text-sm">Receta (opcional)</p>
-                  <p className="text-xs text-gray-500">Solo informativo: no descuenta nada del inventario</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={addRow}
-                  className="text-xs font-display font-semibold text-red-500 hover:text-red-600 flex items-center gap-1"
-                >
-                  <FAIcon icon="plus" size="xs" /> Agregar ingrediente
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                {recipeRows.map((row) => (
-                  <div key={row.key} className="p-3 bg-white/70 rounded-2xl border border-white/80 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 relative">
-                        <input
-                          type="text"
-                          value={row.name}
-                          onChange={(e) => {
-                            updateRow(row.key, { name: e.target.value, inventoryId: null, tracked: false });
-                            setIngredientSearch(e.target.value);
-                          }}
-                          placeholder="Nombre del ingrediente (ej: Agua, Azúcar...)"
-                          className={inputClasses}
-                        />
-                        {ingredientSearch && row.name === ingredientSearch && matchingInsumos.length > 0 && (
-                          <div className="absolute z-10 mt-1 w-full bg-white rounded-xl shadow-lg border border-gray-100 max-h-32 overflow-y-auto">
-                            {matchingInsumos.map((insumo) => (
-                              <button
-                                type="button"
-                                key={insumo._id}
-                                onClick={() => {
-                                  pickExistingInsumo(row.key, insumo);
-                                  setIngredientSearch('');
-                                }}
-                                className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50"
-                              >
-                                {insumo.name} {insumo.pending ? '(pendiente)' : ''}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeRow(row.key)}
-                        className="p-2 text-gray-400 hover:text-red-500"
-                        aria-label="Quitar ingrediente"
-                      >
-                        <FAIcon icon="trash" size="sm" />
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2 items-center">
-                      <input
-                        type="text"
-                        value={row.quantity}
-                        onChange={(e) => updateRow(row.key, { quantity: e.target.value })}
-                        placeholder='Ej: 1/2, 2, una pizca'
-                        className={inputClasses}
-                      />
-                      <select
-                        value={row.unit}
-                        onChange={(e) => updateRow(row.key, { unit: e.target.value })}
-                        className={selectClasses}
-                      >
-                        {RECIPE_UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
-                      </select>
-                      <label className="flex items-center gap-1.5 text-xs text-gray-600 font-medium">
-                        <input
-                          type="checkbox"
-                          checked={row.tracked}
-                          disabled={!row.isNew && Boolean(row.inventoryId)}
-                          onChange={(e) => updateRow(row.key, { tracked: e.target.checked, inventoryId: e.target.checked ? row.inventoryId : null })}
-                          className="accent-red-500"
-                        />
-                        Guardar en inventario
-                      </label>
-                    </div>
-                    {row.tracked && !row.inventoryId && (
-                      <div className="flex items-center gap-2">
-                        <p className="text-[11px] text-amber-600 flex-1">
-                          Se creará como insumo pendiente en Inventario al guardar
-                        </p>
-                        <select
-                          value={row.ingredientCategory || 'Frutas'}
-                          onChange={(e) => updateRow(row.key, { ingredientCategory: e.target.value })}
-                          className="text-xs px-2 py-1 rounded-lg bg-white border border-white/80"
-                        >
-                          {INGREDIENT_CATEGORIES_DRINKS.map((c) => <option key={c} value={c}>{c}</option>)}
-                        </select>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                {recipeRows.length === 0 && (
-                  <p className="text-xs text-gray-400 text-center py-2">Sin ingredientes agregados todavía</p>
-                )}
-              </div>
+              <RecipeBuilder
+                rows={recipeRows}
+                setRows={setRecipeRows}
+                categories={INGREDIENT_CATEGORIES_DRINKS}
+                paginate
+                title="Receta (obligatoria)"
+                helperText="Los ingredientes ligados a un insumo descuentan inventario al confirmarse una orden que use esta bebida en un combo."
+              />
             </div>
           )}
 
@@ -430,6 +322,18 @@ const AddDrinkModal = ({ isOpen, onClose, onSave, editData = null }) => {
           setImageFile(croppedFile);
           setRawImageFile(null);
         }}
+      />
+
+      <DuplicateNameDialog
+        existing={duplicate}
+        onEditExisting={() => {
+          const existing = duplicate;
+          setDuplicate(null);
+          setPendingSubmit(null);
+          onEditExisting?.(existing);
+        }}
+        onCreateAnyway={handleCreateAnyway}
+        onCancel={() => { setDuplicate(null); setPendingSubmit(null); }}
       />
     </div>
   );

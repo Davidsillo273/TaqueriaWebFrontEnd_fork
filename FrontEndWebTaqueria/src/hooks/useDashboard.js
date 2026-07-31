@@ -54,8 +54,8 @@ export default function useDashboard() {
       .sort((a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0))
       .slice(0, 5)
       .map((order) => {
-        const cliente = order.idCustomer?.personalInfo
-          ? `${order.idCustomer.personalInfo.name || ''} ${order.idCustomer.personalInfo.lastname || ''}`.trim()
+        const cliente = order.customerId?.personalInfo
+          ? `${order.customerId.personalInfo.name || ''} ${order.customerId.personalInfo.lastname || ''}`.trim()
           : order.customerName || 'Cliente';
 
         return {

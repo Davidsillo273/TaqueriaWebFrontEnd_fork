@@ -13,7 +13,7 @@ export const useCombos = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_URL}/combos`, {
+      const response = await fetch(`${API_URL}/menu/combos`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -40,7 +40,7 @@ export const useCombos = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_URL}/combos`, {
+      const response = await fetch(`${API_URL}/menu/combos`, {
         method: 'POST',
         credentials: 'include',
         body: formData, // Pasa directamente el FormData construido en el modal
@@ -69,8 +69,8 @@ export const useCombos = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_URL}/combos/${id}`, {
-        method: 'PUT',
+      const response = await fetch(`${API_URL}/menu/combos/${id}`, {
+        method: 'PATCH',
         credentials: 'include',
         body: formData,
       });
@@ -97,7 +97,7 @@ export const useCombos = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_URL}/combos/${id}`, {
+      const response = await fetch(`${API_URL}/menu/combos/${id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -123,6 +123,20 @@ export const useCombos = () => {
     fetchCombos();
   }, []);
 
+  // Busca si ya existe un combo con ese nombre (sugerencia, no bloqueo)
+  const checkName = async (name) => {
+    try {
+      const res = await fetch(`${API_URL}/menu/combos/check-name?name=${encodeURIComponent(name)}`, {
+        credentials: 'include',
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.existing || null;
+    } catch {
+      return null;
+    }
+  };
+
   return {
     combos,
     loading,
@@ -131,6 +145,7 @@ export const useCombos = () => {
     addCombo,
     updateCombo,
     deleteCombo,
+    checkName,
     setError,
   };
 };

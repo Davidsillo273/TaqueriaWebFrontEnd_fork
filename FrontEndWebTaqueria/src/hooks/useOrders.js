@@ -13,7 +13,7 @@ export default function useOrders() {
             // Le pega al router.route("/") del back por GET
             // credentials: 'include' manda la cookie de sesión, para que el
             // backend sepa qué empleado realizó el movimiento y lo registre.
-            const response = await fetch(`${API_URL}/carts`, { credentials: 'include' });
+            const response = await fetch(`${API_URL}/orders/carts`, { credentials: 'include' });
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -29,8 +29,8 @@ export default function useOrders() {
     // 2. CREATE - Por si metemos un botón de simulación o creación rápida
     const createOrder = async (orderData) => {
         try {
-            // Cumple con idCustomer, details y status tal cual el schema
-            const response = await fetch(`${API_URL}/carts`, {
+            // Cumple con customerId, details y status tal cual el schema
+            const response = await fetch(`${API_URL}/orders/carts`, {
                 credentials: 'include',
                 method: 'POST',
                 headers: {
@@ -59,9 +59,9 @@ export default function useOrders() {
             else if (currentStatus === "ready") nextStatus = "delivered";
 
             // Le pega al router.route("/:id") por PUT
-            const response = await fetch(`${API_URL}/carts/${id}`, {
+            const response = await fetch(`${API_URL}/orders/carts/${id}`, {
                 credentials: 'include',
-                method: 'PUT',
+                method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -82,7 +82,7 @@ export default function useOrders() {
     const deleteOrder = async (id) => {
         try {
             // Le pega al router.route("/:id") por DELETE
-            const response = await fetch(`${API_URL}/carts/${id}`, {
+            const response = await fetch(`${API_URL}/orders/carts/${id}`, {
                 credentials: 'include',
                 method: 'DELETE',
             });

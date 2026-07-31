@@ -12,7 +12,7 @@ export function useEmployees() {
         try {
             // credentials: 'include' manda la cookie de sesión, necesaria además
             // porque la ruta de actualizar empleado exige estar autenticado.
-            const res = await fetch(`${API_URL}/employees`, { credentials: 'include' });
+            const res = await fetch(`${API_URL}/users/employees`, { credentials: 'include' });
             if (!res.ok) throw new Error('Error al obtener la lista de empleados');
             const data = await res.json();
             setEmployees(data);
@@ -27,7 +27,7 @@ export function useEmployees() {
     const updateEmployee = async (id, updatedData) => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/employees/${id}`, {
+            const res = await fetch(`${API_URL}/users/employees/${id}`, {
                 credentials: 'include',
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },

@@ -11,6 +11,7 @@ const ComboCard = ({
   isAvailable = true,
   onEdit,
   onDelete,
+  onView,
 }) => {
   return (
     <div
@@ -63,6 +64,18 @@ const ComboCard = ({
 
         {/* Botones con estilo clay */}
         <div className="flex gap-2 mt-4 pt-3 border-t border-gray-100">
+          {onView && (
+            <button
+              onClick={onView}
+              className="px-3 py-2.5 bg-blue-50 text-blue-500 rounded-xl hover:bg-blue-100 transition-colors
+                shadow-[0_4px_10px_rgba(0,0,0,0.06),inset_0_1px_2px_rgba(255,255,255,0.8)]
+                active:shadow-[inset_2px_2px_5px_rgba(0,0,0,0.1)]
+              "
+              aria-label="Ver detalles"
+            >
+              <FAIcon icon="eye" size="sm" />
+            </button>
+          )}
           <button
             onClick={onEdit}
             className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors text-xs sm:text-sm font-medium

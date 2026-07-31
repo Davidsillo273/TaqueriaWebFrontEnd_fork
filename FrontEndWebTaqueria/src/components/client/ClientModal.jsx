@@ -32,8 +32,8 @@ const ClientModal = ({ isOpen, onClose, editingClient, onSuccess }) => {
 
   const onSubmit = async (data) => {
     try {
-      const response = await fetch(`http://localhost:4000/api/clients/${editingClient._id || editingClient.id}`, {
-        method: 'PUT',
+      const response = await fetch(`http://localhost:4000/api/users/customers/${editingClient._id || editingClient.id}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           personalInfo: {

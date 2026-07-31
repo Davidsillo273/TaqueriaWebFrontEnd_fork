@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const API_URL = 'http://localhost:4000/api/saucers';
+const API_URL = 'http://localhost:4000/api/menu/saucers';
 
 export default function useSaucers() {
   const [saucers, setSaucers] = useState([]);
@@ -57,7 +57,7 @@ export default function useSaucers() {
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/${id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         credentials: 'include',
         body: formData,
       });
@@ -98,5 +98,19 @@ export default function useSaucers() {
     }
   };
 
-  return { saucers, loading, error, createSaucer, updateSaucer, deleteSaucer, refetch: fetchSaucers };
+  // Busca si ya existe un platillo con ese nombre (sugerencia, no bloqueo)
+  const checkName = async (name) => {
+    try {
+      const res = await fetch(`${API_URL}/check-name?name=${encodeURIComponent(name)}`, {
+        credentials: 'include',
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.existing || null;
+    } catch {
+      return null;
+    }
+  };
+
+  return { saucers, loading, error, createSaucer, updateSaucer, deleteSaucer, checkName, refetch: fetchSaucers };
 }

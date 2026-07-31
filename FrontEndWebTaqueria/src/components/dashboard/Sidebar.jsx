@@ -41,13 +41,6 @@ const Sidebar = ({ activeMenu, isOpen, onClose }) => {
         { id: 'invite-staff', label: 'Invitar staff', icon: 'user-plus', path: '/InviteStaff' },
       ],
     },
-    {
-      title: 'Sistema',
-      items: [
-        { id: 'notifications', label: 'Notificaciones', icon: 'bell', path: '/notificaciones' },
-        { id: 'settings', label: 'Ajustes', icon: 'cog', path: '/ajustes' },
-      ],
-    },
   ];
 
   const handleLogout = async (e) => {
@@ -63,11 +56,10 @@ const Sidebar = ({ activeMenu, isOpen, onClose }) => {
         key={item.id}
         to={item.path}
         onClick={onItemClick}
-        className={`group relative flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-display font-medium transition-all duration-200 ${
-          isActive
+        className={`group relative flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-display font-medium transition-all duration-200 ${isActive
             ? 'bg-red-500 text-white shadow-[0_4px_12px_rgba(220,38,38,0.3),inset_1px_1px_2px_rgba(255,255,255,0.3)]'
             : 'text-gray-600 hover:bg-white/60 hover:text-gray-900 hover:shadow-sm'
-        }`}
+          }`}
       >
         <FAIcon
           icon={item.icon}
@@ -80,21 +72,6 @@ const Sidebar = ({ activeMenu, isOpen, onClose }) => {
       </Link>
     );
   };
-
-  const renderLogoutButton = () => (
-    <button
-      type="button"
-      onClick={handleLogout}
-      disabled={loading}
-      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-500 text-white rounded-2xl font-display font-semibold transition-all text-sm
-        shadow-[0_6px_16px_rgba(220,38,38,0.35),inset_1px_1px_2px_rgba(255,255,255,0.3)]
-        hover:bg-red-600 hover:shadow-[0_8px_20px_rgba(220,38,38,0.4)]
-        disabled:opacity-60 disabled:cursor-not-allowed"
-    >
-      <FAIcon icon="sign-out-alt" />
-      <span>{loading ? 'Cerrando sesión...' : 'Cerrar sesión'}</span>
-    </button>
-  );
 
   // Función auxiliar para renderizar los bloques de navegación con sus títulos
   const renderNavigation = (onItemClick = undefined) => (
@@ -126,16 +103,12 @@ const Sidebar = ({ activeMenu, isOpen, onClose }) => {
           {renderNavigation()}
         </nav>
 
-        <div className="relative p-4 border-t border-white/80 shrink-0">
-          {renderLogoutButton()}
-        </div>
       </aside>
 
       {/* Móvil */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white/90 backdrop-blur-sm rounded-r-3xl shadow-2xl transform transition-transform duration-300 ease-in-out lg:hidden ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white/90 backdrop-blur-sm rounded-r-3xl shadow-2xl transform transition-transform duration-300 ease-in-out lg:hidden ${isOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         <div className="flex flex-col h-full relative overflow-hidden">
           <div className="relative flex items-center justify-between p-4 border-b border-white/80 shrink-0">
@@ -155,9 +128,6 @@ const Sidebar = ({ activeMenu, isOpen, onClose }) => {
             {renderNavigation(onClose)}
           </nav>
 
-          <div className="relative p-4 border-t border-white/80 shrink-0">
-            {renderLogoutButton()}
-          </div>
         </div>
       </div>
     </>

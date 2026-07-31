@@ -7,34 +7,42 @@ import ExtraCard from '../components/extras/ExtraCard';
 import AddExtraModal from '../components/extras/AddExtraModal';
 import ConfirmModal from '../components/commons/ConfirmModal';
 import PaginationControls from '../components/commons/PaginationControls';
+import AttentionCenter from '../components/commons/AttentionCenter';
+import FilterBar from '../components/commons/FilterBar';
+import ViewDetailsModal from '../components/commons/ViewDetailsModal';
+import DetailRow from '../components/commons/DetailRow';
 import FAIcon from '../components/commons/FAIcon';
 import useExtras from '../hooks/useExtras';
 import { usePagination } from '../hooks/usePagination';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
+import { UNIT_LABELS } from '../constants/units';
 
 function ExtrasContent() {
   const [activeMenu] = useState('extras');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExtra, setEditingExtra] = useState(null);
+  const [viewingExtra, setViewingExtra] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, extraId: null });
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [bestSeller, setBestSeller] = useState(null);
 
   const { extras, loading, error, addExtra, updateExtra, deleteExtra } = useExtras();
   const { addToast } = useToast();
 
   useEffect(() => {
-    fetch('http://localhost:4000/api/extras/best-sellers?limit=1', { credentials: 'include' })
+    fetch('http://localhost:4000/api/menu/extras/best-sellers?limit=1', { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : []))
       .then((data) => setBestSeller(data[0] || null))
       .catch(() => setBestSeller(null));
   }, [extras.length]);
 
   const categoryOptions = ['all', ...new Set(extras.map((e) => e.category).filter(Boolean))];
-  const filteredExtras = categoryFilter === 'all'
-    ? extras
-    : extras.filter((e) => e.category === categoryFilter);
+  const filteredExtras = extras.filter((e) =>
+    (categoryFilter === 'all' || e.category === categoryFilter) &&
+    (statusFilter === 'all' || e.status === statusFilter)
+  );
 
   const { page, totalPages, paginatedItems, goTo, next, prev } = usePagination(filteredExtras, 6);
 
@@ -45,20 +53,12 @@ function ExtrasContent() {
 
   const handleSave = async (formData) => {
     try {
-      const cleanPrice = parseFloat(String(formData.price).replace(/[^0-9.]/g, ''));
-      const payload = {
-        name: formData.name,
-        price: cleanPrice,
-        category: formData.category,
-        status: formData.status,
-      };
-
       let result;
       if (editingExtra) {
-        result = await updateExtra(editingExtra._id, payload);
+        result = await updateExtra(editingExtra._id, formData);
         if (result.success) addToast('Extra actualizado exitosamente', 'success');
       } else {
-        result = await addExtra(payload);
+        result = await addExtra(formData);
         if (result.success) addToast('Extra creado exitosamente', 'success');
       }
 
@@ -72,6 +72,35 @@ function ExtrasContent() {
       addToast(err.message || 'Error inesperado', 'error');
     }
   };
+
+  const buildExtraSections = (extra) => [
+    {
+      title: 'Información general',
+      content: (
+        <div>
+          <DetailRow label="Categoría" value={extra.category} />
+          <DetailRow label="Precio" value={`$${parseFloat(extra.price).toFixed(2)}`} />
+          <DetailRow label="Estado" value={extra.status} />
+        </div>
+      ),
+    },
+    {
+      title: 'Ingredientes',
+      content: (
+        <div className="space-y-2">
+          {(extra.ingredients || []).length === 0 && (
+            <p className="text-xs text-gray-400 text-center py-2">Sin ingredientes registrados</p>
+          )}
+          {(extra.ingredients || []).map((item, idx) => (
+            <div key={idx} className="flex items-center justify-between bg-white rounded-xl px-3 py-2 border border-white/80">
+              <span className="text-sm text-gray-800">{item.ingredientId?.name || 'Insumo eliminado'}</span>
+              <span className="text-xs text-gray-500">{item.quantity} {UNIT_LABELS[item.unit] || item.unit}</span>
+            </div>
+          ))}
+        </div>
+      ),
+    },
+  ];
 
   const handleRequestDelete = (extraId) => {
     setConfirmDelete({ isOpen: true, extraId });
@@ -140,6 +169,31 @@ function ExtrasContent() {
               </div>
             )}
 
+            {/* Extras sin imagen */}
+            <AttentionCenter
+              items={extras.filter((e) => !e.image)}
+              getKey={(e) => e._id}
+              getTitle={(e) => e.name}
+              getImage={(e) => e.image}
+              getReason={() => 'Falta imagen'}
+              onEdit={(extra) => { setEditingExtra(extra); setIsModalOpen(true); }}
+            />
+
+            <FilterBar
+              filters={[
+                {
+                  label: 'Estado',
+                  value: statusFilter,
+                  onChange: setStatusFilter,
+                  options: [
+                    { value: 'all', label: 'Todos los estados' },
+                    { value: 'DISPONIBLE', label: 'Disponibles' },
+                    { value: 'AGOTADO', label: 'Agotados' },
+                  ],
+                },
+              ]}
+            />
+
             {/* Estadísticas (con ComboStats, mismo diseño que en Combos) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
               <ComboStats
@@ -197,9 +251,11 @@ function ExtrasContent() {
                       key={extra._id}
                       title={extra.name}
                       price={`$${extra.price}`}
+                      image={extra.image}
                       status={extra.status}
                       onEdit={() => { setEditingExtra(extra); setIsModalOpen(true); }}
                       onDelete={() => handleRequestDelete(extra._id)}
+                      onView={() => setViewingExtra(extra)}
                     />
                   ))}
                 </div>
@@ -235,6 +291,7 @@ function ExtrasContent() {
         isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); setEditingExtra(null); }}
         onAdd={handleSave}
+        onEditExisting={(existing) => { setEditingExtra(existing); setIsModalOpen(true); }}
         editingExtra={editingExtra}
       />
 
@@ -246,6 +303,15 @@ function ExtrasContent() {
         message="¿Estás seguro de que deseas eliminar este extra? Esta acción no se puede deshacer."
         confirmText="Eliminar"
         loading={loading}
+      />
+
+      <ViewDetailsModal
+        key={viewingExtra?._id}
+        isOpen={Boolean(viewingExtra)}
+        onClose={() => setViewingExtra(null)}
+        title={viewingExtra?.name}
+        image={viewingExtra?.image}
+        sections={viewingExtra ? buildExtraSections(viewingExtra) : []}
       />
     </div>
   );

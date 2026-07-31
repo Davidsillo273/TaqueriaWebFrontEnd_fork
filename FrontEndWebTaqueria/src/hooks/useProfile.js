@@ -7,9 +7,9 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
 // Cada rol se actualiza contra su propio endpoint
 const ENDPOINT_BY_ROLE = {
-  admin: 'admins',
-  employee: 'employees',
-  customer: 'customers',
+  admin: 'users/admins',
+  employee: 'users/employees',
+  customer: 'users/customers',
 };
 
 // Maneja los datos de la cuenta del usuario que tiene la sesión abierta:
@@ -82,7 +82,7 @@ export function useProfile() {
 
     try {
       await axios.patch(
-        `${BASE_URL}/auth/changePassword`,
+        `${BASE_URL}/auth/update-password`,
         { currentPassword, newPassword },
         { withCredentials: true }
       );

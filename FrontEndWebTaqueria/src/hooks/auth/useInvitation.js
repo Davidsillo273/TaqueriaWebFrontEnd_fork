@@ -15,8 +15,8 @@ export const useInvitation = () => {
 
     try {
       const endpoint = role === 'admin'
-        ? '/auth/admins/invite/sendInvitation'
-        : '/auth/employees/invite/sendInvitation';
+        ? '/auth/admins/invite/send-invitation'
+        : '/auth/employees/invite/send-invitation';
 
       const response = await axios.post(`${BASE_URL}${endpoint}`, formData, {
         withCredentials: true, // Para enviar la authCookie httpOnly del admin
@@ -39,8 +39,8 @@ export const useInvitation = () => {
 
     try {
       const endpoint = role === 'admin'
-        ? '/auth/admins/invite/checkInvitation'
-        : '/auth/employees/invite/checkInvitation';
+        ? '/auth/admins/invite/check-invitation'
+        : '/auth/employees/invite/check-invitation';
 
       const response = await axios.get(`${BASE_URL}${endpoint}`, {
         params: { token },
@@ -63,8 +63,8 @@ export const useInvitation = () => {
 
     try {
       const endpoint = role === 'admin'
-        ? '/auth/admins/invite/acceptInvitation'
-        : '/auth/employees/invite/acceptInvitation';
+        ? '/auth/admins/invite/accept-invitation'
+        : '/auth/employees/invite/accept-invitation';
 
       const formData = new FormData();
       formData.append('token', token);

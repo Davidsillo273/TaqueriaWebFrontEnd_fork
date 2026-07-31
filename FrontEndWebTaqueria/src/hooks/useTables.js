@@ -45,7 +45,7 @@ export default function useTables() {
     try {
       const res = await fetch(`${API_URL}/tables/${id}`, {
         credentials: 'include',
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ number: Number(tableData.number), status: tableData.status })
       });

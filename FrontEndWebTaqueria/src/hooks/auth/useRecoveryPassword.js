@@ -145,7 +145,7 @@ export default function useRecoveryPassword() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/auth/recoveryPassword/requestCode`, {
+      const response = await fetch(`${API_URL}/auth/recovery-password/request-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -201,7 +201,7 @@ export default function useRecoveryPassword() {
     setResendSuccess('');
 
     try {
-      const response = await fetch(`${API_URL}/auth/recoveryPassword/requestCode`, {
+      const response = await fetch(`${API_URL}/auth/recovery-password/request-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -279,7 +279,7 @@ export default function useRecoveryPassword() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/auth/recoveryPassword/verifyCode`, {
+      const response = await fetch(`${API_URL}/auth/recovery-password/verify-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -340,7 +340,7 @@ export default function useRecoveryPassword() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/auth/recoveryPassword/newPassword`, {
+      const response = await fetch(`${API_URL}/auth/recovery-password/new-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

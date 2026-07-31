@@ -14,7 +14,8 @@ const CardPicker = ({ items, selectedIds, onToggle, categories = [] }) => {
 
   const filtered = useMemo(() => {
     return items.filter((item) => {
-      const matchesSearch = item.name.toLowerCase().includes(search.trim().toLowerCase());
+      const itemName = item.name || item.title || '';
+      const matchesSearch = itemName.toLowerCase().includes(search.trim().toLowerCase());
       const matchesCategory = category === 'all' || item.category === category;
       return matchesSearch && matchesCategory;
     });
@@ -49,18 +50,20 @@ const CardPicker = ({ items, selectedIds, onToggle, categories = [] }) => {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {paginatedItems.map((item) => {
-          const isSelected = selectedIds.includes(item._id);
+          const itemId = item._id || item.id;
+          const isSelected = selectedIds.includes(itemId);
+          const itemName = item.name || item.title || '';
           return (
             <button
               type="button"
-              key={item._id}
-              onClick={() => onToggle(item._id)}
+              key={itemId}
+              onClick={() => onToggle(itemId)}
               className={`relative rounded-2xl overflow-hidden border-2 text-left transition-all ${
                 isSelected ? 'border-red-500 shadow-[0_4px_12px_rgba(220,38,38,0.25)]' : 'border-white/80 hover:border-gray-200'
               }`}
             >
               <div className="relative h-16">
-                <img src={item.image || PLACEHOLDER_IMAGE} alt={item.name} className="w-full h-full object-cover" />
+                <img src={item.image || PLACEHOLDER_IMAGE} alt={itemName} className="w-full h-full object-cover" />
                 {isSelected && (
                   <span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center">
                     <FAIcon icon="check" size="xs" />
@@ -68,7 +71,7 @@ const CardPicker = ({ items, selectedIds, onToggle, categories = [] }) => {
                 )}
               </div>
               <div className="p-1.5 bg-white">
-                <p className="text-[11px] font-display font-semibold text-gray-800 line-clamp-1">{item.name}</p>
+                <p className="text-[11px] font-display font-semibold text-gray-800 line-clamp-1">{itemName}</p>
                 <p className="text-[11px] text-red-500 font-semibold">${parseFloat(item.price || 0).toFixed(2)}</p>
               </div>
             </button>

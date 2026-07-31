@@ -4,7 +4,7 @@ import FAIcon from '../commons/FAIcon';
 
 const PLACEHOLDER_IMAGE = 'https://placehold.co/400x300/f3f0eb/9ca3af?text=Platillo';
 
-export default function DishCard({ image, name, category, price, status, isMostSold = false, onEdit, onDelete }) {
+export default function DishCard({ image, name, category, subcategory, price, status, isMostSold = false, onEdit, onDelete, onView }) {
   const isAvailable = status === 'Activo';
 
   return (
@@ -49,10 +49,19 @@ export default function DishCard({ image, name, category, price, status, isMostS
         <h3 className="font-display font-bold text-gray-900 mb-1 text-sm sm:text-base line-clamp-2">
           {name}
         </h3>
-        {category && (
-          <span className="inline-block mb-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[11px] font-semibold uppercase w-fit">
-            {category}
-          </span>
+        {(category || subcategory) && (
+          <div className="flex gap-1 flex-wrap mb-1">
+            {category && (
+              <span className="inline-block px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[11px] font-semibold uppercase w-fit">
+                {category}
+              </span>
+            )}
+            {subcategory && (
+              <span className="inline-block px-2 py-0.5 rounded-full bg-red-50 text-red-500 text-[11px] font-semibold w-fit">
+                {subcategory}
+              </span>
+            )}
+          </div>
         )}
         <p className="text-red-500 font-display font-bold text-lg sm:text-xl mb-2">
           {price}
@@ -62,6 +71,18 @@ export default function DishCard({ image, name, category, price, status, isMostS
 
         {/* Botones */}
         <div className="flex gap-2 mt-4 pt-3 border-t border-gray-100">
+          {onView && (
+            <button
+              onClick={onView}
+              className="px-3 py-2.5 bg-blue-50 text-blue-500 rounded-xl hover:bg-blue-100 transition-colors
+                shadow-[0_4px_10px_rgba(0,0,0,0.06),inset_0_1px_2px_rgba(255,255,255,0.8)]
+                active:shadow-[inset_2px_2px_5px_rgba(0,0,0,0.1)]
+              "
+              aria-label="Ver detalles"
+            >
+              <FAIcon icon="eye" size="sm" />
+            </button>
+          )}
           <button
             onClick={onEdit}
             className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors text-xs sm:text-sm font-medium

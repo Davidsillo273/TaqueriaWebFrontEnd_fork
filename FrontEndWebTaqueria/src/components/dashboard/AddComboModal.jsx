@@ -3,40 +3,60 @@ import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import useSaucers from '../../hooks/useSaucers';
 import useDrinks from '../../hooks/useDrinks';
+import useDrinkSets from '../../hooks/useDrinkSets';
+import { useCombos } from '../../hooks/useCombos';
 import FAIcon from '../commons/FAIcon';
 import CardPicker from '../commons/CardPicker';
 import ImageCropModal from '../commons/ImageCropModal';
+import DuplicateNameDialog from '../commons/DuplicateNameDialog';
+import ConfirmModal from '../commons/ConfirmModal';
+import AddDrinkSetModal from './AddDrinkSetModal';
 import { useToast } from '../commons/ToastProvider.jsx';
 
-const AddComboModal = ({ isOpen, onClose, onSave, loading, comboToEdit = null }) => {
+// Todas las categorías de platillo disponibles siempre, sin importar cuáles
+// ya tengan registros: si solo hay Tacos y Burritos creados, el filtro debe
+// igual mostrar Tortas/Sopas/Especiales para cuando se agreguen.
+const SAUCER_CATEGORIES = ['Burritos', 'Tortas', 'Tacos', 'Sopas', 'Especiales'];
+
+const AddComboModal = ({ isOpen, onClose, onSave, onEditExisting, loading, comboToEdit = null }) => {
   const { saucers, loading: loadingSaucers } = useSaucers();
-  const { drinks, loading: loadingDrinks } = useDrinks();
+  const { drinks } = useDrinks();
+  const { drinkSets, createDrinkSet } = useDrinkSets({ activeOnly: true });
+  const { checkName } = useCombos();
   const { addToast } = useToast();
+  const [duplicate, setDuplicate] = useState(null);
+  const [pendingData, setPendingData] = useState(null);
+  const [isDrinkSetModalOpen, setIsDrinkSetModalOpen] = useState(false);
+  const [noDrinkConfirmOpen, setNoDrinkConfirmOpen] = useState(false);
 
   const {
     register,
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors },
   } = useForm({
     defaultValues: {
       name: '',
       price: '',
       description: '',
-      quantity: 1,
       category: 'individual',
       status: 'disponible',
-      allowHouseDrinkAddon: false,
+      selective: false,
+      selectiveMaxPicks: 1,
     },
   });
 
+  const selective = watch('selective');
+
   const [selectedSaucerIds, setSelectedSaucerIds] = useState([]);
+  const [selectedOptionIds, setSelectedOptionIds] = useState([]);
+  const [selectedDrinkSetIds, setSelectedDrinkSetIds] = useState([]);
   const [selectedDrinkIds, setSelectedDrinkIds] = useState([]);
   const [rawImageFile, setRawImageFile] = useState(null);
   const [imageFile, setImageFile] = useState(null);
 
-  const saucerCategories = [...new Set(saucers.map((s) => s.category).filter(Boolean))];
   const thirdPartyDrinks = drinks.filter((d) => d.category === 'tercero');
 
   useEffect(() => {
@@ -46,13 +66,19 @@ const AddComboModal = ({ isOpen, onClose, onSave, loading, comboToEdit = null })
       setValue('name', comboToEdit.name);
       setValue('price', comboToEdit.price);
       setValue('description', comboToEdit.description);
-      setValue('quantity', comboToEdit.quantity || 1);
       setValue('category', comboToEdit.category || 'individual');
       setValue('status', comboToEdit.status || 'disponible');
-      setValue('allowHouseDrinkAddon', Boolean(comboToEdit.drinkPolicy?.allowHouseDrinkAddon));
+      setValue('selective', Boolean(comboToEdit.selective));
+      setValue('selectiveMaxPicks', comboToEdit.selectiveMaxPicks || 1);
 
       setSelectedSaucerIds(
         (comboToEdit.saucers || []).map((s) => s.saucerId?._id || s.saucerId).filter(Boolean)
+      );
+      setSelectedOptionIds(
+        (comboToEdit.selectiveOptions || []).map((s) => s.saucerId?._id || s.saucerId).filter(Boolean)
+      );
+      setSelectedDrinkSetIds(
+        (comboToEdit.drinkPolicy?.drinkSetIds || []).map((s) => s?._id || s).filter(Boolean)
       );
       setSelectedDrinkIds(
         (comboToEdit.drinkPolicy?.thirdPartyDrinkIds || []).map((d) => d?._id || d).filter(Boolean)
@@ -62,12 +88,14 @@ const AddComboModal = ({ isOpen, onClose, onSave, loading, comboToEdit = null })
         name: '',
         price: '',
         description: '',
-        quantity: 1,
         category: 'individual',
         status: 'disponible',
-        allowHouseDrinkAddon: false,
+        selective: false,
+        selectiveMaxPicks: 1,
       });
       setSelectedSaucerIds([]);
+      setSelectedOptionIds([]);
+      setSelectedDrinkSetIds([]);
       setSelectedDrinkIds([]);
     }
     setImageFile(null);
@@ -76,6 +104,12 @@ const AddComboModal = ({ isOpen, onClose, onSave, loading, comboToEdit = null })
 
   const toggleSaucer = (id) =>
     setSelectedSaucerIds((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
+
+  const toggleOption = (id) =>
+    setSelectedOptionIds((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
+
+  const toggleDrinkSet = (id) =>
+    setSelectedDrinkSetIds((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
 
   const toggleDrink = (id) =>
     setSelectedDrinkIds((prev) => (prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id]));
@@ -86,25 +120,86 @@ const AddComboModal = ({ isOpen, onClose, onSave, loading, comboToEdit = null })
       return;
     }
 
-    if (selectedSaucerIds.length === 0) {
+    if (data.selective) {
+      if (selectedOptionIds.length === 0) {
+        addToast('En modo selectivo, selecciona al menos un platillo como opción', 'error');
+        return;
+      }
+      const maxPicks = Number(data.selectiveMaxPicks);
+      if (!maxPicks || maxPicks < 1) {
+        addToast('Indica cuántas opciones puede elegir el cliente', 'error');
+        return;
+      }
+      if (maxPicks > selectedOptionIds.length) {
+        addToast('El cliente no puede elegir más opciones de las que ofreces', 'error');
+        return;
+      }
+    } else if (selectedSaucerIds.length === 0) {
       addToast('Selecciona al menos un platillo', 'error');
       return;
     }
 
+    if (selectedDrinkSetIds.length === 0 && selectedDrinkIds.length === 0) {
+      setPendingData(data);
+      setNoDrinkConfirmOpen(true);
+      return;
+    }
+
+    await proceedAfterDrinkCheck(data);
+  };
+
+  // Se llama tanto si el combo sí lleva bebida como si el admin confirmó
+  // que quiere guardarlo sin ninguna
+  const proceedAfterDrinkCheck = async (data) => {
+    if (!comboToEdit) {
+      const existing = await checkName(data.name);
+      if (existing) {
+        setDuplicate(existing);
+        setPendingData(data);
+        return;
+      }
+    }
+
+    await submitForm(data);
+  };
+
+  const handleConfirmNoDrink = async () => {
+    const data = pendingData;
+    setNoDrinkConfirmOpen(false);
+    setPendingData(null);
+    if (data) await proceedAfterDrinkCheck(data);
+  };
+
+  const handleCreateAnyway = async () => {
+    const data = pendingData;
+    setDuplicate(null);
+    setPendingData(null);
+    if (data) await submitForm(data);
+  };
+
+  const submitForm = async (data) => {
     try {
       const formData = new FormData();
       formData.append('name', data.name);
       formData.append('price', parseFloat(data.price));
       formData.append('description', data.description);
-      formData.append('quantity', parseInt(data.quantity) || 1);
       formData.append('category', data.category);
       // Nace 'disponible' al crear (el select de estado solo se muestra al editar)
       formData.append('status', comboToEdit ? data.status : 'disponible');
 
-      formData.append('saucers', JSON.stringify(selectedSaucerIds.map((id) => ({ saucerId: id }))));
+      formData.append('selective', Boolean(data.selective));
+      if (data.selective) {
+        formData.append('selectiveOptions', JSON.stringify(selectedOptionIds.map((id) => ({ saucerId: id }))));
+        formData.append('selectiveMaxPicks', parseInt(data.selectiveMaxPicks) || 1);
+        formData.append('saucers', JSON.stringify([]));
+      } else {
+        formData.append('saucers', JSON.stringify(selectedSaucerIds.map((id) => ({ saucerId: id }))));
+        formData.append('selectiveOptions', JSON.stringify([]));
+      }
+
       formData.append('drinkPolicy', JSON.stringify({
+        drinkSetIds: selectedDrinkSetIds,
         thirdPartyDrinkIds: selectedDrinkIds,
-        allowHouseDrinkAddon: data.allowHouseDrinkAddon,
       }));
 
       if (imageFile) {
@@ -157,7 +252,7 @@ const AddComboModal = ({ isOpen, onClose, onSave, loading, comboToEdit = null })
             {errors.name && <span className="text-red-500 text-xs mt-1 block font-medium">{errors.name.message}</span>}
           </div>
 
-          <div className="grid grid-cols-3 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <div>
               <label className={labelClasses}>Precio ($)</label>
               <input
@@ -174,16 +269,6 @@ const AddComboModal = ({ isOpen, onClose, onSave, loading, comboToEdit = null })
                 disabled={loading}
               />
               {errors.price && <span className="text-red-500 text-xs mt-1 block font-medium">{errors.price.message}</span>}
-            </div>
-            <div>
-              <label className={labelClasses}>Cantidad</label>
-              <input
-                type="number"
-                min="1"
-                {...register('quantity', { required: true, min: 1, valueAsNumber: true })}
-                className={inputClasses}
-                disabled={loading}
-              />
             </div>
             <div>
               <label className={labelClasses}>Categoría</label>
@@ -220,39 +305,109 @@ const AddComboModal = ({ isOpen, onClose, onSave, loading, comboToEdit = null })
             {errors.description && <span className="text-red-500 text-xs mt-1 block font-medium">{errors.description.message}</span>}
           </div>
 
+          {/* Modo selectivo */}
           <div className="border-t border-white/60 pt-4">
-            <label className={labelClasses}>Platillos incluidos ({selectedSaucerIds.length})</label>
-            {loadingSaucers ? (
-              <p className="text-xs text-gray-400">Cargando platillos...</p>
-            ) : (
-              <CardPicker
-                items={saucers}
-                selectedIds={selectedSaucerIds}
-                onToggle={toggleSaucer}
-                categories={saucerCategories}
-              />
-            )}
+            <label className="flex items-center gap-2 text-sm text-gray-700 font-medium">
+              <input type="checkbox" {...register('selective')} className="accent-red-500" disabled={loading} />
+              Selectivo (opcional)
+            </label>
+            <p className="text-[11px] text-gray-500 mt-1">
+              Si lo activas, en vez de platillos fijos defines varias opciones y cuántas puede elegir el cliente
+              (ej. "elige 1 taco entre: al pastor, de pollo, de carne").
+            </p>
           </div>
 
+          {selective ? (
+            <div className="border-t border-white/60 pt-4">
+              <label className={labelClasses}>Opciones de platillo ({selectedOptionIds.length})</label>
+              {loadingSaucers ? (
+                <p className="text-xs text-gray-400">Cargando platillos...</p>
+              ) : (
+                <CardPicker
+                  items={saucers}
+                  selectedIds={selectedOptionIds}
+                  onToggle={toggleOption}
+                  categories={SAUCER_CATEGORIES}
+                />
+              )}
+
+              <div className="mt-3">
+                <label className={labelClasses}>¿Cuántas opciones puede elegir el cliente?</label>
+                <input
+                  type="number"
+                  min="1"
+                  max={selectedOptionIds.length || undefined}
+                  {...register('selectiveMaxPicks', { required: true, min: 1, valueAsNumber: true })}
+                  className={inputClasses}
+                  disabled={loading}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="border-t border-white/60 pt-4">
+              <label className={labelClasses}>Platillos incluidos ({selectedSaucerIds.length})</label>
+              {loadingSaucers ? (
+                <p className="text-xs text-gray-400">Cargando platillos...</p>
+              ) : (
+                <CardPicker
+                  items={saucers}
+                  selectedIds={selectedSaucerIds}
+                  onToggle={toggleSaucer}
+                  categories={SAUCER_CATEGORIES}
+                />
+              )}
+            </div>
+          )}
+
           <div className="border-t border-white/60 pt-4">
-            <label className={labelClasses}>Bebidas de tercero permitidas ({selectedDrinkIds.length})</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className={labelClasses + ' mb-0'}>Conjuntos de bebidas permitidos ({selectedDrinkSetIds.length})</label>
+              <button
+                type="button"
+                onClick={() => setIsDrinkSetModalOpen(true)}
+                className="text-xs font-display font-semibold text-amber-700 hover:text-amber-800 flex items-center gap-1"
+              >
+                <FAIcon icon="plus" size="xs" /> Nuevo conjunto
+              </button>
+            </div>
             <p className="text-[11px] text-gray-500 mb-2">
-              El cliente elige entre estas al ordenar; ya están incluidas en el precio
+              El cliente elige entre las bebidas de los conjuntos que marques aquí; ya están incluidas en el precio.
+              Los conjuntos son solo de conveniencia y no descuentan inventario por sí mismos.
             </p>
-            {loadingDrinks ? (
-              <p className="text-xs text-gray-400">Cargando bebidas...</p>
+
+            {drinkSets.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center py-3 bg-white/50 rounded-xl">
+                Todavía no hay conjuntos creados. Usa "Nuevo conjunto" para armar el primero.
+              </p>
             ) : (
-              <CardPicker items={thirdPartyDrinks} selectedIds={selectedDrinkIds} onToggle={toggleDrink} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {drinkSets.map((set) => {
+                  const isSelected = selectedDrinkSetIds.includes(set._id);
+                  return (
+                    <button
+                      type="button"
+                      key={set._id}
+                      onClick={() => toggleDrinkSet(set._id)}
+                      className={`text-left p-3 rounded-2xl border-2 transition-all ${
+                        isSelected ? 'border-red-500 bg-red-50/50' : 'border-white/80 bg-white/70 hover:border-gray-200'
+                      }`}
+                    >
+                      <p className="text-sm font-display font-semibold text-gray-800">{set.name}</p>
+                      <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-1">
+                        {(set.drinkIds || []).map((d) => d.name).join(', ') || 'Sin bebidas'}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
             )}
 
-            <div className="mt-3 p-3 bg-white/70 rounded-2xl border border-white/80">
-              <label className="flex items-center gap-2 text-sm text-gray-700 font-medium">
-                <input type="checkbox" {...register('allowHouseDrinkAddon')} className="accent-red-500" disabled={loading} />
-                Permitir agregar una bebida de casa (costo extra)
-              </label>
-              <p className="text-[11px] text-gray-500 mt-1">
-                El costo lo define el precio de esa bebida en Bebidas, no aquí
+            <div className="mt-4">
+              <label className={labelClasses}>o bebidas individuales sueltas ({selectedDrinkIds.length})</label>
+              <p className="text-[11px] text-gray-500 mb-2">
+                Se puede combinar con los conjuntos de arriba: ambas cosas quedan permitidas para el cliente.
               </p>
+              <CardPicker items={thirdPartyDrinks} selectedIds={selectedDrinkIds} onToggle={toggleDrink} />
             </div>
           </div>
 
@@ -320,6 +475,35 @@ const AddComboModal = ({ isOpen, onClose, onSave, loading, comboToEdit = null })
           setImageFile(croppedFile);
           setRawImageFile(null);
         }}
+      />
+
+      <DuplicateNameDialog
+        existing={duplicate}
+        onEditExisting={() => {
+          const existing = duplicate;
+          setDuplicate(null);
+          setPendingData(null);
+          onEditExisting?.(existing);
+        }}
+        onCreateAnyway={handleCreateAnyway}
+        onCancel={() => { setDuplicate(null); setPendingData(null); }}
+      />
+
+      <AddDrinkSetModal
+        isOpen={isDrinkSetModalOpen}
+        onClose={() => setIsDrinkSetModalOpen(false)}
+        onCreated={createDrinkSet}
+        drinks={thirdPartyDrinks}
+      />
+
+      <ConfirmModal
+        isOpen={noDrinkConfirmOpen}
+        onClose={() => { setNoDrinkConfirmOpen(false); setPendingData(null); }}
+        onConfirm={handleConfirmNoDrink}
+        title="Combo sin bebida"
+        message="¿Estás seguro de guardar un combo sin bebida?"
+        confirmText="Sí, guardar así"
+        variant="warning"
       />
     </div>
   );

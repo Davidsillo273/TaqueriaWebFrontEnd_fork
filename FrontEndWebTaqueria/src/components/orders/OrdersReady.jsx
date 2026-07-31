@@ -20,7 +20,7 @@ export default function OrdersReady({ ordenesListas, alEntregar, onDeleteRequest
               <FAIcon icon="check" size="xs" /> Listo
             </span>
           </div>
-          <div className="text-xs text-gray-600 font-medium mb-1">Cliente: {pedido.idCustomer?.name || 'Cliente'}</div>
+          <div className="text-xs text-gray-600 font-medium mb-1">Cliente: {pedido.customerId?.name || 'Cliente'}</div>
           <div className="text-xs text-gray-500 mb-3">
             Método Pago: <span className="font-display font-bold text-green-600">{pedido.status === 'paid' ? 'Wompi Pasarela' : 'Efectivo / Pendiente'}</span>
           </div>

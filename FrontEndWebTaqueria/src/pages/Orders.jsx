@@ -151,7 +151,7 @@ function OrdersContent() {
                             <span className="font-display font-bold text-sm text-gray-900">${Number(p.total).toFixed(2)}</span>
                           </div>
                           <div className="flex justify-between text-xs text-gray-500 font-medium mb-3">
-                            <span><FAIcon icon="user" size="xs" /> {p.idCustomer?.name || 'Cliente'}</span>
+                            <span><FAIcon icon="user" size="xs" /> {p.customerId?.name || 'Cliente'}</span>
                             <span className={p.status === 'cooking' ? 'text-orange-600 font-bold' : ''}>
                               <FAIcon icon="clock" size="xs" /> {p.status === 'cooking' ? 'Cocinando' : 'En cola'}
                             </span>

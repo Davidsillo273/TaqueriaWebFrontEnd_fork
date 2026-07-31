@@ -7,11 +7,16 @@ import DishCard from '../components/dishes/DishCard';
 import AddDishModal from '../components/dishes/AddDishModal';
 import ConfirmModal from '../components/commons/ConfirmModal';
 import PaginationControls from '../components/commons/PaginationControls';
-import MissingInfoBanner from '../components/commons/MissingInfoBanner';
+import AttentionCenter from '../components/commons/AttentionCenter';
+import FilterBar from '../components/commons/FilterBar';
+import ViewDetailsModal from '../components/commons/ViewDetailsModal';
+import DetailRow from '../components/commons/DetailRow';
 import FAIcon from '../components/commons/FAIcon';
+import SaucerChatWidget from '../components/chat/SaucerChatWidget';
 import useSaucers from '../hooks/useSaucers';
 import { usePagination } from '../hooks/usePagination';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
+import { UNIT_LABELS } from '../constants/units';
 
 const CATEGORY_FILTERS = [
   { id: 'all', label: 'Todos' },
@@ -26,24 +31,31 @@ function DishesContent() {
   const [activeMenu] = useState('dishes');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDish, setEditingDish] = useState(null);
+  const [viewingDish, setViewingDish] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, dishId: null });
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [subcategoryFilter, setSubcategoryFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [bestSeller, setBestSeller] = useState(null);
 
-  const { saucers, loading, error, createSaucer, updateSaucer, deleteSaucer } = useSaucers();
+  const { saucers, loading, error, createSaucer, updateSaucer, deleteSaucer, refetch } = useSaucers();
   const { addToast } = useToast();
 
   useEffect(() => {
-    fetch('http://localhost:4000/api/saucers/best-sellers?limit=1', { credentials: 'include' })
+    fetch('http://localhost:4000/api/menu/saucers/best-sellers?limit=1', { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : []))
       .then((data) => setBestSeller(data[0] || null))
       .catch(() => setBestSeller(null));
   }, [saucers.length]);
 
-  const filteredDishes = categoryFilter === 'all'
-    ? saucers
-    : saucers.filter((d) => d.category === categoryFilter);
+  const subcategoryOptions = [...new Set(saucers.map((d) => d.subcategory).filter(Boolean))];
+
+  const filteredDishes = saucers.filter((d) =>
+    (categoryFilter === 'all' || d.category === categoryFilter) &&
+    (subcategoryFilter === 'all' || d.subcategory === subcategoryFilter) &&
+    (statusFilter === 'all' || d.status === statusFilter)
+  );
 
   const { page, totalPages, paginatedItems, goTo, next, prev } = usePagination(filteredDishes, 6);
 
@@ -70,6 +82,43 @@ function DishesContent() {
       addToast(err.message || 'Error al guardar el platillo', 'error');
     }
   };
+
+  const buildDishSections = (dish) => [
+    {
+      title: 'Información general',
+      content: (
+        <div>
+          <DetailRow label="Categoría" value={dish.category} />
+          <DetailRow label="Subcategoría" value={dish.subcategory} />
+          <DetailRow label="Precio" value={`$${parseFloat(dish.price).toFixed(2)}`} />
+          <DetailRow label="Estado" value={dish.status} />
+          {dish.category === 'Tacos' && <DetailRow label="Cantidad por orden" value={`${dish.quantity} tacos`} />}
+          {dish.description && (
+            <p className="text-sm text-gray-700 mt-3 whitespace-pre-wrap">{dish.description}</p>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: 'Receta',
+      content: (
+        <div className="space-y-2">
+          {(dish.recipe || []).length === 0 && (
+            <p className="text-xs text-gray-400 text-center py-2">Sin ingredientes registrados</p>
+          )}
+          {(dish.recipe || []).map((item, idx) => (
+            <div key={idx} className="flex items-center justify-between bg-white rounded-xl px-3 py-2 border border-white/80">
+              <span className="text-sm text-gray-800">{item.name}</span>
+              <span className="text-xs text-gray-500">
+                {item.quantity} {UNIT_LABELS[item.unit] || item.unit}
+                {item.removable ? ' · quitable' : ''}
+              </span>
+            </div>
+          ))}
+        </div>
+      ),
+    },
+  ];
 
   const handleRequestDelete = (id) => {
     setConfirmDelete({ isOpen: true, dishId: id });
@@ -138,10 +187,35 @@ function DishesContent() {
               </div>
             )}
 
-            {/* Aviso de platillos sin imagen */}
-            <MissingInfoBanner
-              message="Hay platillos faltantes de imágenes"
-              names={saucers.filter((d) => !d.image).map((d) => d.name)}
+            {/* Platillos sin imagen */}
+            <AttentionCenter
+              items={saucers.filter((d) => !d.image)}
+              getKey={(d) => d._id}
+              getTitle={(d) => d.name}
+              getImage={(d) => d.image}
+              getReason={() => 'Falta imagen'}
+              onEdit={(dish) => { setEditingDish(dish); setIsModalOpen(true); }}
+            />
+
+            <FilterBar
+              filters={[
+                {
+                  label: 'Subcategoría',
+                  value: subcategoryFilter,
+                  onChange: setSubcategoryFilter,
+                  options: [{ value: 'all', label: 'Todas las subcategorías' }, ...subcategoryOptions.map((s) => ({ value: s, label: s }))],
+                },
+                {
+                  label: 'Estado',
+                  value: statusFilter,
+                  onChange: setStatusFilter,
+                  options: [
+                    { value: 'all', label: 'Todos los estados' },
+                    { value: 'Activo', label: 'Disponibles' },
+                    { value: 'Inactivo', label: 'No disponibles' },
+                  ],
+                },
+              ]}
             />
 
             {/* Estadísticas (mismo diseño que Combos y Bebidas) */}
@@ -202,11 +276,13 @@ function DishesContent() {
                       image={dish.image}
                       name={dish.name}
                       category={dish.category}
+                      subcategory={dish.subcategory}
                       price={`$${parseFloat(dish.price).toFixed(2)}`}
                       status={dish.status}
                       isMostSold={bestSeller?.saucer?._id === dish._id}
                       onEdit={() => { setEditingDish(dish); setIsModalOpen(true); }}
                       onDelete={() => handleRequestDelete(dish._id)}
+                      onView={() => setViewingDish(dish)}
                     />
                   ))}
                 </div>
@@ -234,6 +310,7 @@ function DishesContent() {
         isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); setEditingDish(null); }}
         onSave={handleSaveDish}
+        onEditExisting={(existing) => { setEditingDish(existing); setIsModalOpen(true); }}
         dishToEdit={editingDish}
       />
 
@@ -246,6 +323,17 @@ function DishesContent() {
         confirmText="Eliminar"
         loading={loading}
       />
+
+      <ViewDetailsModal
+        key={viewingDish?._id}
+        isOpen={Boolean(viewingDish)}
+        onClose={() => setViewingDish(null)}
+        title={viewingDish?.name}
+        image={viewingDish?.image}
+        sections={viewingDish ? buildDishSections(viewingDish) : []}
+      />
+
+      <SaucerChatWidget onSaucerCreated={refetch} />
     </div>
   );
 }

@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import Sidebar from '../components/dashboard/Sidebar'
 import TopBar from '../components/dashboard/TopBar'
 import FAIcon from '../components/commons/FAIcon'
-import LoadingSpinner from '../components/commons/loadingSpinner'
+import LoadingSpinner from '../components/commons/LoadingSpinner'
 import { useInvitation } from '../hooks/auth/useInvitation'
 import { ToastProvider, useToast } from '../components/commons/ToastProvider'
 import dayReadyLogo from '../../public/logo.png'
@@ -41,7 +41,7 @@ const ROLE_CONFIG = {
       {
         title: 'Datos personales',
         subtitle: 'Identificación y puesto de trabajo',
-        fields: ['phone', 'DUI_NIT', 'address', 'type'],
+        fields: ['phone', 'duiNit', 'address', 'type'],
       },
       {
         title: 'Información laboral',
@@ -57,7 +57,7 @@ const INITIAL_FORM_DATA = {
   name: '',
   lastname: '',
   phone: '',
-  DUI_NIT: '',
+  duiNit: '',
   address: '',
   type: '',
   salary: '',
@@ -101,7 +101,7 @@ function InviteStaffContent() {
     if (fields.includes('name') && !formData.name.trim()) errors.name = 'El nombre es requerido'
     if (fields.includes('lastname') && !formData.lastname.trim()) errors.lastname = 'El apellido es requerido'
     if (fields.includes('phone') && !formData.phone.trim()) errors.phone = 'El teléfono es requerido'
-    if (fields.includes('DUI_NIT') && !formData.DUI_NIT.trim()) errors.DUI_NIT = 'El DUI/NIT es requerido'
+    if (fields.includes('duiNit') && !formData.duiNit.trim()) errors.duiNit = 'El DUI/NIT es requerido'
     if (fields.includes('address') && !formData.address.trim()) errors.address = 'La dirección es requerida'
     if (fields.includes('type') && !formData.type) errors.type = 'El tipo de empleado es requerido'
     if (fields.includes('salary')) {
@@ -138,7 +138,7 @@ function InviteStaffContent() {
     if (role === 'employee') {
       Object.assign(data, {
         phone: formData.phone.trim(),
-        DUI_NIT: formData.DUI_NIT.trim(),
+        duiNit: formData.duiNit.trim(),
         address: formData.address.trim(),
         type: formData.type,
         salary: Number(formData.salary),
@@ -297,7 +297,7 @@ function InviteStaffContent() {
             {validationErrors.phone && <p className="text-red-500 text-xs mt-1 font-medium">{validationErrors.phone}</p>}
           </div>
         )
-      case 'DUI_NIT':
+      case 'duiNit':
         return (
           <div key={fieldName} className="mb-3">
             <label className="block text-xs font-display font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
@@ -305,13 +305,13 @@ function InviteStaffContent() {
             </label>
             <input
               type="text"
-              name="DUI_NIT"
+              name="duiNit"
               placeholder="Ej. 12345678-9"
-              value={formData.DUI_NIT}
+              value={formData.duiNit}
               onChange={handleChange}
               className={inputClasses}
             />
-            {validationErrors.DUI_NIT && <p className="text-red-500 text-xs mt-1 font-medium">{validationErrors.DUI_NIT}</p>}
+            {validationErrors.duiNit && <p className="text-red-500 text-xs mt-1 font-medium">{validationErrors.duiNit}</p>}
           </div>
         )
       case 'address':

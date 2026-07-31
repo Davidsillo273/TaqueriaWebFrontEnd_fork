@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const API_URL = 'http://localhost:4000/api/drinks';
+const API_URL = 'http://localhost:4000/api/menu/drinks';
 
 export default function useDrinks() {
   const [drinks, setDrinks] = useState([]);
@@ -27,6 +27,7 @@ export default function useDrinks() {
         price: drink.price,
         category: drink.category,
         subcategory: drink.subcategory || '',
+        description: drink.description || '',
         // Solo las de tercero llevan stock propio
         stock: drink.category === 'tercero' ? drink.quantity : null,
         status: drink.status,
@@ -77,7 +78,7 @@ export default function useDrinks() {
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/${id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         credentials: 'include',
         body: formData,
       });
@@ -118,5 +119,19 @@ export default function useDrinks() {
     }
   };
 
-  return { drinks, loading, error, addDrink, updateDrink, deleteDrink, refetch: fetchDrinks };
+  // Busca si ya existe una bebida con ese nombre (sugerencia, no bloqueo)
+  const checkName = async (name) => {
+    try {
+      const res = await fetch(`${API_URL}/check-name?name=${encodeURIComponent(name)}`, {
+        credentials: 'include',
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.existing || null;
+    } catch {
+      return null;
+    }
+  };
+
+  return { drinks, loading, error, addDrink, updateDrink, deleteDrink, checkName, refetch: fetchDrinks };
 }

@@ -2,15 +2,19 @@
 import React from 'react';
 import FAIcon from '../commons/FAIcon';
 
-const ExtraCard = ({ title, price, status = 'DISPONIBLE', onEdit, onDelete }) => {
+const ExtraCard = ({ title, price, image, status = 'DISPONIBLE', onEdit, onDelete, onView }) => {
   const isAvailable = status === 'DISPONIBLE';
 
   return (
     <div className="bg-white rounded-3xl overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.08),inset_1px_1px_3px_rgba(255,255,255,0.7),inset_-1px_-1px_3px_rgba(0,0,0,0.05)] border border-white/80 flex flex-col h-full transition-transform duration-200 hover:scale-[1.02]">
-      {/* Cabecera decorativa con ícono (reemplaza la imagen) */}
-      <div className="relative h-24 bg-gradient-to-br from-red-100 to-orange-50 flex items-center justify-center rounded-t-3xl">
-        <FAIcon icon="star" size="3x" className="text-red-400" />
-        
+      {/* Imagen (o cabecera decorativa si no hay) */}
+      <div className="relative h-24 bg-gradient-to-br from-red-100 to-orange-50 flex items-center justify-center rounded-t-3xl overflow-hidden">
+        {image ? (
+          <img src={image} alt={title} className="w-full h-full object-cover" />
+        ) : (
+          <FAIcon icon="star" size="3x" className="text-red-400" />
+        )}
+
         {/* Badge de estado */}
         <div className="absolute top-3 right-3">
           {isAvailable ? (
@@ -39,6 +43,18 @@ const ExtraCard = ({ title, price, status = 'DISPONIBLE', onEdit, onDelete }) =>
 
         {/* Botones con estilo clay */}
         <div className="flex gap-2 mt-4 pt-3 border-t border-gray-100">
+          {onView && (
+            <button
+              onClick={onView}
+              className="px-3 py-2.5 bg-blue-50 text-blue-500 rounded-xl hover:bg-blue-100 transition-colors
+                shadow-[0_4px_10px_rgba(0,0,0,0.06),inset_0_1px_2px_rgba(255,255,255,0.8)]
+                active:shadow-[inset_2px_2px_5px_rgba(0,0,0,0.1)]
+              "
+              aria-label="Ver detalles"
+            >
+              <FAIcon icon="eye" size="sm" />
+            </button>
+          )}
           <button
             onClick={onEdit}
             className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors text-xs sm:text-sm font-medium

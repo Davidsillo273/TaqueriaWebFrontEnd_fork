@@ -65,7 +65,7 @@ export function useSettings() {
     setSaving(true);
     setError(null);
     try {
-      const response = await axios.put(`${BASE_URL}/settings`, partialSettings, {
+      const response = await axios.patch(`${BASE_URL}/settings`, partialSettings, {
         withCredentials: true,
       });
       const updated = response.data.data || {};

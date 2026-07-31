@@ -5,14 +5,19 @@ import TopBar from '../components/dashboard/TopBar';
 import ComboStats from '../components/dashboard/ComboStats'; // 👈 mismo componente que en Combos
 import DrinkCard from '../components/drinks/DrinkCard';
 import AddDrinkModal from '../components/drinks/AddDrinkModal';
+import DrinkSetsPanel from '../components/drinks/DrinkSetsPanel';
 import ConfirmModal from '../components/commons/ConfirmModal';
 import PaginationControls from '../components/commons/PaginationControls';
-import MissingInfoBanner from '../components/commons/MissingInfoBanner';
+import AttentionCenter from '../components/commons/AttentionCenter';
+import FilterBar from '../components/commons/FilterBar';
+import ViewDetailsModal from '../components/commons/ViewDetailsModal';
+import DetailRow from '../components/commons/DetailRow';
 import FAIcon from '../components/commons/FAIcon';
 import useDrinks from '../hooks/useDrinks';
 import { usePagination } from '../hooks/usePagination';
 import { useSettings } from '../hooks/useSettings';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
+import { UNIT_LABELS } from '../constants/units';
 
 const CATEGORY_FILTERS = [
   { id: 'all', label: 'Todas' },
@@ -24,9 +29,12 @@ function DrinksContent() {
   const [activeMenu] = useState('drinks');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDrink, setSelectedDrink] = useState(null);
+  const [viewingDrink, setViewingDrink] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, drinkId: null });
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [subcategoryFilter, setSubcategoryFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [bestSeller, setBestSeller] = useState(null);
 
   const { drinks, loading, error, addDrink, updateDrink, deleteDrink } = useDrinks();
@@ -34,15 +42,19 @@ function DrinksContent() {
   const { addToast } = useToast();
 
   useEffect(() => {
-    fetch('http://localhost:4000/api/drinks/best-sellers?limit=1', { credentials: 'include' })
+    fetch('http://localhost:4000/api/menu/drinks/best-sellers?limit=1', { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : []))
       .then((data) => setBestSeller(data[0] || null))
       .catch(() => setBestSeller(null));
   }, [drinks.length]);
 
-  const filteredDrinks = categoryFilter === 'all'
-    ? drinks
-    : drinks.filter((d) => d.category === categoryFilter);
+  const subcategoryOptions = [...new Set(drinks.map((d) => d.subcategory).filter(Boolean))];
+
+  const filteredDrinks = drinks.filter((d) =>
+    (categoryFilter === 'all' || d.category === categoryFilter) &&
+    (subcategoryFilter === 'all' || d.subcategory === subcategoryFilter) &&
+    (statusFilter === 'all' || d.status === statusFilter)
+  );
 
   const { page, totalPages, paginatedItems, goTo, next, prev } = usePagination(filteredDrinks, 6);
 
@@ -80,6 +92,47 @@ function DrinksContent() {
     } catch (err) {
       addToast(err.message || 'Error al guardar la bebida', 'error');
     }
+  };
+
+  const buildDrinkSections = (drink) => {
+    const sections = [
+      {
+        title: 'Información general',
+        content: (
+          <div>
+            <DetailRow label="Categoría" value={drink.category === 'casa' ? 'De casa' : 'De tercero'} />
+            <DetailRow label="Subcategoría" value={drink.subcategory} />
+            <DetailRow label="Precio" value={`$${parseFloat(drink.price).toFixed(2)}`} />
+            <DetailRow label="Estado" value={drink.status} />
+            {drink.category === 'tercero' && <DetailRow label="Stock" value={`${drink.stock} uds.`} />}
+            {drink.description && (
+              <p className="text-sm text-gray-700 mt-3 whitespace-pre-wrap">{drink.description}</p>
+            )}
+          </div>
+        ),
+      },
+    ];
+
+    if (drink.category === 'casa') {
+      sections.push({
+        title: 'Receta',
+        content: (
+          <div className="space-y-2">
+            {(drink.recipe || []).length === 0 && (
+              <p className="text-xs text-gray-400 text-center py-2">Sin ingredientes registrados</p>
+            )}
+            {(drink.recipe || []).map((item, idx) => (
+              <div key={idx} className="flex items-center justify-between bg-white rounded-xl px-3 py-2 border border-white/80">
+                <span className="text-sm text-gray-800">{item.name}</span>
+                <span className="text-xs text-gray-500">{item.quantity} {UNIT_LABELS[item.unit] || item.unit}</span>
+              </div>
+            ))}
+          </div>
+        ),
+      });
+    }
+
+    return sections;
   };
 
   const handleRequestDelete = (id) => {
@@ -145,10 +198,37 @@ function DrinksContent() {
               </div>
             )}
 
-            {/* Aviso de bebidas sin imagen */}
-            <MissingInfoBanner
-              message="Hay bebidas faltantes de imágenes"
-              names={drinks.filter((d) => !d.image).map((d) => d.title)}
+            {/* Bebidas sin imagen */}
+            <AttentionCenter
+              items={drinks.filter((d) => !d.image)}
+              getKey={(d) => d.id}
+              getTitle={(d) => d.title}
+              getImage={(d) => d.image}
+              getReason={() => 'Falta imagen'}
+              onEdit={handleOpenEditModal}
+            />
+
+            <DrinkSetsPanel />
+
+            <FilterBar
+              filters={[
+                {
+                  label: 'Subcategoría',
+                  value: subcategoryFilter,
+                  onChange: setSubcategoryFilter,
+                  options: [{ value: 'all', label: 'Todas las subcategorías' }, ...subcategoryOptions.map((s) => ({ value: s, label: s }))],
+                },
+                {
+                  label: 'Estado',
+                  value: statusFilter,
+                  onChange: setStatusFilter,
+                  options: [
+                    { value: 'all', label: 'Todos los estados' },
+                    { value: 'disponible', label: 'Disponibles' },
+                    { value: 'no disponible', label: 'No disponibles' },
+                  ],
+                },
+              ]}
             />
 
             {/* 👇 Tres tarjetas de estadísticas con el MISMO diseño que en Combos */}
@@ -210,6 +290,7 @@ function DrinksContent() {
                       isMostSold={bestSeller?.drink?._id === drink.id}
                       onEdit={handleOpenEditModal}
                       onDelete={handleRequestDelete}
+                      onView={setViewingDrink}
                     />
                   ))}
                 </div>
@@ -238,6 +319,11 @@ function DrinksContent() {
         isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); setSelectedDrink(null); }}
         onSave={handleSaveDrink}
+        onEditExisting={(raw) => {
+          const match = drinks.find((d) => d.id === raw._id);
+          if (match) handleOpenEditModal(match);
+          else addToast('No se encontró el registro existente, actualiza la página', 'error');
+        }}
         editData={selectedDrink}
       />
 
@@ -249,6 +335,15 @@ function DrinksContent() {
         message="¿Estás seguro de eliminar esta bebida? Esta acción no se puede deshacer."
         confirmText="Eliminar"
         loading={loading}
+      />
+
+      <ViewDetailsModal
+        key={viewingDrink?.id}
+        isOpen={Boolean(viewingDrink)}
+        onClose={() => setViewingDrink(null)}
+        title={viewingDrink?.title}
+        image={viewingDrink?.image}
+        sections={viewingDrink ? buildDrinkSections(viewingDrink) : []}
       />
     </div>
   );

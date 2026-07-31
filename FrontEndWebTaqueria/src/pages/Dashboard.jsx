@@ -7,6 +7,7 @@ import StatCard from '../components/dashboard/StatCard';
 import ActivityRow from '../components/dashboard/ActivityRow';
 import StaffCard from '../components/dashboard/StaffCard';
 import AlertCard from '../components/dashboard/AlertCard';
+import StockRiskPanel from '../components/dashboard/StockRiskPanel';
 import FAIcon from '../components/commons/FAIcon';
 import useDashboard from '../hooks/useDashboard';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
@@ -218,6 +219,8 @@ function DashboardContent() {
             </div>
           </div>
         </Card>
+
+        <StockRiskPanel />
       </div>
     </div>
   );

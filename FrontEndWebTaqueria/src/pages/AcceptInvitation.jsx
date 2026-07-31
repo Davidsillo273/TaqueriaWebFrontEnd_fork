@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useInvitation } from '../hooks/auth/useInvitation';
-import LoadingSpinner from '../components/commons/loadingSpinner';
+import LoadingSpinner from '../components/commons/LoadingSpinner';
 import dayReadyLogo from '../../public/logo.png';
 
 // Estilos base para inputs clay (los mismos que usamos en todo el sistema)

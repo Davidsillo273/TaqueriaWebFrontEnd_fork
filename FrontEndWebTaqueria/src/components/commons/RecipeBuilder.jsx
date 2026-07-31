@@ -1,0 +1,203 @@
+// src/components/commons/RecipeBuilder.jsx
+// Builder de receta compartido: se usa para armar la receta de una bebida de
+// casa, un platillo, un insumo compuesto de Inventario, o los ingredientes de
+// un Extra. Cada fila puede buscar un insumo ya existente en Inventario, o
+// crear uno nuevo al vuelo (queda "pendiente" hasta que el admin lo complete).
+import React, { useState } from 'react';
+import FAIcon from './FAIcon';
+import { useInventory } from '../../hooks/useInventory';
+import { UNIT_LIST } from '../../constants/units';
+import { createEmptyRecipeRow } from '../../utils/recipeRowUtils';
+
+const PAGE_SIZE = 2;
+
+const RecipeBuilder = ({ rows, setRows, categories = [], showRemovable = false, helperText, paginate = false, title = 'Receta (opcional)' }) => {
+  const { insumos } = useInventory();
+  // Buscador por fila (antes era un solo string compartido: dos filas con el
+  // mismo texto abrían ambos dropdowns a la vez)
+  const [searchByRow, setSearchByRow] = useState({});
+  const [page, setPage] = useState(0);
+
+  const totalPages = paginate ? Math.max(1, Math.ceil(rows.length / PAGE_SIZE)) : 1;
+  // Si se elimina una fila y la página guardada queda fuera de rango, se recalcula
+  // al vuelo en vez de sincronizar con un efecto (evita el set-state-en-efecto)
+  const currentPage = Math.min(page, totalPages - 1);
+
+  const visibleRows = paginate ? rows.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE) : rows;
+
+  const addRow = () => {
+    setRows((prev) => [...prev, createEmptyRecipeRow()]);
+    if (paginate) setPage(Math.floor(rows.length / PAGE_SIZE));
+  };
+  const removeRow = (key) => setRows((prev) => prev.filter((r) => r.key !== key));
+  const updateRow = (key, patch) =>
+    setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
+
+  const setSearch = (key, value) => setSearchByRow((prev) => ({ ...prev, [key]: value }));
+
+  const pickExistingInsumo = (rowKey, insumo) => {
+    updateRow(rowKey, { name: insumo.name, tracked: true, inventoryId: insumo._id, isNew: false });
+    setSearch(rowKey, '');
+  };
+
+  const inputClasses =
+    'w-full px-4 py-2.5 bg-[#f3f0eb] border border-white/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-400 transition-all text-gray-700 placeholder:text-gray-400 text-sm shadow-[inset_2px_2px_5px_rgba(0,0,0,0.05),inset_-2px_-2px_5px_rgba(255,255,255,0.7)]';
+  const selectClasses = inputClasses + ' appearance-none';
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <p className="font-display font-semibold text-gray-800 text-sm">{title}</p>
+          {helperText && <p className="text-xs text-gray-500">{helperText}</p>}
+        </div>
+        <button
+          type="button"
+          onClick={addRow}
+          className="text-xs font-display font-semibold text-red-500 hover:text-red-600 flex items-center gap-1"
+        >
+          <FAIcon icon="plus" size="xs" /> Agregar ingrediente
+        </button>
+      </div>
+
+      <div className="space-y-3">
+        {visibleRows.map((row) => {
+          const search = searchByRow[row.key] || '';
+          const matches = search.trim()
+            ? insumos.filter((i) => i.name.toLowerCase().includes(search.trim().toLowerCase()))
+            : [];
+
+          return (
+            <div key={row.key} className="p-3 bg-white/70 rounded-2xl border border-white/80 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    value={row.name}
+                    onChange={(e) => {
+                      updateRow(row.key, { name: e.target.value, inventoryId: null, tracked: false });
+                      setSearch(row.key, e.target.value);
+                    }}
+                    placeholder="Nombre del ingrediente..."
+                    className={inputClasses}
+                  />
+                  {search && matches.length > 0 && (
+                    <div className="absolute z-10 mt-1 w-full bg-white rounded-xl shadow-lg border border-gray-100 max-h-32 overflow-y-auto">
+                      {matches.map((insumo) => (
+                        <button
+                          type="button"
+                          key={insumo._id}
+                          onClick={() => pickExistingInsumo(row.key, insumo)}
+                          className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50"
+                        >
+                          {insumo.name} {insumo.pending ? '(pendiente)' : ''}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeRow(row.key)}
+                  className="p-2 text-gray-400 hover:text-red-500"
+                  aria-label="Quitar ingrediente"
+                >
+                  <FAIcon icon="trash" size="sm" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={row.quantity}
+                  onChange={(e) => updateRow(row.key, { quantity: e.target.value })}
+                  placeholder="Cantidad"
+                  className={inputClasses}
+                />
+                <select
+                  value={row.unit}
+                  onChange={(e) => updateRow(row.key, { unit: e.target.value })}
+                  className={selectClasses}
+                >
+                  {UNIT_LIST.map((u) => <option key={u} value={u}>{u}</option>)}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-4 flex-wrap">
+                <label className="flex items-center gap-1.5 text-xs text-gray-600 font-medium">
+                  <input
+                    type="checkbox"
+                    checked={row.tracked}
+                    disabled={!row.isNew && Boolean(row.inventoryId)}
+                    onChange={(e) => updateRow(row.key, { tracked: e.target.checked, inventoryId: e.target.checked ? row.inventoryId : null })}
+                    className="accent-red-500"
+                  />
+                  Guardar en inventario
+                </label>
+                {showRemovable && (
+                  <label className="flex items-center gap-1.5 text-xs text-gray-600 font-medium">
+                    <input
+                      type="checkbox"
+                      checked={row.removable}
+                      onChange={(e) => updateRow(row.key, { removable: e.target.checked })}
+                      className="accent-red-500"
+                    />
+                    El cliente puede quitarlo
+                  </label>
+                )}
+              </div>
+
+              {row.tracked && !row.inventoryId && categories.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <p className="text-[11px] text-amber-600 flex-1">
+                    Se creará como insumo pendiente en Inventario al guardar
+                  </p>
+                  <select
+                    value={row.ingredientCategory || categories[0]}
+                    onChange={(e) => updateRow(row.key, { ingredientCategory: e.target.value })}
+                    className="text-xs px-2 py-1 rounded-lg bg-white border border-white/80"
+                  >
+                    {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {rows.length === 0 && (
+          <p className="text-xs text-gray-400 text-center py-2">Sin ingredientes agregados todavía</p>
+        )}
+      </div>
+
+      {paginate && rows.length > PAGE_SIZE && (
+        <div className="flex items-center justify-between mt-3">
+          <button
+            type="button"
+            onClick={() => setPage(Math.max(0, currentPage - 1))}
+            disabled={currentPage === 0}
+            className="p-2 text-gray-500 hover:text-red-500 disabled:opacity-30 disabled:hover:text-gray-500"
+            aria-label="Página anterior"
+          >
+            <FAIcon icon="chevron-left" size="sm" />
+          </button>
+          <span className="text-xs text-gray-500 font-medium">
+            Página {currentPage + 1} de {totalPages}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage(Math.min(totalPages - 1, currentPage + 1))}
+            disabled={currentPage >= totalPages - 1}
+            className="p-2 text-gray-500 hover:text-red-500 disabled:opacity-30 disabled:hover:text-gray-500"
+            aria-label="Página siguiente"
+          >
+            <FAIcon icon="chevron-right" size="sm" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default RecipeBuilder;

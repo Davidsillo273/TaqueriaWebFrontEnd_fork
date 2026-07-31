@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import Sidebar from '../components/dashboard/Sidebar';
 import TopBar from '../components/dashboard/TopBar';
 import FAIcon from '../components/commons/FAIcon';
-import EmployeeModal from '../components/employee/employeeModal';
+import EmployeeModal from '../components/employee/EmployeeModal';
 import ConfirmModal from '../components/commons/ConfirmModal';
 import { useEmployees } from '../hooks/useEmployees';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';

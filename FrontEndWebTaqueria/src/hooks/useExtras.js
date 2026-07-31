@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-const API_URL = 'http://localhost:4000/api/extras';
+const API_URL = 'http://localhost:4000/api/menu/extras';
 
 export default function useExtras() {
 	const [extras, setExtras] = useState([]);
@@ -22,13 +22,13 @@ export default function useExtras() {
 		}
 	};
 
-	// Insertar un extra
-	const addExtra = async (extraData) => {
+	// Insertar un extra (recibe FormData: incluye imagen opcional)
+	const addExtra = async (formData) => {
 		try {
 			const response = await fetch(API_URL, {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(extraData),
+				credentials: 'include',
+				body: formData,
 			});
 			if (!response.ok) {
 				const errorData = await response.json();
@@ -41,13 +41,13 @@ export default function useExtras() {
 		}
 	};
 
-	// Actualizar un extra
-	const updateExtra = async (id, extraData) => {
+	// Actualizar un extra (recibe FormData: incluye imagen opcional)
+	const updateExtra = async (id, formData) => {
 		try {
 			const response = await fetch(`${API_URL}/${id}`, {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(extraData),
+				method: 'PATCH',
+				credentials: 'include',
+				body: formData,
 			});
 			if (!response.ok) {
 				const errorData = await response.json();
@@ -65,6 +65,7 @@ export default function useExtras() {
 		try {
 			const response = await fetch(`${API_URL}/${id}`, {
 				method: 'DELETE',
+				credentials: 'include',
 			});
 			if (!response.ok) throw new Error('Error al eliminar el extra');
 			setExtras(prev => prev.filter(e => e._id !== id));
@@ -78,5 +79,19 @@ export default function useExtras() {
 		fetchExtras();
 	}, []);
 
-	return { extras, loading, error, addExtra, updateExtra, deleteExtra, refresh: fetchExtras };
+	// Busca si ya existe un extra con ese nombre (sugerencia, no bloqueo)
+	const checkName = async (name) => {
+		try {
+			const res = await fetch(`${API_URL}/check-name?name=${encodeURIComponent(name)}`, {
+				credentials: 'include',
+			});
+			if (!res.ok) return null;
+			const data = await res.json();
+			return data.existing || null;
+		} catch {
+			return null;
+		}
+	};
+
+	return { extras, loading, error, addExtra, updateExtra, deleteExtra, checkName, refresh: fetchExtras };
 }

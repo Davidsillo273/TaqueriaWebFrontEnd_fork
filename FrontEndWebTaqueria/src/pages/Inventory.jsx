@@ -7,58 +7,65 @@ import FAIcon from '../components/commons/FAIcon';
 import InventoryModal from '../components/inventory/InventoryModal';
 import ConfirmModal from '../components/commons/ConfirmModal';
 import PaginationControls from '../components/commons/PaginationControls';
-import MissingInfoBanner from '../components/commons/MissingInfoBanner';
+import AttentionCenter from '../components/commons/AttentionCenter';
 import { useInventory } from '../hooks/useInventory';
 import { usePagination } from '../hooks/usePagination';
 import { useSettings } from '../hooks/useSettings';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
 
+const ITEM_TYPE_TABS = [
+  { id: 'producto', label: 'Productos (Mercancía)', icon: 'box' },
+  { id: 'activo_fijo', label: 'Activos fijos (Mobiliario)', icon: 'couch' },
+];
+
 function InventoryContent() {
   const [activeMenu] = useState('inventory');
+  const [itemType, setItemType] = useState('producto');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedInsumo, setSelectedInsumo] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, insumoId: null });
 
-  const { insumos = [], loading, error, deleteInsumo, saveInsumo } = useInventory();
+  const { insumos: allInsumos = [], loading, error, deleteInsumo, saveInsumo } = useInventory();
   const { settings } = useSettings();
   const { addToast } = useToast();
+
+  const insumos = allInsumos.filter((i) => (i.itemType || 'producto') === itemType);
   const { page, totalPages, paginatedItems, goTo, next, prev } = usePagination(insumos, 6);
 
   const lowStockThreshold = settings.operation.lowStockThresholds?.inventory ?? 10;
+  const isAssetTab = itemType === 'activo_fijo';
 
-  // Cálculos de estadísticas
+  // Cálculos de estadísticas (cambian según la pestaña activa)
   const totalItems = insumos.length;
-  const alertasStock = insumos.filter(item => Number(item.quantity || 0) <= lowStockThreshold).length;
+  const alertasStock = isAssetTab
+    ? insumos.filter((item) => ['Dañado', 'De baja'].includes(item.condition)).length
+    : insumos.filter((item) => Number(item.quantity || 0) <= lowStockThreshold).length;
   const valorEstimado = insumos.reduce((acc, item) => acc + (Number(item.price || 0) * Number(item.quantity || 0)), 0);
 
-  // Badge de estado según cantidad y status
-  const getStatusBadge = (status, qty) => {
-    const cant = Number(qty || 0);
-    const currentStatus = String(status || '').toLowerCase();
+  // Badge de estado según cantidad y status (Productos) o condición (Activos fijos)
+  const getStatusBadge = (item) => {
+    if (isAssetTab) {
+      const condition = item.condition || 'Bueno';
+      if (condition === 'De baja') return { text: 'DE BAJA', className: 'bg-red-100 text-red-700 border border-red-200' };
+      if (condition === 'Dañado') return { text: 'DAÑADO', className: 'bg-yellow-100 text-yellow-700 border border-yellow-200' };
+      if (condition === 'Regular') return { text: 'REGULAR', className: 'bg-blue-100 text-blue-700 border border-blue-200' };
+      return { text: condition.toUpperCase(), className: 'bg-green-100 text-green-700 border border-green-200' };
+    }
+
+    const cant = Number(item.quantity || 0);
+    const currentStatus = String(item.status || '').toLowerCase();
 
     if (currentStatus === 'agotado' || cant === 0) {
-      return {
-        text: 'AGOTADO',
-        className: 'bg-red-100 text-red-700 border border-red-200',
-      };
+      return { text: 'AGOTADO', className: 'bg-red-100 text-red-700 border border-red-200' };
     }
     if (currentStatus === 'en pedido') {
-      return {
-        text: 'EN PEDIDO',
-        className: 'bg-blue-100 text-blue-700 border border-blue-200',
-      };
+      return { text: 'EN PEDIDO', className: 'bg-blue-100 text-blue-700 border border-blue-200' };
     }
     if (cant <= lowStockThreshold) {
-      return {
-        text: 'LOW STOCK',
-        className: 'bg-yellow-100 text-yellow-700 border border-yellow-200',
-      };
+      return { text: 'LOW STOCK', className: 'bg-yellow-100 text-yellow-700 border border-yellow-200' };
     }
-    return {
-      text: 'DISPONIBLE',
-      className: 'bg-green-100 text-green-700 border border-green-200',
-    };
+    return { text: 'DISPONIBLE', className: 'bg-green-100 text-green-700 border border-green-200' };
   };
 
   const handleEdit = (insumo) => {
@@ -81,9 +88,9 @@ function InventoryContent() {
     try {
       const result = await deleteInsumo(id);
       if (result.success) {
-        addToast('Insumo eliminado correctamente', 'success');
+        addToast('Registro eliminado correctamente', 'success');
       } else {
-        addToast(result.message || 'No se pudo eliminar el insumo', 'error');
+        addToast(result.message || 'No se pudo eliminar el registro', 'error');
       }
     } catch (err) {
       addToast(err.message || 'Error al eliminar', 'error');
@@ -115,7 +122,7 @@ function InventoryContent() {
                   Control de Inventario
                 </h1>
                 <p className="text-sm sm:text-base text-gray-600">
-                  Gestión centralizada de insumos y materia prima.
+                  Gestión centralizada de productos y activos fijos.
                 </p>
               </div>
               <button
@@ -127,8 +134,27 @@ function InventoryContent() {
                 disabled={loading}
               >
                 <FAIcon icon="plus" />
-                Nuevo Insumo
+                {isAssetTab ? 'Nuevo Activo Fijo' : 'Nuevo Insumo'}
               </button>
+            </div>
+
+            {/* Selector de categoría principal */}
+            <div className="flex gap-3 mb-6">
+              {ITEM_TYPE_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setItemType(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-display font-semibold text-sm transition-all ${
+                    itemType === tab.id
+                      ? 'bg-red-500 text-white shadow-[0_6px_16px_rgba(220,38,38,0.3)]'
+                      : 'bg-white text-gray-600 border border-white/80 hover:bg-gray-50'
+                  }`}
+                >
+                  <FAIcon icon={tab.icon} size="sm" />
+                  {tab.label}
+                </button>
+              ))}
             </div>
 
             {/* Error */}
@@ -139,33 +165,39 @@ function InventoryContent() {
               </div>
             )}
 
-            {/* Aviso de insumos pendientes de completar (creados desde el builder de recetas) */}
-            <MissingInfoBanner
-              message="Hay insumos por terminar de agregar información"
-              names={insumos.filter((i) => i.pending).map((i) => i.name)}
-            />
+            {/* Insumos pendientes de completar (creados desde el builder de recetas). Solo aplica a Productos */}
+            {!isAssetTab && (
+              <AttentionCenter
+                items={insumos.filter((i) => i.pending)}
+                getKey={(i) => i._id}
+                getTitle={(i) => i.name}
+                getImage={(i) => i.image}
+                getReason={() => 'Datos incompletos (creado desde una receta)'}
+                onEdit={handleEdit}
+              />
+            )}
 
             {/* Estadísticas (usando ComboStats, mismo diseño que en Combos) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
               <ComboStats
-                icon="box"
-                title="TOTAL INSUMOS"
+                icon={isAssetTab ? 'couch' : 'box'}
+                title={isAssetTab ? 'TOTAL ACTIVOS' : 'TOTAL INSUMOS'}
                 value={loading ? '...' : totalItems}
                 label={`${totalItems} items registrados`}
                 highlighted={true}
               />
               <ComboStats
                 icon="exclamation-triangle"
-                title="ALERTAS DE STOCK"
+                title={isAssetTab ? 'REQUIEREN ATENCIÓN' : 'ALERTAS DE STOCK'}
                 value={loading ? '...' : alertasStock}
-                label={alertasStock > 0 ? 'Stock crítico' : 'Todo en orden'}
+                label={alertasStock > 0 ? (isAssetTab ? 'Dañados o de baja' : 'Stock crítico') : 'Todo en orden'}
                 highlighted={true}
               />
               <ComboStats
                 icon="money-bill-wave"
                 title="VALOR ESTIMADO"
                 value={loading ? '...' : `$${valorEstimado.toFixed(2)}`}
-                label="Valor total del inventario"
+                label={isAssetTab ? 'Valor total de activos' : 'Valor total del inventario'}
                 highlighted={true}
               />
             </div>
@@ -173,42 +205,48 @@ function InventoryContent() {
             {/* Tabla de Inventario con estilo clay */}
             <div className="bg-white rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.08),inset_1px_1px_3px_rgba(255,255,255,0.7)] border border-white/80 overflow-hidden">
               <div className="p-4 sm:p-5 flex justify-between items-center border-b border-gray-100">
-                <h2 className="text-lg font-display font-bold text-gray-900">Listado de Materia Prima</h2>
+                <h2 className="text-lg font-display font-bold text-gray-900">
+                  {isAssetTab ? 'Listado de Activos Fijos' : 'Listado de Materia Prima'}
+                </h2>
               </div>
 
               {loading && insumos.length === 0 ? (
                 <div className="p-8 text-center text-gray-500 text-sm flex items-center justify-center gap-2">
                   <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500"></span>
-                  Cargando insumos...
+                  Cargando...
                 </div>
               ) : insumos.length === 0 ? (
                 <div className="p-8 text-center text-gray-500 text-sm">
-                  No hay insumos en el inventario. ¡Agrega uno nuevo!
+                  {isAssetTab ? 'No hay activos fijos registrados. ¡Agrega uno nuevo!' : 'No hay insumos en el inventario. ¡Agrega uno nuevo!'}
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-[700px]">
                     <thead>
                       <tr className="bg-gray-50/80 border-b border-gray-100 text-xs font-display font-semibold text-gray-500 uppercase tracking-wider">
-                        <th className="p-3 sm:p-4 pl-4 sm:pl-6">Insumo</th>
+                        <th className="p-3 sm:p-4 pl-4 sm:pl-6">{isAssetTab ? 'Bien' : 'Insumo'}</th>
                         <th className="p-3 sm:p-4">Categoría</th>
                         <th className="p-3 sm:p-4">Ubicación</th>
                         <th className="p-3 sm:p-4">Cantidad</th>
-                        <th className="p-3 sm:p-4">Precio Unit.</th>
-                        <th className="p-3 sm:p-4">Estado</th>
+                        <th className="p-3 sm:p-4">{isAssetTab ? 'Valor' : 'Precio Unit.'}</th>
+                        <th className="p-3 sm:p-4">{isAssetTab ? 'Condición' : 'Estado'}</th>
                         <th className="p-3 sm:p-4 pr-4 sm:pr-6 text-right">Acciones</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
                       {paginatedItems.map((item) => {
-                        const badge = getStatusBadge(item.status, item.quantity);
+                        const badge = getStatusBadge(item);
                         return (
                           <tr key={item._id || item.id} className="hover:bg-gray-50/80 transition-colors">
                             <td className="p-3 sm:p-4 pl-4 sm:pl-6">
                               <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 shadow-sm">
-                                  <FAIcon icon="image" size="sm" />
-                                </div>
+                                {item.image ? (
+                                  <img src={item.image} alt={item.name} className="w-8 h-8 rounded-xl object-cover border border-gray-200 shadow-sm" />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 shadow-sm">
+                                    <FAIcon icon="image" size="sm" />
+                                  </div>
+                                )}
                                 <span className="font-display font-semibold text-gray-900">{item.name}</span>
                                 {item.pending && (
                                   <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-semibold uppercase">
@@ -217,9 +255,11 @@ function InventoryContent() {
                                 )}
                               </div>
                             </td>
-                            <td className="p-3 sm:p-4 text-gray-600 font-medium">{item.type || 'Insumo'}</td>
+                            <td className="p-3 sm:p-4 text-gray-600 font-medium">{item.type || 'Sin categoría'}</td>
                             <td className="p-3 sm:p-4 text-gray-500 text-xs">{item.ubication || 'No asignada'}</td>
-                            <td className="p-3 sm:p-4 font-display font-semibold text-gray-800">{item.quantity} units</td>
+                            <td className="p-3 sm:p-4 font-display font-semibold text-gray-800">
+                              {item.quantity} {!isAssetTab && (item.unit || '')}
+                            </td>
                             <td className="p-3 sm:p-4 font-medium text-gray-600">
                               ${Number(item.price || 0).toFixed(2)}
                             </td>
@@ -265,7 +305,9 @@ function InventoryContent() {
           setSelectedInsumo(null);
         }}
         insumoData={selectedInsumo}
+        itemType={itemType}
         onSave={saveInsumo}
+        onEditExisting={(existing) => { setSelectedInsumo(existing); setIsModalOpen(true); }}
       />
 
       {/* Modal de confirmación para eliminar */}
@@ -273,8 +315,8 @@ function InventoryContent() {
         isOpen={confirmDelete.isOpen}
         onClose={() => setConfirmDelete({ isOpen: false, insumoId: null })}
         onConfirm={handleDeleteConfirm}
-        title="Eliminar insumo"
-        message="¿Estás seguro de que deseas eliminar este insumo? Esta acción no se puede deshacer."
+        title={isAssetTab ? 'Eliminar activo fijo' : 'Eliminar insumo'}
+        message="¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer."
         confirmText="Eliminar"
         loading={loading}
       />
