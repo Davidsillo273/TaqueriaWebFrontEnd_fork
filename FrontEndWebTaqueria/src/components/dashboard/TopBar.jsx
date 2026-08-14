@@ -24,7 +24,7 @@ const SEARCHABLE_SECTIONS = [
   { label: 'Mesas', path: '/mesas', icon: 'chair', keywords: 'mesa salon lugares' },
   { label: 'Clientes', path: '/clients', icon: 'users', keywords: 'cliente comensal' },
   { label: 'Empleados', path: '/employees', icon: 'user-tie', keywords: 'empleado personal staff planilla' },
-  { label: 'Pedidos', path: '/pedidos', icon: 'list', keywords: 'pedido orden comanda' },
+  { label: 'Pedidos y Órdenes', path: '/pedidos', icon: 'list', keywords: 'pedido orden comanda factura invoice' },
   { label: 'Invitar staff', path: '/InviteStaff', icon: 'envelope', keywords: 'invitar invitacion nuevo empleado admin' },
   { label: 'Notificaciones', path: '/notificaciones', icon: 'bell', keywords: 'notificacion aviso alerta movimiento' },
   { label: 'Ajustes', path: '/ajustes', icon: 'cog', keywords: 'ajuste configuracion perfil contrasena preferencias' },

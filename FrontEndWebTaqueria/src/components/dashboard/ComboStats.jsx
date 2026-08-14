@@ -2,14 +2,18 @@
 import React from 'react';
 import FAIcon from '../commons/FAIcon';
 
-const ComboStats = ({ icon, title, value, label, highlighted = false }) => {
+const ComboStats = ({ icon, title, value, label, highlighted = false, onClick, active = false }) => {
+  const Tag = onClick ? 'button' : 'div';
   return (
-    <div
+    <Tag
+      type={onClick ? 'button' : undefined}
+      onClick={onClick}
       className={`
-        rounded-3xl p-5 sm:p-6
+        w-full text-left rounded-3xl p-5 sm:p-6
         shadow-[0_10px_40px_rgba(0,0,0,0.08),inset_1px_1px_3px_rgba(255,255,255,0.7),inset_-1px_-1px_3px_rgba(0,0,0,0.05)]
-        border border-white/80
-        transition-all duration-200 hover:scale-[1.02]
+        border transition-all duration-200 hover:scale-[1.02]
+        ${onClick ? 'cursor-pointer' : ''}
+        ${active ? 'border-red-500 ring-2 ring-red-400/60' : 'border-white/80'}
         ${highlighted
           ? 'bg-red-50/80 text-red-900'
           : 'bg-white text-gray-900'
@@ -34,7 +38,7 @@ const ComboStats = ({ icon, title, value, label, highlighted = false }) => {
       <p className={`text-xs sm:text-sm font-medium ${highlighted ? 'text-red-600/70' : 'text-gray-500'}`}>
         {label}
       </p>
-    </div>
+    </Tag>
   );
 };
 

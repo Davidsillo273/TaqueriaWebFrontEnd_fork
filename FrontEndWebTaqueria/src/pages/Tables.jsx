@@ -9,12 +9,19 @@ import useTables from '../hooks/useTables';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
+// Los valores deben coincidir exactamente con el enum del backend (tablesModel.js / tablesController.js)
+const STATUS_LABELS = {
+  libre: 'Disponible',
+  ocupada: 'Ocupada',
+  reservada: 'Reservada',
+  limpieza: 'En Limpieza',
+};
+
 const STATUS_COLORS = {
-  Disponible: '#22c55e',
-  Sirviendo: '#dc2626',
-  Ocupada: '#dc2626',
-  Reservada: '#f97316',
-  'En Limpieza': '#9ca3af',
+  libre: '#22c55e',
+  ocupada: '#dc2626',
+  reservada: '#f97316',
+  limpieza: '#9ca3af',
 };
 
 function TablesContent() {
@@ -28,7 +35,7 @@ function TablesContent() {
   const { addToast } = useToast();
 
   const totalMesas = tables.length;
-  const mesasLibres = tables.filter(m => m.status === 'Disponible').length;
+  const mesasLibres = tables.filter(m => m.status === 'libre').length;
   const porcentajeOcupacion = totalMesas > 0
     ? Math.round(((totalMesas - mesasLibres) / totalMesas) * 100)
     : 0;
@@ -39,7 +46,7 @@ function TablesContent() {
       return acc;
     }, {});
     return Object.entries(counts).map(([status, count]) => ({
-      name: status,
+      name: STATUS_LABELS[status] || status,
       value: count,
       color: STATUS_COLORS[status] || '#9ca3af',
     }));
@@ -47,11 +54,10 @@ function TablesContent() {
 
   const getBadgeClass = (estado) => {
     switch (estado) {
-      case 'Disponible': return 'bg-green-100 text-green-700 border border-green-200';
-      case 'Sirviendo':
-      case 'Ocupada': return 'bg-red-100 text-red-700 border border-red-200';
-      case 'Reservada': return 'bg-orange-100 text-orange-700 border border-orange-200';
-      case 'En Limpieza': return 'bg-gray-100 text-gray-600 border border-gray-200';
+      case 'libre': return 'bg-green-100 text-green-700 border border-green-200';
+      case 'ocupada': return 'bg-red-100 text-red-700 border border-red-200';
+      case 'reservada': return 'bg-orange-100 text-orange-700 border border-orange-200';
+      case 'limpieza': return 'bg-gray-100 text-gray-600 border border-gray-200';
       default: return 'bg-gray-100 text-gray-600 border border-gray-200';
     }
   };
@@ -71,24 +77,24 @@ function TablesContent() {
 
   const handleQuickAction = async (mesa) => {
     let nuevoEstado = mesa.status;
-    if (mesa.status === 'Disponible') nuevoEstado = 'Sirviendo';
-    else if (mesa.status === 'Sirviendo' || mesa.status === 'Ocupada') nuevoEstado = 'En Limpieza';
-    else if (mesa.status === 'En Limpieza' || mesa.status === 'Reservada') nuevoEstado = 'Disponible';
+    if (mesa.status === 'libre') nuevoEstado = 'ocupada';
+    else if (mesa.status === 'ocupada') nuevoEstado = 'limpieza';
+    else if (mesa.status === 'limpieza' || mesa.status === 'reservada') nuevoEstado = 'libre';
     const result = await updateTable(mesa._id, { number: mesa.number, status: nuevoEstado });
-    if (result.success) addToast(`Mesa ${mesa.number} → ${nuevoEstado}`, 'success');
+    if (result.success) addToast(`Mesa ${mesa.number} → ${STATUS_LABELS[nuevoEstado] || nuevoEstado}`, 'success');
     else addToast(result.message || 'Error al cambiar estado', 'error');
   };
 
   const getActionText = (status) => {
-    if (status === 'Sirviendo' || status === 'Ocupada') return 'Liberar / Limpieza';
-    if (status === 'Disponible') return 'Asignar Mesa';
-    if (status === 'En Limpieza') return 'Finalizar Limpieza';
-    if (status === 'Reservada') return 'Registrar Ocupación';
+    if (status === 'ocupada') return 'Liberar / Limpieza';
+    if (status === 'libre') return 'Asignar Mesa';
+    if (status === 'limpieza') return 'Finalizar Limpieza';
+    if (status === 'reservada') return 'Registrar Ocupación';
     return 'Cambiar Estado';
   };
 
   const getActionButtonClass = (status) => {
-    if (status === 'Sirviendo' || status === 'Ocupada')
+    if (status === 'ocupada')
       return 'bg-red-500 text-white shadow-[0_6px_16px_rgba(220,38,38,0.35),inset_1px_1px_2px_rgba(255,255,255,0.3)] hover:bg-red-600';
     return 'bg-gray-100 text-gray-700 shadow-[0_4px_10px_rgba(0,0,0,0.06),inset_0_1px_2px_rgba(255,255,255,0.8)] hover:bg-gray-200';
   };
@@ -238,30 +244,32 @@ function TablesContent() {
                       key={mesa._id}
                       className="bg-white rounded-3xl p-4 sm:p-5 shadow-[0_10px_40px_rgba(0,0,0,0.08),inset_1px_1px_3px_rgba(255,255,255,0.7)] border border-white/80 flex flex-col justify-between min-h-[170px] relative group hover:scale-[1.02] transition-transform"
                     >
-                      {/* Acciones ocultas hasta hover */}
-                      <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => { setEditingTable(mesa); setIsModalOpen(true); }}
-                          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
-                        >
-                          <FAIcon icon="edit" size="sm" />
-                        </button>
-                        <button
-                          onClick={() => handleRequestDelete(mesa._id)}
-                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-                        >
-                          <FAIcon icon="trash" size="sm" />
-                        </button>
-                      </div>
-
-                      <div className="flex justify-between items-center mb-3">
-                        <div className="flex items-center gap-2 text-gray-800 font-display font-bold text-sm">
-                          <FAIcon icon="chair" className="text-gray-400" />
-                          Mesa {String(mesa.number).padStart(2, '0')}
+                      <div className="flex justify-between items-start mb-3 gap-2">
+                        <div className="flex flex-col gap-1.5 min-w-0">
+                          <div className="flex items-center gap-2 text-gray-800 font-display font-bold text-sm">
+                            <FAIcon icon="chair" className="text-gray-400" />
+                            Mesa {String(mesa.number).padStart(2, '0')}
+                          </div>
+                          <span className={`self-start inline-flex items-center px-2.5 py-1 rounded-full text-xs font-display font-semibold ${getBadgeClass(mesa.status)}`}>
+                            {STATUS_LABELS[mesa.status] || mesa.status}
+                          </span>
                         </div>
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-display font-semibold ${getBadgeClass(mesa.status)}`}>
-                          {mesa.status}
-                        </span>
+
+                        {/* Acciones ocultas hasta hover, en su propia fila para no tapar el estado */}
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                          <button
+                            onClick={() => { setEditingTable(mesa); setIsModalOpen(true); }}
+                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
+                          >
+                            <FAIcon icon="edit" size="sm" />
+                          </button>
+                          <button
+                            onClick={() => handleRequestDelete(mesa._id)}
+                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                          >
+                            <FAIcon icon="trash" size="sm" />
+                          </button>
+                        </div>
                       </div>
 
                       <div className="mt-auto">

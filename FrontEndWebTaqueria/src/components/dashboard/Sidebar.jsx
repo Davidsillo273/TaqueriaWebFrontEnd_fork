@@ -28,7 +28,7 @@ const Sidebar = ({ activeMenu, isOpen, onClose }) => {
     {
       title: 'Operaciones',
       items: [
-        { id: 'orders-list', label: 'Pedidos', icon: 'list', path: '/pedidos' },
+        { id: 'orders-list', label: 'Pedidos y Órdenes', icon: 'list', path: '/pedidos' },
         { id: 'tables', label: 'Mesas', icon: 'chair', path: '/mesas' },
         { id: 'inventory', label: 'Inventario', icon: 'box', path: '/inventario' },
       ],

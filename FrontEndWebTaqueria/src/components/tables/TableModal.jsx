@@ -13,16 +13,16 @@ export default function TableModal({ isOpen, onClose, onSave, currentTable }) {
     setValue,
     formState: { errors },
   } = useForm({
-    defaultValues: { number: '', status: 'Disponible' },
+    defaultValues: { number: '', status: 'libre' },
   });
 
   useEffect(() => {
     if (isOpen) {
       if (currentTable) {
         setValue('number', currentTable.number || '');
-        setValue('status', currentTable.status || 'Disponible');
+        setValue('status', currentTable.status || 'libre');
       } else {
-        reset({ number: '', status: 'Disponible' });
+        reset({ number: '', status: 'libre' });
       }
     }
   }, [currentTable, isOpen, setValue, reset]);
@@ -85,10 +85,10 @@ export default function TableModal({ isOpen, onClose, onSave, currentTable }) {
               Estado
             </label>
             <select {...register('status')} className={selectClasses}>
-              <option value="Disponible">Disponible</option>
-              <option value="Sirviendo">Sirviendo</option>
-              <option value="Reservada">Reservada</option>
-              <option value="En Limpieza">En Limpieza</option>
+              <option value="libre">Disponible</option>
+              <option value="ocupada">Ocupada</option>
+              <option value="reservada">Reservada</option>
+              <option value="limpieza">En Limpieza</option>
             </select>
           </div>
 

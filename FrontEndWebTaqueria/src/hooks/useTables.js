@@ -30,7 +30,7 @@ export default function useTables() {
         credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ number: Number(tableData.number), status: tableData.status || 'Disponible' })
+        body: JSON.stringify({ number: Number(tableData.number), status: tableData.status || 'libre' })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Error al crear mesa');

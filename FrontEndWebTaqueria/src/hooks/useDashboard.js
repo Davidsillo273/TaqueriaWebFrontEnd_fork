@@ -9,9 +9,11 @@ import { useSettings } from './useSettings';
 // Etiquetas en español para el estado del pedido (ajustar si el enum del back cambia)
 const ORDER_STATUS_LABELS = {
   pending: 'PENDIENTE',
-  cooking: 'PREPARANDO',
+  preparing: 'PREPARANDO',
+  atrasado: 'ATRASADO',
   ready: 'LISTO',
   delivered: 'COMPLETADO',
+  cancelled: 'CANCELADO',
 };
 
 // Hook exclusivo para el Dashboard: combina orders, employees, tables,
