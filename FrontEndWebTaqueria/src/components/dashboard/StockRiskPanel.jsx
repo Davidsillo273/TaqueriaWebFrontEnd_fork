@@ -7,7 +7,7 @@ import React, { useEffect, useState } from 'react';
 import Card from '../commons/Card';
 import FAIcon from '../commons/FAIcon';
 
-const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/ai/stock-forecast` : 'https://syscor-mll9.onrender.com/api/ai/stock-forecast';
+const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/ai/stock-forecast` : '/api/ai/stock-forecast';
 
 const StockRiskPanel = () => {
   const [alerts, setAlerts] = useState([]);

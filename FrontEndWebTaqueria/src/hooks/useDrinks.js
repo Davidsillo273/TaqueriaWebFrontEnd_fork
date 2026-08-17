@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/menu/drinks` : 'https://syscor-mll9.onrender.com/api/menu/drinks';
+const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/menu/drinks` : '/api/menu/drinks';
 
 export default function useDrinks() {
   const [drinks, setDrinks] = useState([]);

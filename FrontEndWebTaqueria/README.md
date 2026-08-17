@@ -150,8 +150,8 @@ Crear un archivo `.env` en la raíz del proyecto con:
 
 ```env
 # URL base de la API del backend. Si no se define, el código usa por
-# defecto https://syscor-mll9.onrender.com/api
-VITE_API_URL=https://syscor-mll9.onrender.com/api
+# defecto /api (aprovechando el proxy de Vite en desarrollo hacia https://syscor-mll9.onrender.com)
+# VITE_API_URL=https://syscor-mll9.onrender.com/api
 ```
 
 `VITE_API_URL` es la única variable de entorno que consume el código de esta aplicación (Vite solo expone al cliente las variables prefijadas con `VITE_`). Se usa en `authContext.jsx`, `notificationsContext.jsx`, `useInvitation.js`, `useLogout.js`, `useProfile.js` y `useSettings.js` para construir la URL base de las peticiones con Axios.

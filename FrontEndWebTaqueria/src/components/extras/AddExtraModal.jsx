@@ -11,7 +11,7 @@ import { useInventory } from '../../hooks/useInventory';
 import useExtras from '../../hooks/useExtras';
 import { INGREDIENT_CATEGORIES_DISHES } from '../../constants/units';
 
-const AI_API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/ai/suggest-recipe` : 'https://syscor-mll9.onrender.com/api/ai/suggest-recipe';
+const AI_API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/ai/suggest-recipe` : '/api/ai/suggest-recipe';
 
 const AddExtraModal = ({ isOpen, onClose, onAdd, onEditExisting, editingExtra = null }) => {
   const { addToast } = useToast();

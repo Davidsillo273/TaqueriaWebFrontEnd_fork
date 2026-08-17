@@ -42,7 +42,7 @@ function DishesContent() {
   const { addToast } = useToast();
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || 'https://syscor-mll9.onrender.com/api'}/menu/saucers/best-sellers?limit=1`, { credentials: 'include' })
+    fetch(`${import.meta.env.VITE_API_URL || '/api'}/menu/saucers/best-sellers?limit=1`, { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : []))
       .then((data) => setBestSeller(data[0] || null))
       .catch(() => setBestSeller(null));

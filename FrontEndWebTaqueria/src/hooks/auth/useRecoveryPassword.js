@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://syscor-mll9.onrender.com/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 // El progreso del flujo de recuperación expira a los 15 minutos. Si el
 // usuario deja la pestaña abierta a medias por más tiempo que esto, se le

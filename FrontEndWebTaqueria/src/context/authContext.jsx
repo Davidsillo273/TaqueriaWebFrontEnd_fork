@@ -2,7 +2,7 @@
 import React, { createContext, useState, useCallback, useEffect } from 'react';
 import axios from 'axios';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://syscor-mll9.onrender.com/api';
+const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 export const AuthContext = createContext(null);
 

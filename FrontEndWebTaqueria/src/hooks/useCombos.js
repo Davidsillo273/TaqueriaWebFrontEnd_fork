@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://syscor-mll9.onrender.com/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export const useCombos = () => {
   const [combos, setCombos] = useState([]);

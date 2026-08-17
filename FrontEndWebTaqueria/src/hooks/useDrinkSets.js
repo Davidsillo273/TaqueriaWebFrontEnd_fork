@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/menu/drink-sets` : 'https://syscor-mll9.onrender.com/api/menu/drink-sets';
+const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/menu/drink-sets` : '/api/menu/drink-sets';
 
 // Conjuntos de bebidas: agrupaciones de conveniencia (ej. "La clásica" =
 // Coca-Cola + Fanta) que el admin arma una vez y reutiliza al crear combos.

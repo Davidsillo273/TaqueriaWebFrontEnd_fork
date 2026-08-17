@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://syscor-mll9.onrender.com/api';
+const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Valores de respaldo: si el servidor no responde, la interfaz sigue funcionando
 // con los mismos valores por defecto que define el backend.

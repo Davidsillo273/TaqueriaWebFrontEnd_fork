@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/menu/saucers` : 'https://syscor-mll9.onrender.com/api/menu/saucers';
+const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/menu/saucers` : '/api/menu/saucers';
 
 export default function useSaucers() {
   const [saucers, setSaucers] = useState([]);

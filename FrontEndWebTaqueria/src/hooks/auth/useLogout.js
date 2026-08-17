@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from './useAuth';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://syscor-mll9.onrender.com/api';
+const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 export const useLogout = () => {
   const navigate = useNavigate();

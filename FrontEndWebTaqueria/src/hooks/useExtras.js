@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/menu/extras` : 'https://syscor-mll9.onrender.com/api/menu/extras';
+const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/menu/extras` : '/api/menu/extras';
 
 export default function useExtras() {
 	const [extras, setExtras] = useState([]);

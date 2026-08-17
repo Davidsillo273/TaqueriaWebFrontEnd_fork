@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from './auth/useAuth';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://syscor-mll9.onrender.com/api';
+const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Cada rol se actualiza contra su propio endpoint
 const ENDPOINT_BY_ROLE = {

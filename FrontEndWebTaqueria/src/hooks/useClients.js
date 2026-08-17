@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://syscor-mll9.onrender.com/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export default function useClients() {
   const [clients, setClients] = useState([]);

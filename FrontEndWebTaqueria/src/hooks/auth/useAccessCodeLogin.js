@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://syscor-mll9.onrender.com/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Login alterno para empleados con permisos: primero validan su código de
 // acceso (mandado por correo cuando se les otorgó el primer permiso), y
