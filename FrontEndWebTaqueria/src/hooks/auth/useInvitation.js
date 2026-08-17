@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import axios from 'axios';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://syscor-mll9.onrender.com/api';
 
 export const useInvitation = () => {
   const [loading, setLoading] = useState(false);

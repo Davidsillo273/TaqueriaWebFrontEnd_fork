@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './useAuth';
 
-const API_URL = 'http://localhost:4000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://syscor-mll9.onrender.com/api';
 
 const LOGIN_ENDPOINTS = {
   admin: '/auth/admins/login',

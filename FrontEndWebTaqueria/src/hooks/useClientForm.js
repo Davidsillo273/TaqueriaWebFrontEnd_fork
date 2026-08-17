@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { useEffect, useState } from 'react';
 
-const API_URL = 'http://localhost:4000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://syscor-mll9.onrender.com/api';
 
 export function useClientForm(onClose, editingClient, onSuccess) {
   const [isSubmitting, setIsSubmitting] = useState(false);

@@ -3,7 +3,7 @@ import React, { createContext, useState, useCallback, useEffect, useRef } from '
 import axios from 'axios';
 import { useAuth } from '../hooks/auth/useAuth';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://syscor-mll9.onrender.com/api';
 
 // Cada cuánto se vuelve a preguntar al servidor si hay movimientos nuevos
 const POLLING_INTERVAL_MS = 30000;

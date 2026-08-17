@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const API_URL = 'http://localhost:4000/api/invoices';
+const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/invoices` : 'https://syscor-mll9.onrender.com/api/invoices';
 
 // Historial de facturación (ventas ya completadas) + el resumen numérico
 // que arma el backend para el Dashboard (hoy vs ayer, tendencia de 14 días,

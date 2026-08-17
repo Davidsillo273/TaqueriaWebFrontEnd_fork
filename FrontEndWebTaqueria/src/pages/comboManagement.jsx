@@ -38,7 +38,7 @@ function ComboManagementContent() {
   const { addToast } = useToast();
 
   useEffect(() => {
-    fetch('http://localhost:4000/api/menu/combos/best-sellers?limit=1', { credentials: 'include' })
+    fetch(`${import.meta.env.VITE_API_URL || 'https://syscor-mll9.onrender.com/api'}/menu/combos/best-sellers?limit=1`, { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : []))
       .then(setBestSellers)
       .catch(() => setBestSellers([]));

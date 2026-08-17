@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const API_URL = 'http://localhost:4000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://syscor-mll9.onrender.com/api';
 
 // El flujo de estados que sigue una comanda. "atrasado" lo asigna el propio
 // backend cuando una orden lleva más de 1 hora en "preparing".

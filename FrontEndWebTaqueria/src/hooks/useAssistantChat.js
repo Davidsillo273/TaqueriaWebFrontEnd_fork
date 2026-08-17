@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const API_URL = 'http://localhost:4000/api/chat/assistant';
+const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/chat/assistant` : 'https://syscor-mll9.onrender.com/api/chat/assistant';
 const FALLBACK_REPLY = 'El asistente no está disponible en este momento. Intenta de nuevo en unos minutos.';
 
 // Asistente de IA general del sistema. El historial en formato Gemini

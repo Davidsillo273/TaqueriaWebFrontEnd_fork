@@ -124,7 +124,7 @@ Crear un archivo `.env` en la raíz del proyecto (ver [Variables de Entorno](#va
 npm run dev
 ```
 
-La aplicación corre por defecto en `http://localhost:5173`. En desarrollo, `vite.config.js` incluye un proxy de `/api` hacia el backend (por defecto apunta a `https://syscor.onrender.com`), reenviando también las cookies del navegador para que la sesión funcione.
+La aplicación corre por defecto en `http://localhost:5173`. En desarrollo, `vite.config.js` incluye un proxy de `/api` hacia el backend (por defecto apunta a `https://syscor-mll9.onrender.com`), reenviando también las cookies del navegador para que la sesión funcione.
 
 ### 4. Compilar para producción
 
@@ -150,8 +150,8 @@ Crear un archivo `.env` en la raíz del proyecto con:
 
 ```env
 # URL base de la API del backend. Si no se define, el código usa por
-# defecto http://localhost:4000/api
-VITE_API_URL=http://localhost:4000/api
+# defecto https://syscor-mll9.onrender.com/api
+VITE_API_URL=https://syscor-mll9.onrender.com/api
 ```
 
 `VITE_API_URL` es la única variable de entorno que consume el código de esta aplicación (Vite solo expone al cliente las variables prefijadas con `VITE_`). Se usa en `authContext.jsx`, `notificationsContext.jsx`, `useInvitation.js`, `useLogout.js`, `useProfile.js` y `useSettings.js` para construir la URL base de las peticiones con Axios.

@@ -455,7 +455,7 @@ function InvoicesPanel() {
     const id = confirmDelete.invoiceId
     if (!id) return
     try {
-      const API_URL = 'http://localhost:4000/api'
+      const API_URL = import.meta.env.VITE_API_URL || 'https://syscor-mll9.onrender.com/api'
       const res = await fetch(`${API_URL}/invoices/${id}`, { credentials: 'include', method: 'DELETE' })
       if (!res.ok) throw new Error('No se pudo eliminar')
       addToast('Registro de facturación eliminado', 'success')

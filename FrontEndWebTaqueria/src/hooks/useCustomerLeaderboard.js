@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 
-const API_URL = 'http://localhost:4000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://syscor-mll9.onrender.com/api';
 
 // Rankings de "Clientes destacados": más activos en 7 días, mayor gasto total
 // y las compras más caras de la semana. Se piden solo cuando el admin abre

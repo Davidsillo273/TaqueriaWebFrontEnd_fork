@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 
-const API_URL = 'http://localhost:4000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://syscor-mll9.onrender.com/api';
 
 // "Empleados destacados": quién vendió más, filtrable por día/semana/mes.
 export default function useEmployeeLeaderboard() {
