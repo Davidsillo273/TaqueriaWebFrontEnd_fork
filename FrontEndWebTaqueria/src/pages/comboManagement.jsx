@@ -1,4 +1,4 @@
-//Cambio en el nombre
+//Cambio en el nombre de minuscula a mayuscula de comboManagement.jsx a ComboManagement.jsx para que funcione correctamente el import en App.jsx
 // src/pages/ComboManagement.jsx
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/dashboard/Sidebar';
