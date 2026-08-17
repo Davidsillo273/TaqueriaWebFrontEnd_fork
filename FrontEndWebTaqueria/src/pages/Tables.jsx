@@ -30,8 +30,11 @@ function TablesContent() {
   const [editingTable, setEditingTable] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, tableId: null });
+  const [bulkStatus, setBulkStatus] = useState('libre');
+  const [confirmBulk, setConfirmBulk] = useState(false);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
-  const { tables, loading, error, createTable, updateTable, deleteTable } = useTables();
+  const { tables, loading, error, createTable, updateTable, bulkUpdateStatus, deleteTable } = useTables();
   const { addToast } = useToast();
 
   const totalMesas = tables.length;
@@ -110,6 +113,15 @@ function TablesContent() {
     setConfirmDelete({ isOpen: false, tableId: null });
   };
 
+  const handleBulkConfirm = async () => {
+    setBulkLoading(true);
+    const result = await bulkUpdateStatus(bulkStatus);
+    setBulkLoading(false);
+    setConfirmBulk(false);
+    if (result.success) addToast(`Todas las mesas se pusieron en "${STATUS_LABELS[bulkStatus] || bulkStatus}"`, 'success');
+    else addToast(result.message || 'Error al actualizar las mesas', 'error');
+  };
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#f3f0eb]">
       {sidebarOpen && (
@@ -130,17 +142,38 @@ function TablesContent() {
                   Monitoreo en tiempo real del área de comedor.
                 </p>
               </div>
-              <button
-                onClick={() => { setEditingTable(null); setIsModalOpen(true); }}
-                className="flex items-center gap-2 px-4 py-2.5 bg-red-500 text-white rounded-xl font-display font-semibold text-sm
-                  shadow-[0_6px_16px_rgba(220,38,38,0.35),inset_1px_1px_2px_rgba(255,255,255,0.3)]
-                  hover:bg-red-600 hover:shadow-[0_8px_20px_rgba(220,38,38,0.4)]
-                  transition-all disabled:opacity-60"
-                disabled={loading}
-              >
-                <FAIcon icon="plus" />
-                Nueva Mesa
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Cambia el estado de TODAS las mesas de una vez (ej. abrir/cerrar el local) */}
+                <div className="flex items-center gap-1.5 bg-white rounded-xl border border-white/80 shadow-sm p-1">
+                  <select
+                    value={bulkStatus}
+                    onChange={(e) => setBulkStatus(e.target.value)}
+                    className="text-xs sm:text-sm font-display font-semibold text-gray-700 bg-transparent px-2 py-1.5 rounded-lg focus:outline-none"
+                  >
+                    {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => setConfirmBulk(true)}
+                    disabled={loading || tables.length === 0}
+                    className="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-display font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  >
+                    Aplicar a todas
+                  </button>
+                </div>
+                <button
+                  onClick={() => { setEditingTable(null); setIsModalOpen(true); }}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-red-500 text-white rounded-xl font-display font-semibold text-sm
+                    shadow-[0_6px_16px_rgba(220,38,38,0.35),inset_1px_1px_2px_rgba(255,255,255,0.3)]
+                    hover:bg-red-600 hover:shadow-[0_8px_20px_rgba(220,38,38,0.4)]
+                    transition-all disabled:opacity-60"
+                  disabled={loading}
+                >
+                  <FAIcon icon="plus" />
+                  Nueva Mesa
+                </button>
+              </div>
             </div>
 
             {error && (
@@ -329,6 +362,17 @@ function TablesContent() {
         message="¿Estás seguro de eliminar esta mesa?"
         confirmText="Eliminar"
         loading={loading}
+      />
+      <ConfirmModal
+        isOpen={confirmBulk}
+        onClose={() => setConfirmBulk(false)}
+        onConfirm={handleBulkConfirm}
+        title="Cambiar todas las mesas"
+        message={`¿Poner las ${tables.length} mesas en estado "${STATUS_LABELS[bulkStatus] || bulkStatus}"? Si alguna tiene un pedido activo, ese pedido se cancelará.`}
+        confirmText="Aplicar a todas"
+        variant="warning"
+        icon="chair"
+        loading={bulkLoading}
       />
     </div>
   );

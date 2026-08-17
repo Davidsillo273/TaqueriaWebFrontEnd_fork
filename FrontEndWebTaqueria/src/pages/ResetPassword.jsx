@@ -4,6 +4,7 @@ import TextInput from '../components/commons/TextInput';
 import PrimaryButton from '../components/commons/PrimaryButton';
 import AuthCard from '../components/commons/AuthCard';
 import ConfirmModal from '../components/commons/ConfirmModal';
+import Logo from '../components/commons/Logo';
 import useRecoveryPassword from '../hooks/auth/useRecoveryPassword';
 
 export default function ResetPassword() {
@@ -37,7 +38,7 @@ export default function ResetPassword() {
             <AuthCard>
                 <div className="flex flex-col items-center text-center">
                     <div className="mb-6">
-                        <img src="/logo.png" alt="Taquería El Corral" className="w-24 h-24 mx-auto" />
+                        <Logo variant="auth" height={110} className="mx-auto" />
                     </div>
                     <h1 className="text-2xl font-display font-bold text-gray-800 mb-1">Nueva Contraseña</h1>
                     <p className="text-sm text-gray-500 mb-6">Ingresa y confirma tu nueva clave de acceso</p>

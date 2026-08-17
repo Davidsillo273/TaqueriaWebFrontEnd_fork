@@ -45,12 +45,31 @@ export default function useTables() {
     try {
       const res = await fetch(`${API_URL}/tables/${id}`, {
         credentials: 'include',
-        method: 'PATCH',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ number: Number(tableData.number), status: tableData.status })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Error al actualizar mesa');
+      await fetchTables();
+      return { success: true };
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  };
+
+  // Pone el mismo estado a todas las mesas de una vez (ej. "abrir el local"
+  // dejando todo en libre, o mandar todas a limpieza al cerrar).
+  const bulkUpdateStatus = async (status) => {
+    try {
+      const res = await fetch(`${API_URL}/tables/status-all`, {
+        credentials: 'include',
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Error al actualizar las mesas');
       await fetchTables();
       return { success: true };
     } catch (err) {
@@ -72,5 +91,5 @@ export default function useTables() {
 
   useEffect(() => { fetchTables(); }, [fetchTables]);
 
-  return { tables, loading, error, createTable, updateTable, deleteTable, fetchTables };
+  return { tables, loading, error, createTable, updateTable, bulkUpdateStatus, deleteTable, fetchTables };
 }

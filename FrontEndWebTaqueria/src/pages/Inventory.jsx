@@ -10,7 +10,6 @@ import PaginationControls from '../components/commons/PaginationControls';
 import AttentionCenter from '../components/commons/AttentionCenter';
 import { useInventory } from '../hooks/useInventory';
 import { usePagination } from '../hooks/usePagination';
-import { useSettings } from '../hooks/useSettings';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
 
 const ITEM_TYPE_TABS = [
@@ -27,20 +26,27 @@ function InventoryContent() {
   const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, insumoId: null });
 
   const { insumos: allInsumos = [], loading, error, deleteInsumo, saveInsumo } = useInventory();
-  const { settings } = useSettings();
   const { addToast } = useToast();
 
   const insumos = allInsumos.filter((i) => (i.itemType || 'producto') === itemType);
   const { page, totalPages, paginatedItems, goTo, next, prev } = usePagination(insumos, 6);
 
-  const lowStockThreshold = settings.operation.lowStockThresholds?.inventory ?? 10;
   const isAssetTab = itemType === 'activo_fijo';
+
+  // El umbral de "bajo stock" es propio de cada insumo (es obligatorio para
+  // productos completos, ver InventoryModal), porque solo el admin sabe si
+  // "10" es poco o mucho según la unidad (kg, litros, unidades...). Los
+  // insumos pendientes (todavía sin completar) no cuentan para esta alerta.
+  const isLowStock = (item) => {
+    if (item.pending || item.lowStockAlert === undefined || item.lowStockAlert === null) return false;
+    return Number(item.quantity || 0) <= Number(item.lowStockAlert);
+  };
 
   // Cálculos de estadísticas (cambian según la pestaña activa)
   const totalItems = insumos.length;
   const alertasStock = isAssetTab
     ? insumos.filter((item) => ['Dañado', 'De baja'].includes(item.condition)).length
-    : insumos.filter((item) => Number(item.quantity || 0) <= lowStockThreshold).length;
+    : insumos.filter(isLowStock).length;
   const valorEstimado = insumos.reduce((acc, item) => acc + (Number(item.price || 0) * Number(item.quantity || 0)), 0);
 
   // Badge de estado según cantidad y status (Productos) o condición (Activos fijos)
@@ -56,13 +62,16 @@ function InventoryContent() {
     const cant = Number(item.quantity || 0);
     const currentStatus = String(item.status || '').toLowerCase();
 
+    if (item.pending) {
+      return { text: 'PENDIENTE', className: 'bg-orange-100 text-orange-700 border border-orange-200' };
+    }
     if (currentStatus === 'agotado' || cant === 0) {
       return { text: 'AGOTADO', className: 'bg-red-100 text-red-700 border border-red-200' };
     }
     if (currentStatus === 'en pedido') {
       return { text: 'EN PEDIDO', className: 'bg-blue-100 text-blue-700 border border-blue-200' };
     }
-    if (cant <= lowStockThreshold) {
+    if (isLowStock(item)) {
       return { text: 'LOW STOCK', className: 'bg-yellow-100 text-yellow-700 border border-yellow-200' };
     }
     return { text: 'DISPONIBLE', className: 'bg-green-100 text-green-700 border border-green-200' };

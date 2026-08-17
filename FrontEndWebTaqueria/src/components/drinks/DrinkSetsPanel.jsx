@@ -98,10 +98,10 @@ const DrinkSetsPanel = () => {
                     <button
                       type="button"
                       onClick={() => handleToggleStatus(set)}
-                      className={`flex-1 text-[11px] font-semibold rounded-lg py-1.5 transition-colors ${
+                      className={`flex-1 text-[11px] font-semibold rounded-lg py-1.5 transition-colors text-white ${
                         set.status === 'activo'
-                          ? 'text-amber-700 bg-amber-50 hover:bg-amber-100'
-                          : 'text-green-700 bg-green-50 hover:bg-green-100'
+                          ? 'bg-amber-500 hover:bg-amber-600'
+                          : 'bg-green-500 hover:bg-green-600'
                       }`}
                     >
                       {set.status === 'activo' ? 'Deshabilitar' : 'Habilitar'}

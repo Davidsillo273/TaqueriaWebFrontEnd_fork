@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useInvitation } from '../hooks/auth/useInvitation';
 import LoadingSpinner from '../components/commons/LoadingSpinner';
-import dayReadyLogo from '../../public/logo.png';
+import Logo from '../components/commons/Logo';
 
 // Estilos base para inputs clay (los mismos que usamos en todo el sistema)
 const inputClasses =
@@ -28,6 +28,7 @@ export default function AcceptInvitation() {
 
   const [validationErrors, setValidationErrors] = useState({});
   const [success, setSuccess] = useState(false);
+  const [hasPermissions, setHasPermissions] = useState(false);
 
   // Determina el rol según la ruta actual (admin o employee)
   useEffect(() => {
@@ -84,8 +85,12 @@ export default function AcceptInvitation() {
 
     const result = await acceptInvitation(token, password, imageFile, role);
     if (result.success) {
+      const grantedPermissions = !!result.data?.hasPermissions;
+      setHasPermissions(grantedPermissions);
       setSuccess(true);
-      setTimeout(() => navigate('/login'), 2500);
+      // Si tiene permisos, le damos más tiempo a que lea el aviso del código
+      // de acceso antes de mandarlo al login.
+      setTimeout(() => navigate('/'), grantedPermissions ? 8000 : 2500);
     } else {
       setValidationErrors({ general: result.error });
     }
@@ -96,7 +101,7 @@ export default function AcceptInvitation() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#f3f0eb] p-4">
         <div className="bg-white rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.1),inset_1px_1px_3px_rgba(255,255,255,0.8)] border border-white/80 p-8 max-w-md w-full text-center">
-          <img src={dayReadyLogo} alt="Logo" className="w-48 h-auto mx-auto object-contain" />
+          <Logo variant="auth" height={90} className="mx-auto" />
           <div className="py-10">
             <LoadingSpinner color="red" />
             <p className="text-gray-500 text-sm mt-4 font-medium">Verificando invitación...</p>
@@ -111,7 +116,7 @@ export default function AcceptInvitation() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#f3f0eb] p-4">
         <div className="bg-white rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.1),inset_1px_1px_3px_rgba(255,255,255,0.8)] border border-white/80 p-8 max-w-md w-full text-center">
-          <img src={dayReadyLogo} alt="Logo" className="w-48 h-auto mx-auto object-contain" />
+          <Logo variant="auth" height={90} className="mx-auto" />
           <div className="py-6">
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-2xl shadow-sm">
               <p className="text-red-600 text-sm">{validationErrors.general}</p>
@@ -133,13 +138,32 @@ export default function AcceptInvitation() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#f3f0eb] p-4">
         <div className="bg-white rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.1),inset_1px_1px_3px_rgba(255,255,255,0.8)] border border-white/80 p-8 max-w-md w-full text-center">
-          <img src={dayReadyLogo} alt="Logo" className="w-48 h-auto mx-auto object-contain" />
-          <div className="py-6">
+          <Logo variant="auth" height={90} className="mx-auto" />
+          <div className="py-6 space-y-3">
             <div className="p-3 bg-green-50 border border-green-200 rounded-2xl shadow-sm">
               <p className="text-green-700 text-sm font-medium">
                 ✓ Registro completado exitosamente. Redirigiendo al inicio de sesión...
               </p>
             </div>
+
+            {hasPermissions && (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl shadow-sm text-left">
+                <p className="text-amber-800 text-sm font-display font-semibold mb-1">
+                  Se te han otorgado permisos en el sistema.
+                </p>
+                <p className="text-amber-700 text-sm mb-3">
+                  Código de acceso enviado a tu correo. Revisa tu correo para encontrarlo.
+                </p>
+                <a
+                  href="https://mail.google.com/mail/u/0/#inbox"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-display font-semibold transition-colors"
+                >
+                  Abrir Gmail
+                </a>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -151,7 +175,7 @@ export default function AcceptInvitation() {
     <div className="min-h-screen flex items-center justify-center bg-[#f3f0eb] p-4">
       <div className="bg-white rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.1),inset_1px_1px_3px_rgba(255,255,255,0.8)] border border-white/80 p-6 sm:p-8 max-w-md w-full">
         <div className="text-center mb-6">
-          <img src={dayReadyLogo} alt="Logo" className="w-48 h-auto mx-auto object-contain" />
+          <Logo variant="auth" height={90} className="mx-auto" />
         </div>
 
         <div className="text-center mb-6">

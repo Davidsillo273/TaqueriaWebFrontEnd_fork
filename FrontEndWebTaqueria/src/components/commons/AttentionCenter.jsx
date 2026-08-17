@@ -22,11 +22,16 @@ const AttentionCenter = ({ items, getKey, getTitle, getImage, getReason, onEdit 
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className={`mb-4 flex items-center gap-2 text-sm font-display font-semibold underline decoration-dotted decoration-2 underline-offset-4 cursor-pointer transition-opacity hover:opacity-70 ${
-          hasIssues ? 'text-amber-700' : 'text-green-700'
+        className={`mb-4 inline-flex items-center gap-2 pl-3 pr-4 py-2 rounded-full text-sm font-display font-semibold cursor-pointer transition-all
+          shadow-[0_4px_14px_rgba(0,0,0,0.08),inset_1px_1px_2px_rgba(255,255,255,0.5)] border hover:scale-[1.03] active:scale-[0.98] ${
+          hasIssues
+            ? 'bg-amber-100 border-amber-200 text-amber-700 hover:bg-amber-200/70'
+            : 'bg-green-100 border-green-200 text-green-700 hover:bg-green-200/70'
         }`}
       >
-        <FAIcon icon="eye" size="sm" />
+        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-white shrink-0 ${hasIssues ? 'bg-amber-500' : 'bg-green-500'}`}>
+          <FAIcon icon={hasIssues ? 'triangle-exclamation' : 'check'} size="xs" />
+        </span>
         {hasIssues ? `Atención: ${count}` : 'Todo en orden'}
       </button>
 

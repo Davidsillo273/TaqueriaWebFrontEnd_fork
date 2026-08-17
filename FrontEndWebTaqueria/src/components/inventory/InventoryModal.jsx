@@ -84,16 +84,14 @@ const InventoryModal = ({ isOpen, onClose, insumoData, itemType = 'producto', on
     formData.append('price', parseFloat(data.price));
     formData.append('ubication', data.ubication.trim());
     formData.append('type', data.type);
-    formData.append('quantity', parseInt(data.quantity));
+    formData.append('quantity', parseFloat(data.quantity));
     formData.append('status', data.status);
     if (isAsset) {
       formData.append('condition', data.condition);
       if (data.acquisitionDate) formData.append('acquisitionDate', data.acquisitionDate);
     } else {
       formData.append('unit', data.unit);
-      if (data.lowStockAlert !== '' && data.lowStockAlert !== undefined) {
-        formData.append('lowStockAlert', Number(data.lowStockAlert));
-      }
+      formData.append('lowStockAlert', Number(data.lowStockAlert));
     }
     if (imageFile) formData.append('image', imageFile);
     return formData;
@@ -112,7 +110,7 @@ const InventoryModal = ({ isOpen, onClose, insumoData, itemType = 'producto', on
 
   const onSubmit = async (data) => {
     const priceNum = parseFloat(data.price);
-    const qtyNum = parseInt(data.quantity);
+    const qtyNum = parseFloat(data.quantity);
 
     if (data.name.trim().length < 3) {
       addToast('El nombre debe tener al menos 3 caracteres', 'error');
@@ -129,6 +127,13 @@ const InventoryModal = ({ isOpen, onClose, insumoData, itemType = 'producto', on
     if (isNaN(qtyNum) || qtyNum < 0) {
       addToast('La cantidad debe ser un número positivo o cero', 'error');
       return;
+    }
+    if (!isAsset) {
+      const alertNum = parseFloat(data.lowStockAlert);
+      if (data.lowStockAlert === '' || isNaN(alertNum) || alertNum < 0) {
+        addToast('El umbral de alerta de stock es requerido y debe ser un número positivo', 'error');
+        return;
+      }
     }
     if (imageFile && imageFile.size > 5 * 1024 * 1024) {
       addToast('La imagen no debe superar los 5MB', 'error');
@@ -216,9 +221,11 @@ const InventoryModal = ({ isOpen, onClose, insumoData, itemType = 'producto', on
               <input
                 type="number"
                 min="0"
+                step="any"
                 {...register('quantity', {
                   required: 'La cantidad es obligatoria',
                   min: { value: 0, message: 'No puede ser negativa' },
+                  valueAsNumber: true,
                 })}
                 placeholder="0"
                 className={inputClasses}
@@ -300,14 +307,20 @@ const InventoryModal = ({ isOpen, onClose, insumoData, itemType = 'producto', on
             </div>
           ) : (
             <div>
-              <label className={labelClasses}>Alerta de stock (opcional)</label>
+              <label className={labelClasses}>Alerta de stock</label>
               <input
                 type="number"
                 min="0"
-                {...register('lowStockAlert')}
-                placeholder="General"
+                step="any"
+                {...register('lowStockAlert', {
+                  required: 'El umbral de alerta de stock es obligatorio',
+                  min: { value: 0, message: 'No puede ser negativo' },
+                })}
+                placeholder="Ej. 5 (en la unidad de este insumo)"
                 className={inputClasses}
               />
+              {errors.lowStockAlert && <span className="text-red-500 text-xs mt-1 block font-medium">{errors.lowStockAlert.message}</span>}
+              <p className="text-[11px] text-gray-400 mt-1">Se avisa cuando la cantidad disponible caiga a este nivel o menos.</p>
             </div>
           )}
 

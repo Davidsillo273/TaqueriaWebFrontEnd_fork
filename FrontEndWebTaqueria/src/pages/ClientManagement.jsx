@@ -4,30 +4,20 @@ import Sidebar from '../components/dashboard/Sidebar'
 import TopBar from '../components/dashboard/TopBar'
 import ClientKpis from '../components/client/ClientKpis'
 import ClientTable from '../components/client/ClientTable'
-import ClientModal from '../components/client/ClientModal'
+import ClientDetailModal from '../components/client/ClientDetailModal'
+import ClientLeaderboardModal from '../components/client/ClientLeaderboardModal'
 import useClients from '../hooks/useClients'
-import { ToastProvider, useToast } from '../components/commons/ToastProvider'
+import useCustomerLeaderboard from '../hooks/useCustomerLeaderboard'
+import { ToastProvider } from '../components/commons/ToastProvider'
 
 function ClientManagementContent() {
   const [activeMenu] = useState('clients')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [viewingClient, setViewingClient] = useState(null)
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false)
 
-  const {
-    clients,
-    isLoading,
-    isModalOpen,
-    editingClient,
-    handleOpenEdit,
-    handleCloseModal,
-    fetchClients
-  } = useClients()
-
-  const { addToast } = useToast()
-
-  const handleSuccess = () => {
-    fetchClients()
-    addToast('Cliente actualizado correctamente', 'success')
-  }
+  const { clients, isLoading } = useClients()
+  const { mostActive, topSpenders, priciestWeek, loading: loadingLeaderboard, fetchLeaderboard } = useCustomerLeaderboard()
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f3f0eb]">
@@ -53,19 +43,28 @@ function ClientManagementContent() {
               </p>
             </div>
 
-            <ClientKpis clients={clients} />
+            <ClientKpis clients={clients} onOpenLeaderboard={() => setLeaderboardOpen(true)} />
 
             <ClientTable
               clients={clients}
-              onEdit={handleOpenEdit}
+              onView={setViewingClient}
               isLoading={isLoading}
             />
 
-            <ClientModal
-              isOpen={isModalOpen}
-              onClose={handleCloseModal}
-              editingClient={editingClient}
-              onSuccess={handleSuccess}
+            <ClientDetailModal
+              isOpen={!!viewingClient}
+              onClose={() => setViewingClient(null)}
+              client={viewingClient}
+            />
+
+            <ClientLeaderboardModal
+              isOpen={leaderboardOpen}
+              onClose={() => setLeaderboardOpen(false)}
+              mostActive={mostActive}
+              topSpenders={topSpenders}
+              priciestWeek={priciestWeek}
+              loading={loadingLeaderboard}
+              onOpen={fetchLeaderboard}
             />
           </div>
         </main>

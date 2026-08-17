@@ -6,9 +6,6 @@ export default function useClients() {
   const [clients, setClients] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingClient, setEditingClient] = useState(null);
 
   const fetchClients = useCallback(async () => {
     setIsLoading(true);
@@ -68,24 +65,10 @@ export default function useClients() {
     fetchClients();
   }, [fetchClients]);
 
-  const handleOpenEdit = useCallback((client) => {
-    setEditingClient(client);
-    setIsModalOpen(true);
-  }, []);
-
-  const handleCloseModal = useCallback(() => {
-    setIsModalOpen(false);
-    setEditingClient(null);
-  }, []);
-
   return {
     clients,
     isLoading,
     error,
-    isModalOpen,
-    editingClient,
-    handleOpenEdit,
-    handleCloseModal,
     fetchClients,
   };
 }

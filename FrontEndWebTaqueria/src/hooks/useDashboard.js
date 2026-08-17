@@ -4,7 +4,7 @@ import { useEmployees } from './useEmployees';
 import useTables from './useTables';
 import { useInventory } from './useInventory';
 import useClients from './useClients';
-import { useSettings } from './useSettings';
+import useInvoices from './useInvoices';
 
 // Etiquetas en español para el estado del pedido (ajustar si el enum del back cambia)
 const ORDER_STATUS_LABELS = {
@@ -16,111 +16,154 @@ const ORDER_STATUS_LABELS = {
   cancelled: 'CANCELADO',
 };
 
-// Hook exclusivo para el Dashboard: combina orders, employees, tables,
-// inventory y clients en los datos que necesita la vista de Actividad.
+const DAY_NAMES = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+
+// Decide si un empleado está trabajando "ahora mismo", según los días y el
+// horario que le configuró el admin. Si todavía no le configuraron un
+// horario (caso normal mientras esa parte no se usa aún), caemos de
+// respaldo al estado general de su ficha (activo/inactivo).
+const isEmployeeWorkingNow = (emp) => {
+  const work = emp.workInfo || {};
+  const days = work.workDays || [];
+  const hasSchedule = days.length > 0 && work.scheduleStart && work.scheduleEnd;
+
+  if (!hasSchedule) {
+    return work.status === 'active';
+  }
+
+  const now = new Date();
+  const todayName = DAY_NAMES[now.getDay()];
+  if (!days.includes(todayName)) return false;
+
+  const isWeekend = todayName === 'sabado' || todayName === 'domingo';
+  const useWeekend = isWeekend && work.weekendScheduleEnabled && work.weekendScheduleStart && work.weekendScheduleEnd;
+  const start = useWeekend ? work.weekendScheduleStart : work.scheduleStart;
+  const end = useWeekend ? work.weekendScheduleEnd : work.scheduleEnd;
+
+  const [startH, startM] = start.split(':').map(Number);
+  const [endH, endM] = end.split(':').map(Number);
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const startMinutes = startH * 60 + startM;
+  const endMinutes = endH * 60 + endM;
+
+  // Turno que cruza la medianoche (ej. 22:00 a 06:00)
+  if (endMinutes < startMinutes) {
+    return nowMinutes >= startMinutes || nowMinutes <= endMinutes;
+  }
+  return nowMinutes >= startMinutes && nowMinutes <= endMinutes;
+};
+
+// Hook exclusivo para el Dashboard: combina orders, invoices, employees,
+// tables, inventory y clients en los datos que necesitan las pestañas
+// "Actividad" y "Análisis".
 export default function useDashboard() {
   const { orders, loading: loadingOrders } = useOrders();
   const { employees, loading: loadingEmployees, error: employeesError } = useEmployees();
   const { tables, loading: loadingTables, error: tablesError } = useTables();
   const { insumos, loading: loadingInventory, error: inventoryError } = useInventory();
   const { clients, isLoading: loadingClients, error: clientsError } = useClients();
-  // El umbral de stock bajo ya no está fijo en el código: lo define el
-  // administrador desde Ajustes y se comparte con las alertas del backend.
-  const { settings } = useSettings();
-  const lowStockThreshold = settings.operation.lowStockThresholds?.inventory ?? 10;
+  const { analytics, loading: loadingInvoices, error: invoicesError } = useInvoices();
 
   const isLoading =
-    loadingOrders || loadingEmployees || loadingTables || loadingInventory || loadingClients;
+    loadingOrders || loadingEmployees || loadingTables || loadingInventory || loadingClients || loadingInvoices;
 
-  const errors = [employeesError, tablesError, inventoryError, clientsError].filter(Boolean);
+  const errors = [employeesError, tablesError, inventoryError, clientsError, invoicesError].filter(Boolean);
 
-  const today = new Date().toDateString();
-
-  // --- Pedidos de hoy ---
-  const ordersToday = useMemo(() => {
-    return orders.filter((order) => {
-      const fecha = order.createdAt || order.date;
-      return fecha ? new Date(fecha).toDateString() === today : false;
-    });
-  }, [orders, today]);
-
-  const ventasNetas = useMemo(() => {
-    return ordersToday.reduce((acc, order) => acc + (Number(order.total ?? order.amount) || 0), 0);
-  }, [ordersToday]);
-
-  const ticketPromedio = ordersToday.length > 0 ? ventasNetas / ordersToday.length : 0;
-
-  // --- Actividad reciente: últimos 5 pedidos, sin importar el día ---
+  // --- Actividad reciente: últimos pedidos, sin importar el día ---
   const activityData = useMemo(() => {
     return [...orders]
-      .sort((a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0))
-      .slice(0, 5)
+      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+      .slice(0, 8)
       .map((order) => {
-        const cliente = order.customerId?.personalInfo
-          ? `${order.customerId.personalInfo.name || ''} ${order.customerId.personalInfo.lastname || ''}`.trim()
+        const cliente = order.customer?.personalInfo
+          ? `${order.customer.personalInfo.name || ''} ${order.customer.personalInfo.lastname || ''}`.trim()
           : order.customerName || 'Cliente';
 
         return {
           id: `#${(order._id || '').toString().slice(-4).toUpperCase() || '----'}`,
+          orderType: order.orderType,
+          tipo: order.orderType === 'online' ? 'En línea' : 'En local',
           mesa: order.table?.number ? `Mesa ${order.table.number}` : cliente,
           cliente,
-          monto: `$${(Number(order.total ?? order.amount) || 0).toFixed(2)}`,
+          monto: `$${(Number(order.total) || 0).toFixed(2)}`,
           estado: ORDER_STATUS_LABELS[order.status] || (order.status || 'pendiente').toUpperCase(),
           hora: order.createdAt
             ? new Date(order.createdAt).toLocaleTimeString('es-SV', { hour: '2-digit', minute: '2-digit' })
             : '--:--',
+          raw: order,
         };
       });
   }, [orders]);
 
-  // --- Staff en turno ---
+  // --- Pedidos pendientes (todavía no facturados): reemplaza "Staff en Turno" ---
+  const pendingOrdersCount = analytics?.pendingOrdersCount ?? 0;
+
+  // --- Equipo: quién está trabajando en este momento, según su horario ---
   const staffData = useMemo(() => {
-    return employees
-      .filter((emp) => emp.workInfo?.status === true || emp.workInfo?.isAuthorized === true)
-      .slice(0, 4)
-      .map((emp) => ({
-        name: `${emp.personalInfo?.name || ''} ${emp.personalInfo?.lastname || ''}`.trim() || 'Sin nombre',
-        role: emp.personalInfo?.type || 'Empleado',
-        shift: emp.workInfo?.shift || 'Turno',
-        time: emp.workInfo?.schedule || '—',
-      }));
+    return employees.map((emp) => ({
+      id: emp._id,
+      name: `${emp.personalInfo?.name || ''} ${emp.personalInfo?.lastname || ''}`.trim() || 'Sin nombre',
+      type: emp.personalInfo?.type || 'other',
+      role: emp.personalInfo?.type || 'Empleado',
+      shift: emp.workInfo?.shift || 'Turno',
+      time: emp.workInfo?.scheduleStart && emp.workInfo?.scheduleEnd
+        ? `${emp.workInfo.scheduleStart} - ${emp.workInfo.scheduleEnd}`
+        : (emp.workInfo?.schedule || '—'),
+      workingNow: isEmployeeWorkingNow(emp),
+    }));
   }, [employees]);
 
-  // --- Mesas ---
-  const mesasOcupadas = useMemo(
-    () => tables.filter((t) => (t.status || '').toLowerCase() !== 'disponible').length,
-    [tables]
-  );
+  const staffWorkingNowCount = staffData.filter((s) => s.workingNow).length;
+
+  // --- Mesas: "ocupada" es el único estado real de mesa en uso ---
+  const mesasOcupadas = useMemo(() => tables.filter((t) => t.status === 'ocupada').length, [tables]);
   const totalMesas = tables.length;
 
-  // --- Inventario ---
+  // --- Inventario: el umbral es propio de cada insumo (obligatorio para
+  // productos completos), porque solo tiene sentido según su unidad de medida
+  // (kg, litros, unidades...). Los insumos pendientes no cuentan aquí.
   const insumosBajoStock = useMemo(
-    () => insumos.filter((i) => Number(i.quantity ?? i.stock) <= lowStockThreshold),
-    [insumos, lowStockThreshold]
+    () => insumos.filter((i) => {
+      if (i.pending || i.lowStockAlert === undefined || i.lowStockAlert === null) return false;
+      return Number(i.quantity ?? i.stock) <= Number(i.lowStockAlert);
+    }),
+    [insumos]
   );
 
   const primerAlertaStock = insumosBajoStock[0]
     ? `${insumosBajoStock[0].name || 'Insumo'} (${insumosBajoStock[0].quantity ?? insumosBajoStock[0].stock} unidades)`
     : 'Sin alertas de stock';
 
-  // --- Clientes ---
-  const clientesNuevos = useMemo(() => {
+  // --- Clientes: registrados hoy (mismo criterio que la tarjeta y el modal) ---
+  const clientesHoyList = useMemo(() => {
+    const now = new Date();
     return clients.filter((c) => {
       const fecha = c.createdAt;
       if (!fecha) return false;
-      const dias = (Date.now() - new Date(fecha).getTime()) / (1000 * 60 * 60 * 24);
-      return dias <= 7;
-    }).length;
+      const created = new Date(fecha);
+      return created.getFullYear() === now.getFullYear()
+        && created.getMonth() === now.getMonth()
+        && created.getDate() === now.getDate();
+    });
   }, [clients]);
+  const clientesNuevos = clientesHoyList.length;
+
+  // --- Datos para la gráfica "hoy vs ayer" (Órdenes Hoy) ---
+  const todayVsYesterday = [
+    { name: 'Ayer', pedidos: analytics?.yesterday?.invoicedCount ?? 0 },
+    { name: 'Hoy', pedidos: analytics?.today?.invoicedCount ?? 0 },
+  ];
 
   return {
     isLoading,
     errors,
     stats: {
-      ordersTodayCount: ordersToday.length,
-      ventasNetas,
-      ticketPromedio,
-      staffEnTurnoCount: staffData.length,
+      // Solo pedidos ya facturados cuentan como "Órdenes Hoy"
+      ordersTodayCount: analytics?.today?.invoicedCount ?? 0,
+      ordersYesterdayCount: analytics?.yesterday?.invoicedCount ?? 0,
+      ventasNetas: analytics?.today?.netSales ?? 0,
+      pendingOrdersCount,
+      staffWorkingNowCount,
       totalEmployees: employees.length,
       mesasOcupadas,
       totalMesas,
@@ -128,8 +171,13 @@ export default function useDashboard() {
       primerAlertaStock,
       clientesNuevos,
       totalClientes: clients.length,
+      avgTicket: analytics?.avgTicket ?? 0,
+      monthTotal: analytics?.monthTotal ?? 0,
     },
+    todayVsYesterday,
     activityData,
     staffData,
+    analytics,
+    clientesHoyList,
   };
 }

@@ -48,9 +48,27 @@ export function useEmployees() {
         }
     };
 
+    // Manda al empleado un enlace por correo para que él mismo defina su nueva
+    // contraseña; el admin nunca la escribe ni la ve.
+    const sendPasswordResetInvitation = async (id) => {
+        try {
+            const res = await fetch(`${API_URL}/users/employees/${id}/send-password-reset`, {
+                credentials: 'include',
+                method: 'POST',
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                return { success: false, message: data.message || 'No se pudo enviar la invitación' };
+            }
+            return { success: true, message: data.message };
+        } catch (err) {
+            return { success: false, message: err.message };
+        }
+    };
+
     useEffect(() => {
         fetchEmployees();
     }, []);
 
-    return { employees, loading, error, updateEmployee };
+    return { employees, loading, error, updateEmployee, sendPasswordResetInvitation };
 }

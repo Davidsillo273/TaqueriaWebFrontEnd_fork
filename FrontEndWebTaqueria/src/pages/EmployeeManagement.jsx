@@ -3,10 +3,31 @@ import React, { useState, useMemo } from 'react';
 import Sidebar from '../components/dashboard/Sidebar';
 import TopBar from '../components/dashboard/TopBar';
 import FAIcon from '../components/commons/FAIcon';
+import ComboStats from '../components/dashboard/ComboStats';
 import EmployeeModal from '../components/employee/EmployeeModal';
+import EmployeeRadialMenu from '../components/employee/EmployeeRadialMenu';
+import EmployeeLeaderboardModal from '../components/employee/EmployeeLeaderboardModal';
+import EmployeeDetailModal from '../components/dashboard/EmployeeDetailModal';
 import ConfirmModal from '../components/commons/ConfirmModal';
+import PaginationControls from '../components/commons/PaginationControls';
 import { useEmployees } from '../hooks/useEmployees';
+import useEmployeeLeaderboard from '../hooks/useEmployeeLeaderboard';
+import usePagination from '../hooks/usePagination';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
+
+const DAY_ABBR = {
+  lunes: 'Lun', martes: 'Mar', miercoles: 'Mié', jueves: 'Jue',
+  viernes: 'Vie', sabado: 'Sáb', domingo: 'Dom',
+};
+
+const formatSchedule = (emp) => {
+  const days = emp.workInfo?.workDays || [];
+  const start = emp.workInfo?.scheduleStart;
+  const end = emp.workInfo?.scheduleEnd;
+  if (days.length === 0 || !start || !end) return 'Sin horario definido';
+  const daysLabel = days.map((d) => DAY_ABBR[d] || d).join(', ');
+  return `${daysLabel} · ${start}-${end}`;
+};
 
 function EmployeeManagementContent() {
   const [activeMenu] = useState('staff');
@@ -15,11 +36,15 @@ function EmployeeManagementContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [confirmStatus, setConfirmStatus] = useState({ isOpen: false, employee: null });
+  const [detailModal, setDetailModal] = useState({ isOpen: false, employee: null, readOnly: false });
+  const [radial, setRadial] = useState({ open: false, employeeId: null, anchor: null });
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState('Todos');
 
-  const { employees = [], loading, updateEmployee } = useEmployees();
+  const { employees = [], loading, updateEmployee, sendPasswordResetInvitation } = useEmployees();
+  const { topEmployees, period, loading: loadingLeaderboard, fetchLeaderboard } = useEmployeeLeaderboard();
   const { addToast } = useToast();
 
   const translateRole = (type) => {
@@ -45,6 +70,8 @@ function EmployeeManagementContent() {
     });
   }, [employees, searchTerm, selectedRole]);
 
+  const { page, totalPages, paginatedItems: paginatedEmployees, goTo, next, prev } = usePagination(filteredEmployees, 5);
+
   const getBadgeClass = (puesto) => {
     const p = String(puesto || '').toUpperCase();
     if (p === 'GERENTE') return 'bg-gray-100 text-gray-700 border border-gray-200';
@@ -57,10 +84,6 @@ function EmployeeManagementContent() {
     setIsModalOpen(true);
   };
 
-  const handleRequestToggleStatus = (emp) => {
-    setConfirmStatus({ isOpen: true, employee: emp });
-  };
-
   const handleToggleStatusConfirm = async () => {
     const emp = confirmStatus.employee;
     if (!emp) return;
@@ -68,12 +91,7 @@ function EmployeeManagementContent() {
     const currentStatus = emp.workInfo?.status || 'active';
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
 
-    const payload = {
-      ...emp,
-      workInfo: { ...emp.workInfo, status: newStatus }
-    };
-
-    const success = await updateEmployee(emp._id || emp.id, payload);
+    const success = await updateEmployee(emp._id || emp.id, { status: newStatus });
     if (success) {
       addToast(`Empleado ${newStatus === 'active' ? 'dado de alta' : 'dado de baja'} correctamente`, 'success');
     } else {
@@ -85,12 +103,38 @@ function EmployeeManagementContent() {
   const handleSavePermissions = async (id, updatedPayload) => {
     const success = await updateEmployee(id, updatedPayload);
     if (success) {
-      setSelectedEmployee(updatedPayload);
-      addToast('Permisos actualizados correctamente', 'success');
+      addToast('Permisos actualizados correctamente. Si es su primer permiso, se le envió un código de acceso por correo.', 'success');
       setIsModalOpen(false);
+      setSelectedEmployee(null);
     } else {
       addToast('No se pudieron actualizar los permisos', 'error');
     }
+  };
+
+  const openRadial = (emp, e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setRadial({
+      open: true,
+      employeeId: emp._id || emp.id,
+      anchor: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
+      employee: emp,
+    });
+  };
+
+  const closeRadial = () => setRadial({ open: false, employeeId: null, anchor: null, employee: null });
+
+  const handleRadialSelect = (optionId) => {
+    const emp = radial.employee;
+    closeRadial();
+    if (!emp) return;
+    if (optionId === 'view') setDetailModal({ isOpen: true, employee: emp, readOnly: true });
+    else if (optionId === 'edit') setDetailModal({ isOpen: true, employee: emp, readOnly: false });
+    else if (optionId === 'baja' || optionId === 'reactivar') setConfirmStatus({ isOpen: true, employee: emp });
+  };
+
+  const openLeaderboard = (initialPeriod) => {
+    setLeaderboardOpen(true);
+    fetchLeaderboard(initialPeriod || period);
   };
 
   return (
@@ -115,6 +159,17 @@ function EmployeeManagementContent() {
                   Controla los accesos y estados del equipo de Taquería El Corral.
                 </p>
               </div>
+            </div>
+
+            <div className="mb-6 sm:mb-8 max-w-sm">
+              <ComboStats
+                icon="trophy"
+                title="EMPLEADOS DESTACADOS"
+                value="Ver ranking"
+                label="Empleado con más ventas (día, semana o mes)"
+                highlighted={true}
+                onClick={() => openLeaderboard('week')}
+              />
             </div>
 
             {/* Tabla de empleados con estilo clay */}
@@ -151,27 +206,34 @@ function EmployeeManagementContent() {
                 ) : filteredEmployees.length === 0 ? (
                   <div className="p-8 text-center text-gray-500 text-sm">Ningún empleado coincide con los filtros.</div>
                 ) : (
-                  <table className="w-full text-left border-collapse min-w-[600px]">
+                  <table className="w-full text-left border-collapse min-w-[880px]">
                     <thead>
                       <tr className="bg-gray-50/80 text-xs font-display font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100">
                         <th className="p-3 sm:p-4 pl-4 sm:pl-6">Foto</th>
                         <th className="p-3 sm:p-4">Empleado</th>
                         <th className="p-3 sm:p-4">Puesto</th>
                         <th className="p-3 sm:p-4">Estado</th>
+                        <th className="p-3 sm:p-4">Horario</th>
+                        <th className="p-3 sm:p-4">Salario</th>
                         <th className="p-3 sm:p-4 pr-4 sm:pr-6 text-right">Acciones</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
-                      {filteredEmployees.map((emp) => {
+                      {paginatedEmployees.map((emp) => {
+                        const id = emp._id || emp.id;
                         const firstName = emp.personalInfo?.name || '';
                         const lastName = emp.personalInfo?.lastname || '';
                         const fullName = `${firstName} ${lastName}`.trim();
                         const puesto = translateRole(emp.personalInfo?.type);
                         const img = emp.personalInfo?.image || 'https://via.placeholder.com/40';
                         const isActive = (emp.workInfo?.status || 'active') === 'active';
+                        const isRadialTarget = radial.open && radial.employeeId === id;
 
                         return (
-                          <tr key={emp._id || emp.id} className={`hover:bg-gray-50/80 transition-colors ${!isActive ? 'opacity-60 bg-gray-50/30' : ''}`}>
+                          <tr
+                            key={id}
+                            className={`hover:bg-gray-50/80 transition-colors ${!isActive ? 'opacity-60 bg-gray-50/30' : ''} ${isRadialTarget ? 'relative z-[60] bg-white shadow-[0_0_0_2px_rgba(220,38,38,0.4)]' : ''}`}
+                          >
                             <td className="p-3 sm:p-4 pl-4 sm:pl-6">
                               <img src={img} alt={fullName} className="w-10 h-10 rounded-xl object-cover shadow-sm" />
                             </td>
@@ -189,7 +251,13 @@ function EmployeeManagementContent() {
                                 {isActive ? 'Activo' : 'Inactivo'}
                               </span>
                             </td>
-                            <td className="p-3 sm:p-4 pr-4 sm:pr-6 text-right space-x-2">
+                            <td className="p-3 sm:p-4 text-xs text-gray-600 whitespace-nowrap">
+                              {formatSchedule(emp)}
+                            </td>
+                            <td className="p-3 sm:p-4 text-gray-700 font-medium">
+                              {emp.workInfo?.salary != null ? `$${Number(emp.workInfo.salary).toFixed(2)}` : '—'}
+                            </td>
+                            <td className="p-3 sm:p-4 pr-4 sm:pr-6 text-right space-x-2 whitespace-nowrap">
                               <button
                                 onClick={() => handleEditPermissions(emp)}
                                 disabled={!isActive}
@@ -198,15 +266,11 @@ function EmployeeManagementContent() {
                                 <FAIcon icon="lock" /> Permisos
                               </button>
                               <button
-                                onClick={() => handleRequestToggleStatus(emp)}
-                                className={`inline-flex items-center gap-1 px-3 py-2 text-xs font-display font-semibold rounded-xl text-white transition-all shadow-sm ${
-                                  isActive
-                                    ? 'bg-red-500 hover:bg-red-600 shadow-[0_4px_12px_rgba(220,38,38,0.3)]'
-                                    : 'bg-gray-600 hover:bg-gray-700'
-                                }`}
+                                onClick={(e) => openRadial(emp, e)}
+                                aria-label="Más acciones"
+                                className="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors shadow-sm"
                               >
-                                <FAIcon icon={isActive ? 'user-slash' : 'user-check'} />
-                                {isActive ? 'Baja' : 'Alta'}
+                                <FAIcon icon="ellipsis-vertical" />
                               </button>
                             </td>
                           </tr>
@@ -216,6 +280,11 @@ function EmployeeManagementContent() {
                   </table>
                 )}
               </div>
+              {filteredEmployees.length > 0 && (
+                <div className="px-4 sm:px-6 pb-4 sm:pb-6">
+                  <PaginationControls page={page} totalPages={totalPages} onPrev={prev} onNext={next} onGoTo={goTo} />
+                </div>
+              )}
             </div>
 
             <EmployeeModal
@@ -233,6 +302,34 @@ function EmployeeManagementContent() {
               message={`¿Estás seguro de cambiar el estado de ${confirmStatus.employee?.personalInfo?.name || 'este empleado'}?`}
               confirmText={confirmStatus.employee?.workInfo?.status === 'active' ? 'Dar de baja' : 'Dar de alta'}
               loading={loading}
+            />
+
+            <EmployeeRadialMenu
+              isOpen={radial.open}
+              anchor={radial.anchor}
+              onClose={closeRadial}
+              onSelect={handleRadialSelect}
+              isActive={(radial.employee?.workInfo?.status || 'active') === 'active'}
+            />
+
+            <EmployeeDetailModal
+              isOpen={detailModal.isOpen}
+              onClose={() => setDetailModal({ isOpen: false, employee: null, readOnly: false })}
+              employee={detailModal.employee}
+              readOnly={detailModal.readOnly}
+              onSave={updateEmployee}
+              onSendPasswordReset={sendPasswordResetInvitation}
+              addToast={addToast}
+            />
+
+            <EmployeeLeaderboardModal
+              isOpen={leaderboardOpen}
+              onClose={() => setLeaderboardOpen(false)}
+              topEmployees={topEmployees}
+              period={period}
+              loading={loadingLeaderboard}
+              onOpen={openLeaderboard}
+              onPeriodChange={(p) => fetchLeaderboard(p)}
             />
           </div>
         </main>

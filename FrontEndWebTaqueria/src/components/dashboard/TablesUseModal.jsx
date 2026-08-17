@@ -1,0 +1,152 @@
+// src/components/dashboard/TablesUseModal.jsx
+import React, { useState } from 'react';
+import FAIcon from '../commons/FAIcon';
+import ConfirmModal from '../commons/ConfirmModal';
+
+const STATUS_OPTIONS = [
+  { value: 'libre', label: 'Libre' },
+  { value: 'ocupada', label: 'Ocupada' },
+  { value: 'reservada', label: 'Reservada' },
+  { value: 'limpieza', label: 'En limpieza' },
+];
+
+const STATUS_STYLES = {
+  libre: 'bg-green-100 text-green-700 border-green-200',
+  ocupada: 'bg-red-100 text-red-700 border-red-200',
+  reservada: 'bg-purple-100 text-purple-700 border-purple-200',
+  limpieza: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+};
+
+const TableCard = ({ table, onUpdate, addToast }) => {
+  const [status, setStatus] = useState(table.status);
+  const [saving, setSaving] = useState(false);
+
+  const handleChange = async (e) => {
+    const newStatus = e.target.value;
+    setStatus(newStatus);
+    setSaving(true);
+    const result = await onUpdate(table._id, { number: table.number, status: newStatus });
+    setSaving(false);
+    if (!result.success) {
+      setStatus(table.status);
+      addToast?.(result.message || 'No se pudo actualizar la mesa', 'error');
+    } else {
+      addToast?.(`Mesa ${table.number} actualizada a "${STATUS_OPTIONS.find((s) => s.value === newStatus)?.label}"`, 'success');
+    }
+  };
+
+  return (
+    <div className="bg-white/80 rounded-2xl border border-white/80 p-4 flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <FAIcon icon="chair" size="sm" className="text-gray-400" />
+          <span className="font-display font-bold text-gray-900">Mesa {table.number}</span>
+        </div>
+        <span className={`px-2 py-0.5 rounded-full text-[11px] font-display font-semibold border ${STATUS_STYLES[status] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+          {STATUS_OPTIONS.find((s) => s.value === status)?.label || status}
+        </span>
+      </div>
+      <select
+        value={status}
+        onChange={handleChange}
+        disabled={saving}
+        className="w-full px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs disabled:opacity-50"
+      >
+        {STATUS_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+      </select>
+    </div>
+  );
+};
+
+const TablesUseModal = ({ isOpen, onClose, tables, onUpdate, onBulkUpdate, addToast }) => {
+  const [filter, setFilter] = useState('ocupada');
+  const [bulkStatus, setBulkStatus] = useState('libre');
+  const [confirmBulk, setConfirmBulk] = useState(false);
+  const [bulkLoading, setBulkLoading] = useState(false);
+  if (!isOpen) return null;
+
+  const shown = filter === 'all' ? tables : tables.filter((t) => t.status === filter);
+
+  const handleBulkConfirm = async () => {
+    setBulkLoading(true);
+    const result = await onBulkUpdate(bulkStatus);
+    setBulkLoading(false);
+    setConfirmBulk(false);
+    const label = STATUS_OPTIONS.find((s) => s.value === bulkStatus)?.label || bulkStatus;
+    addToast?.(result.success ? `Todas las mesas se pusieron en "${label}"` : (result.message || 'No se pudo actualizar las mesas'), result.success ? 'success' : 'error');
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/40 backdrop-blur-sm">
+        <div className="bg-[#f3f0eb] rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.2)] border border-white/80 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-red-500 px-5 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+            <h3 className="text-white font-display font-bold text-lg">Mesas</h3>
+            <button type="button" onClick={onClose} className="text-white/90 hover:text-white w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10">
+              <FAIcon icon="times" />
+            </button>
+          </div>
+
+          <div className="p-5 sm:p-6">
+            {onBulkUpdate && (
+              <div className="flex items-center gap-1.5 bg-white rounded-xl border border-gray-200 p-1 mb-4 w-fit">
+                <select
+                  value={bulkStatus}
+                  onChange={(e) => setBulkStatus(e.target.value)}
+                  className="text-xs font-display font-semibold text-gray-700 bg-transparent px-2 py-1.5 rounded-lg focus:outline-none"
+                >
+                  {STATUS_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setConfirmBulk(true)}
+                  disabled={tables.length === 0}
+                  className="px-3 py-1.5 rounded-lg text-xs font-display font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50"
+                >
+                  Aplicar a todas
+                </button>
+              </div>
+            )}
+
+            <div className="flex gap-1.5 flex-wrap mb-4">
+              {['ocupada', 'all', 'libre', 'reservada', 'limpieza'].map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setFilter(f)}
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
+                    filter === f ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {f === 'all' ? 'Todas' : STATUS_OPTIONS.find((s) => s.value === f)?.label}
+                </button>
+              ))}
+            </div>
+
+            {shown.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-6">No hay mesas para este filtro</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {shown.map((t) => <TableCard key={t._id} table={t} onUpdate={onUpdate} addToast={addToast} />)}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <ConfirmModal
+        isOpen={confirmBulk}
+        onClose={() => setConfirmBulk(false)}
+        onConfirm={handleBulkConfirm}
+        title="Cambiar todas las mesas"
+        message={`¿Poner las ${tables.length} mesas en estado "${STATUS_OPTIONS.find((s) => s.value === bulkStatus)?.label}"? Si alguna tiene un pedido activo, ese pedido se cancelará.`}
+        confirmText="Aplicar a todas"
+        variant="warning"
+        icon="chair"
+        loading={bulkLoading}
+      />
+    </>
+  );
+};
+
+export default TablesUseModal;

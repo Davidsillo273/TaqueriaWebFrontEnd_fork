@@ -18,6 +18,7 @@ import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts'
 const SECTION_TABS = [
   { id: 'orders', label: 'Pedidos', icon: 'receipt' },
   { id: 'invoices', label: 'Órdenes', icon: 'file-invoice-dollar' },
+  { id: 'scheduled', label: 'Pedidos programados', icon: 'calendar-clock' },
 ]
 
 // Un pedido puede venir del restaurante (local) o de la web/app (online).
@@ -324,6 +325,115 @@ function OrdersPanel() {
   )
 }
 
+// Pedidos en línea que el cliente programó para una fecha/hora futura, en
+// vez de prepararse de inmediato (ver order.scheduledFor en el backend).
+function ScheduledPanel() {
+  const { orders, loading, updateOrderStatus, cancelOrder, deleteOrder } = useOrders()
+  const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, orderId: null })
+  const [cancelTarget, setCancelTarget] = useState(null)
+  const [cancelLoading, setCancelLoading] = useState(false)
+  const { addToast } = useToast()
+
+  const scheduledOrders = useMemo(() => {
+    return orders
+      .filter((o) => o.scheduledFor)
+      .sort((a, b) => new Date(a.scheduledFor) - new Date(b.scheduledFor))
+  }, [orders])
+
+  const handleRequestDelete = (id) => setConfirmDelete({ isOpen: true, orderId: id })
+
+  const handleDeleteConfirm = async () => {
+    const id = confirmDelete.orderId
+    if (!id) return
+    try {
+      await deleteOrder(id)
+      addToast('Registro eliminado correctamente', 'success')
+    } catch (err) {
+      addToast('Error al eliminar el pedido', 'error')
+    } finally {
+      setConfirmDelete({ isOpen: false, orderId: null })
+    }
+  }
+
+  const handleAdvance = async (id, currentStatus) => {
+    try {
+      await updateOrderStatus(id, currentStatus)
+      addToast(`Pedido #${id.slice(-4).toUpperCase()} actualizado`, 'success')
+    } catch (err) {
+      addToast('Error al actualizar el pedido', 'error')
+    }
+  }
+
+  const handleCancelConfirm = async (password) => {
+    if (!cancelTarget) return { success: false }
+    setCancelLoading(true)
+    const result = await cancelOrder(cancelTarget._id, password)
+    setCancelLoading(false)
+    if (result.success) {
+      addToast('Pedido cancelado', 'success')
+      setCancelTarget(null)
+    }
+    return result
+  }
+
+  return (
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6">
+        <ComboStats
+          icon="calendar-clock"
+          title="PEDIDOS PROGRAMADOS"
+          value={scheduledOrders.length}
+          label="Pendientes de preparar"
+          highlighted={true}
+        />
+      </div>
+
+      {loading ? (
+        <div className="text-center py-10 text-gray-500 font-medium">Cargando pedidos...</div>
+      ) : scheduledOrders.length === 0 ? (
+        <div className="text-center py-10 font-display font-bold text-gray-400 text-xs uppercase tracking-wider">
+          No hay pedidos programados
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+          {scheduledOrders.map((pedido) => (
+            <div key={pedido._id}>
+              <div className="mb-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-display font-semibold bg-purple-100 text-purple-700 border border-purple-200">
+                <FAIcon icon="calendar-clock" size="xs" />
+                Programado: {new Date(pedido.scheduledFor).toLocaleString('es-SV', { dateStyle: 'medium', timeStyle: 'short' })}
+              </div>
+              <OrderCard
+                pedido={pedido}
+                onAdvance={handleAdvance}
+                onCancelRequest={setCancelTarget}
+                onDeleteRequest={handleRequestDelete}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
+      <CancelOrderModal
+        isOpen={!!cancelTarget}
+        onClose={() => setCancelTarget(null)}
+        onConfirm={handleCancelConfirm}
+        orderCode={cancelTarget ? `#${cancelTarget._id.slice(-4).toUpperCase()}` : ''}
+        loading={cancelLoading}
+      />
+
+      <ConfirmModal
+        isOpen={confirmDelete.isOpen}
+        onClose={() => setConfirmDelete({ isOpen: false, orderId: null })}
+        onConfirm={handleDeleteConfirm}
+        title="Eliminar registro"
+        message="¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer."
+        confirmText="Eliminar"
+        loading={loading}
+      />
+    </>
+  )
+}
+
 function InvoicesPanel() {
   const [orderTypeFilter, setOrderTypeFilter] = useState('all')
   const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, invoiceId: null })
@@ -446,7 +556,7 @@ function OrdersContent() {
 
             <SectionTabs section={section} setSection={setSection} />
 
-            {section === 'orders' ? <OrdersPanel /> : <InvoicesPanel />}
+            {section === 'orders' ? <OrdersPanel /> : section === 'invoices' ? <InvoicesPanel /> : <ScheduledPanel />}
           </div>
         </main>
       </div>

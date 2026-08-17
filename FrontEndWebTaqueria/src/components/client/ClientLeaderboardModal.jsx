@@ -1,0 +1,110 @@
+// src/components/client/ClientLeaderboardModal.jsx
+import React, { useState, useEffect } from 'react';
+import FAIcon from '../commons/FAIcon';
+
+const TABS = [
+  { id: 'mostActive', label: 'Más activos (7 días)', icon: 'bolt' },
+  { id: 'topSpenders', label: 'Mayor gasto total', icon: 'sack-dollar' },
+  { id: 'priciestWeek', label: 'Compras más caras (semana)', icon: 'receipt' },
+];
+
+const clientName = (customer) =>
+  `${customer?.personalInfo?.name || ''} ${customer?.personalInfo?.lastname || ''}`.trim() || 'Cliente';
+
+const Row = ({ rank, name, email, primary, secondary }) => (
+  <div className="flex items-center gap-3 bg-white/80 rounded-2xl border border-white/80 p-3">
+    <span className="w-7 h-7 rounded-full bg-red-500 text-white text-xs font-display font-bold flex items-center justify-center shrink-0">
+      {rank}
+    </span>
+    <div className="min-w-0 flex-1">
+      <p className="font-display font-semibold text-gray-900 text-sm truncate">{name}</p>
+      <p className="text-xs text-gray-500 truncate">{email}</p>
+    </div>
+    <div className="text-right shrink-0">
+      <p className="font-display font-bold text-red-600 text-sm">{primary}</p>
+      {secondary && <p className="text-xs text-gray-500">{secondary}</p>}
+    </div>
+  </div>
+);
+
+const ClientLeaderboardModal = ({ isOpen, onClose, mostActive, topSpenders, priciestWeek, loading, onOpen }) => {
+  const [tab, setTab] = useState('mostActive');
+
+  useEffect(() => {
+    if (isOpen) onOpen?.();
+  }, [isOpen, onOpen]);
+
+  if (!isOpen) return null;
+
+  const rows = tab === 'mostActive' ? mostActive : tab === 'topSpenders' ? topSpenders : priciestWeek;
+  const isOrderList = tab === 'priciestWeek';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/40 backdrop-blur-sm">
+      <div className="bg-[#f3f0eb] rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.2)] border border-white/80 max-w-xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="bg-red-500 px-5 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+          <div>
+            <h3 className="text-white font-display font-bold text-lg">Clientes destacados</h3>
+            <p className="text-white/80 text-xs">Rankings basados en pedidos en línea entregados</p>
+          </div>
+          <button type="button" onClick={onClose} className="text-white/90 hover:text-white w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10">
+            <FAIcon icon="times" />
+          </button>
+        </div>
+
+        <div className="p-5 sm:p-6">
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTab(t.id)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-display font-semibold transition-colors ${
+                  tab === t.id ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <FAIcon icon={t.icon} size="xs" />
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {loading ? (
+            <p className="text-sm text-gray-500 text-center py-8">Cargando ranking...</p>
+          ) : rows.length === 0 ? (
+            <p className="text-sm text-gray-500 text-center py-8">Todavía no hay suficientes pedidos para este ranking</p>
+          ) : (
+            <div className="space-y-2">
+              {rows.map((row, idx) => {
+                if (isOrderList) {
+                  return (
+                    <Row
+                      key={row._id}
+                      rank={idx + 1}
+                      name={clientName(row.customer)}
+                      email={row.customer?.loginInfo?.email}
+                      primary={`$${Number(row.total || 0).toFixed(2)}`}
+                      secondary={row.createdAt ? new Date(row.createdAt).toLocaleDateString('es-SV') : ''}
+                    />
+                  );
+                }
+                return (
+                  <Row
+                    key={row.customer?._id || idx}
+                    rank={idx + 1}
+                    name={clientName(row.customer)}
+                    email={row.customer?.loginInfo?.email}
+                    primary={tab === 'mostActive' ? `${row.orderCount} pedidos` : `$${Number(row.totalSpent || 0).toFixed(2)}`}
+                    secondary={tab === 'mostActive' ? `$${Number(row.totalSpent || 0).toFixed(2)} gastado` : `${row.orderCount} pedidos`}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ClientLeaderboardModal;

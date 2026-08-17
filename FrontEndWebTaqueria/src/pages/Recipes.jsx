@@ -115,7 +115,7 @@ function RecipesContent() {
                   <div className={`w-3 sm:w-4 bg-gradient-to-r ${activeBook.color} shadow-[inset_-4px_0_10px_rgba(0,0,0,0.4)]`} />
 
                   {/* Página */}
-                  <div className="flex-1 bg-[#fdfaf3] relative p-5 sm:p-8 flex flex-col">
+                  <div className="flex-1 bg-white relative p-5 sm:p-8 flex flex-col">
                     <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_left,rgba(0,0,0,0.06),transparent_60%)] pointer-events-none" />
 
                     {!current ? (
@@ -181,7 +181,7 @@ function RecipesContent() {
                         className={`writing-mode-vertical px-1.5 py-2.5 rounded-r-lg text-[10px] font-display font-bold tracking-wide transition-all ${
                           subFilter === c
                             ? 'bg-red-500 text-white shadow-[2px_2px_8px_rgba(0,0,0,0.25)] -mr-1'
-                            : 'bg-white/90 text-gray-500 hover:bg-white'
+                            : 'bg-white/80 text-gray-500 hover:bg-gray-50'
                         }`}
                         style={{ writingMode: 'vertical-rl' }}
                       >

@@ -1,32 +1,40 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from 'react';
 
-const API_URL = 'http://localhost:4000/api';
+const API_URL = 'http://localhost:4000/api/invoices';
 
-// Historial de facturación (colección "invoices"): son registros de solo
-// lectura, el backend los genera solo cuando un pedido pasa a "delivered".
+// Historial de facturación (ventas ya completadas) + el resumen numérico
+// que arma el backend para el Dashboard (hoy vs ayer, tendencia de 14 días,
+// ventas por tipo de pedido, top productos, ticket promedio...).
 export default function useInvoices() {
-    const [invoices, setInvoices] = useState([]);
-    const [loading, setLoading] = useState(false);
+  const [invoices, setInvoices] = useState([]);
+  const [analytics, setAnalytics] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-    const fetchInvoices = useCallback(async () => {
-        setLoading(true);
-        try {
-            const response = await fetch(`${API_URL}/invoices`, { credentials: 'include' });
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
-            setInvoices(data);
-        } catch (err) {
-            console.error("Error al obtener el historial de facturación:", err);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+  const fetchInvoices = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [invoicesRes, analyticsRes] = await Promise.all([
+        fetch(API_URL, { credentials: 'include' }),
+        fetch(`${API_URL}/analytics`, { credentials: 'include' }),
+      ]);
 
-    useEffect(() => {
-        fetchInvoices();
-    }, [fetchInvoices]);
+      if (!invoicesRes.ok) throw new Error('Error al obtener la facturación');
+      if (!analyticsRes.ok) throw new Error('Error al obtener el análisis de ventas');
 
-    return { invoices, loading, fetchInvoices };
+      setInvoices(await invoicesRes.json());
+      setAnalytics(await analyticsRes.json());
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchInvoices();
+  }, [fetchInvoices]);
+
+  return { invoices, analytics, loading, error, refetch: fetchInvoices };
 }

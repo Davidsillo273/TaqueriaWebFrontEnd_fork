@@ -11,7 +11,7 @@ export default function useExtras() {
 	const fetchExtras = async () => {
 		setLoading(true);
 		try {
-			const response = await fetch(API_URL);
+			const response = await fetch(API_URL, { credentials: 'include' });
 			if (!response.ok) throw new Error('Error al obtener los extras');
 			const data = await response.json();
 			setExtras(data);

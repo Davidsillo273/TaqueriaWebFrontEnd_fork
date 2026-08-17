@@ -1,5 +1,6 @@
 import React from 'react'
 import FAIcon from '../commons/FAIcon'
+import { useTheme } from '../../context/themeContext'
 
 // Colores/etiquetas de cada estado de un pedido (debe coincidir con el enum
 // del backend en orderModel.js). Aplican igual para pedidos locales y online:
@@ -39,6 +40,9 @@ const getAction = (pedido) => {
 // punteada tipo perforación y borde inferior dentado, en vez de un simple
 // rectángulo plano.
 export default function OrderCard({ pedido, onAdvance, onCancelRequest, onDeleteRequest }) {
+  const { theme } = useTheme()
+  const cutColor = theme === 'dark' ? '#202024' : 'white'
+  const cutShade = theme === 'dark' ? '#1a1a1e' : '#f3f0eb'
   const meta = STATUS_META[pedido.status] || STATUS_META.pending
   const typeMeta = ORDER_TYPE_META[pedido.orderType] || ORDER_TYPE_META.local
   const esFinal = pedido.status === 'delivered' || pedido.status === 'cancelled'
@@ -147,9 +151,9 @@ export default function OrderCard({ pedido, onAdvance, onCancelRequest, onDelete
       <div
         className="h-3 w-full"
         style={{
-          backgroundColor: 'white',
+          backgroundColor: cutColor,
           backgroundImage:
-            'linear-gradient(135deg, #f3f0eb 25%, transparent 25%), linear-gradient(225deg, #f3f0eb 25%, transparent 25%)',
+            `linear-gradient(135deg, ${cutShade} 25%, transparent 25%), linear-gradient(225deg, ${cutShade} 25%, transparent 25%)`,
           backgroundSize: '16px 16px',
           backgroundPosition: 'bottom left',
         }}

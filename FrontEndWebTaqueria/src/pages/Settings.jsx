@@ -9,9 +9,11 @@ import { ToastProvider, useToast } from '../components/commons/ToastProvider';
 import { useAuth } from '../hooks/auth/useAuth';
 import { useSettings } from '../hooks/useSettings';
 import { useProfile } from '../hooks/useProfile';
+import { useTheme } from '../context/themeContext';
 
 const TABS = [
   { id: 'profile', label: 'Perfil y cuenta', icon: 'user' },
+  { id: 'appearance', label: 'Apariencia', icon: 'moon' },
   { id: 'operation', label: 'Operación', icon: 'sliders' },
   { id: 'notifications', label: 'Notificaciones', icon: 'bell' },
 ];
@@ -26,9 +28,10 @@ const NOTIFICATION_CATEGORIES = [
   { id: 'clients', label: 'Clientes', icon: 'users', description: 'Registro y actualización de clientes' },
 ];
 
-// Secciones que tienen su propio umbral de "agotado" configurable
+// Secciones que tienen su propio umbral de "agotado" configurable. Inventario
+// no aparece aquí: desde que el umbral es obligatorio por insumo (ver
+// InventoryModal), ya no tiene sentido un umbral general para toda la sección.
 const LOW_STOCK_SECTIONS = [
-  { id: 'inventory', label: 'Inventario' },
   { id: 'drinks', label: 'Bebidas' },
   { id: 'saucers', label: 'Platillos' },
   { id: 'extras', label: 'Extras' },
@@ -59,6 +62,7 @@ function SettingsContent() {
   const { user } = useAuth();
   const { settings, loading, saving, saveSettings } = useSettings();
   const { savingProfile, savingPassword, updateProfile, changePassword } = useProfile();
+  const { theme, setTheme } = useTheme();
   const { addToast } = useToast();
 
   const [activeTab, setActiveTab] = useState('profile');
@@ -364,6 +368,52 @@ function SettingsContent() {
             </form>
           </Card>
         </div>
+      )}
+
+      {/* --- Apariencia --- */}
+      {activeTab === 'appearance' && (
+        <Card className="p-4 sm:p-6 max-w-2xl">
+          <h2 className="text-lg font-display font-bold text-gray-900 mb-1">Apariencia</h2>
+          <p className="text-sm text-gray-600 mb-5">
+            Elige cómo se ve el sistema en este navegador. Es una preferencia personal: no afecta a los demás usuarios.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <button
+              type="button"
+              onClick={() => setTheme('light')}
+              className={`text-left p-4 rounded-2xl border-2 transition-all ${
+                theme === 'light' ? 'border-red-400 shadow-[0_6px_16px_rgba(220,38,38,0.15)]' : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#f3f0eb] border border-white flex items-center justify-center shadow-sm">
+                  <FAIcon icon="sun" className="text-amber-500" />
+                </div>
+                {theme === 'light' && <FAIcon icon="circle-check" className="text-red-500" />}
+              </div>
+              <p className="font-display font-semibold text-gray-900 text-sm">Claro</p>
+              <p className="text-xs text-gray-500 mt-0.5">El estilo por defecto del sistema</p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setTheme('dark')}
+              className={`text-left p-4 rounded-2xl border-2 transition-all ${
+                theme === 'dark' ? 'border-red-400 shadow-[0_6px_16px_rgba(220,38,38,0.15)]' : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#1a1a1e] border border-[#202024] flex items-center justify-center shadow-sm">
+                  <FAIcon icon="moon" className="text-[#d0d3ce]" />
+                </div>
+                {theme === 'dark' && <FAIcon icon="circle-check" className="text-red-500" />}
+              </div>
+              <p className="font-display font-semibold text-gray-900 text-sm">Oscuro</p>
+              <p className="text-xs text-gray-500 mt-0.5">Fondos oscuros en todo el sistema</p>
+            </button>
+          </div>
+        </Card>
       )}
 
       {/* --- Operación --- */}

@@ -4,6 +4,15 @@ import FAIcon from '../commons/FAIcon';
 
 const PLACEHOLDER_IMAGE = 'https://placehold.co/400x300/f3f0eb/9ca3af?text=Platillo';
 
+const CATEGORY_COLORS = {
+  Burritos: 'bg-orange-100 text-orange-700',
+  Tortas: 'bg-amber-100 text-amber-700',
+  Tacos: 'bg-green-100 text-green-700',
+  Sopas: 'bg-blue-100 text-blue-700',
+  Especiales: 'bg-purple-100 text-purple-700',
+};
+const DEFAULT_CATEGORY_COLOR = 'bg-gray-100 text-gray-600';
+
 export default function DishCard({ image, name, category, subcategory, price, status, isMostSold = false, onEdit, onDelete, onView }) {
   const isAvailable = status === 'Activo';
 
@@ -52,12 +61,12 @@ export default function DishCard({ image, name, category, subcategory, price, st
         {(category || subcategory) && (
           <div className="flex gap-1 flex-wrap mb-1">
             {category && (
-              <span className="inline-block px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[11px] font-semibold uppercase w-fit">
+              <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase w-fit ${CATEGORY_COLORS[category] || DEFAULT_CATEGORY_COLOR}`}>
                 {category}
               </span>
             )}
             {subcategory && (
-              <span className="inline-block px-2 py-0.5 rounded-full bg-red-50 text-red-500 text-[11px] font-semibold w-fit">
+              <span className="inline-block px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-[11px] font-semibold w-fit">
                 {subcategory}
               </span>
             )}

@@ -12,7 +12,6 @@ import FilterBar from '../components/commons/FilterBar';
 import ViewDetailsModal from '../components/commons/ViewDetailsModal';
 import DetailRow from '../components/commons/DetailRow';
 import FAIcon from '../components/commons/FAIcon';
-import SaucerChatWidget from '../components/chat/SaucerChatWidget';
 import useSaucers from '../hooks/useSaucers';
 import { usePagination } from '../hooks/usePagination';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
@@ -39,7 +38,7 @@ function DishesContent() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [bestSeller, setBestSeller] = useState(null);
 
-  const { saucers, loading, error, createSaucer, updateSaucer, deleteSaucer, refetch } = useSaucers();
+  const { saucers, loading, error, createSaucer, updateSaucer, deleteSaucer } = useSaucers();
   const { addToast } = useToast();
 
   useEffect(() => {
@@ -332,8 +331,6 @@ function DishesContent() {
         image={viewingDish?.image}
         sections={viewingDish ? buildDishSections(viewingDish) : []}
       />
-
-      <SaucerChatWidget onSaucerCreated={refetch} />
     </div>
   );
 }

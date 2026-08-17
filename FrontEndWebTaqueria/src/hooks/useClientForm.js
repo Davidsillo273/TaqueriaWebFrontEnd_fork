@@ -40,7 +40,8 @@ export function useClientForm(onClose, editingClient, onSuccess) {
       // Tu backend solo tiene método PUT para el ID
       const response = await fetch(`${API_URL}/users/customers/${clientId}`, {
         method: 'PATCH',
-        headers: { 
+        credentials: 'include',
+        headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(data), // Envía { name, lastname } directo en la raíz

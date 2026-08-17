@@ -59,6 +59,29 @@ export default function useOrders() {
         }
     };
 
+    // 2b. UPDATE - Cambia solo el estado de pago (ej. marcar cobrado un contraentrega)
+    const updatePaymentStatus = async (id, paymentStatus) => {
+        try {
+            const response = await fetch(`${API_URL}/orders/${id}/payment-status`, {
+                credentials: 'include',
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paymentStatus }),
+            });
+
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                return { success: false, message: data.message || 'No se pudo actualizar el estado de pago' };
+            }
+
+            await fetchOrders();
+            return { success: true };
+        } catch (err) {
+            console.error("Error al actualizar el estado de pago:", err);
+            return { success: false, message: 'Error de conexión al actualizar el estado de pago' };
+        }
+    };
+
     // 3. CANCEL - Marca la comanda como cancelada; requiere la contraseña de
     // un administrador como confirmación (no borra el registro).
     const cancelOrder = async (id, adminPassword) => {
@@ -109,5 +132,5 @@ export default function useOrders() {
         fetchOrders();
     }, []);
 
-    return { orders, loading, fetchOrders, updateOrderStatus, cancelOrder, deleteOrder };
+    return { orders, loading, fetchOrders, updateOrderStatus, updatePaymentStatus, cancelOrder, deleteOrder };
 }
