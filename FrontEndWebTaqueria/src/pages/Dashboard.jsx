@@ -22,6 +22,7 @@ import { useEmployees } from '../hooks/useEmployees';
 import useTables from '../hooks/useTables';
 import { useInventory } from '../hooks/useInventory';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
+import { useAuth } from '../hooks/auth/useAuth';
 
 const EMPLOYEE_TYPE_LABELS = {
   kitchen: 'Cocina',
@@ -41,11 +42,15 @@ const ORDER_TYPE_FILTERS = [
 const CHART_COLORS = ['#ef4444', '#3b82f6'];
 
 function DashboardContent() {
-  const { isLoading, errors, stats, todayVsYesterday, activityData, staffData, analytics, clientesHoyList } = useDashboard();
+  const { user } = useAuth();
+  const { isLoading, errors, stats, todayVsYesterday, activityData, staffData, analytics, clientesHoyList, employees, insumos } = useDashboard();
   const { addToast } = useToast();
-  const { employees, updateEmployee, sendPasswordResetInvitation } = useEmployees();
+  // Mismos permisos que useDashboard: sin ellos, ni pedimos employees/inventory
+  // (admin-only en el backend). "employees"/"insumos" ya vienen de useDashboard,
+  // así que aquí solo se piden las funciones de mutación, sin volver a hacer fetch.
+  const { updateEmployee, sendPasswordResetInvitation } = useEmployees(false);
   const { tables, updateTable, bulkUpdateStatus } = useTables();
-  const { insumos, saveInsumo } = useInventory();
+  const { saveInsumo } = useInventory(false);
 
   const [activeTab, setActiveTab] = useState('actividad');
   const [orderTypeFilter, setOrderTypeFilter] = useState('all');

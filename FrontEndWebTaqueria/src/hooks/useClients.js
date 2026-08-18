@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
-export default function useClients() {
+export default function useClients(enabled = true) {
   const [clients, setClients] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -62,8 +62,11 @@ export default function useClients() {
   }, []);
 
   useEffect(() => {
-    fetchClients();
-  }, [fetchClients]);
+    // "enabled" evita pedir /users/customers (admin-only en el backend) a
+    // quienes de entrada no van a poder verlo, ej. el Dashboard para un
+    // empleado sin el permiso "clients".
+    if (enabled) fetchClients();
+  }, [enabled, fetchClients]);
 
   return {
     clients,

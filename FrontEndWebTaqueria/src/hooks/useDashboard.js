@@ -5,6 +5,8 @@ import useTables from './useTables';
 import { useInventory } from './useInventory';
 import useClients from './useClients';
 import useInvoices from './useInvoices';
+import { useAuth } from './auth/useAuth';
+import { hasPermission } from '../constants/permissions';
 
 // Etiquetas en español para el estado del pedido (ajustar si el enum del back cambia)
 const ORDER_STATUS_LABELS = {
@@ -57,17 +59,30 @@ const isEmployeeWorkingNow = (emp) => {
 // tables, inventory y clients en los datos que necesitan las pestañas
 // "Actividad" y "Análisis".
 export default function useDashboard() {
+  const { user } = useAuth();
+  // El backend restringe employees/inventory/clients a admin: para un
+  // empleado sin ese permiso ni intentamos pedirlos (evita 401 en cascada).
+  const canSeeEmployees = hasPermission(user, 'employees');
+  const canSeeInventory = hasPermission(user, 'inventory');
+  const canSeeClients = hasPermission(user, 'clients');
+
   const { orders, loading: loadingOrders } = useOrders();
-  const { employees, loading: loadingEmployees, error: employeesError } = useEmployees();
+  const { employees, loading: loadingEmployees, error: employeesError } = useEmployees(canSeeEmployees);
   const { tables, loading: loadingTables, error: tablesError } = useTables();
-  const { insumos, loading: loadingInventory, error: inventoryError } = useInventory();
-  const { clients, isLoading: loadingClients, error: clientsError } = useClients();
+  const { insumos, loading: loadingInventory, error: inventoryError } = useInventory(canSeeInventory);
+  const { clients, isLoading: loadingClients, error: clientsError } = useClients(canSeeClients);
   const { analytics, loading: loadingInvoices, error: invoicesError } = useInvoices();
 
   const isLoading =
     loadingOrders || loadingEmployees || loadingTables || loadingInventory || loadingClients || loadingInvoices;
 
-  const errors = [employeesError, tablesError, inventoryError, clientsError, invoicesError].filter(Boolean);
+  // Memoizado: sin esto, el array se recrea (nueva referencia) en cada render
+  // y el useEffect de Dashboard.jsx que depende de "errors" entra en loop
+  // (React error #185, "Maximum update depth exceeded").
+  const errors = useMemo(
+    () => [employeesError, tablesError, inventoryError, clientsError, invoicesError].filter(Boolean),
+    [employeesError, tablesError, inventoryError, clientsError, invoicesError]
+  );
 
   // --- Actividad reciente: últimos pedidos, sin importar el día ---
   const activityData = useMemo(() => {
@@ -179,5 +194,7 @@ export default function useDashboard() {
     staffData,
     analytics,
     clientesHoyList,
+    employees,
+    insumos,
   };
 }

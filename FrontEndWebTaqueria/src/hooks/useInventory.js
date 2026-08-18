@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
-export function useInventory() {
+export function useInventory(enabled = true) {
   const [insumos, setInsumos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -128,8 +128,11 @@ export function useInventory() {
   };
 
   useEffect(() => {
-    fetchInsumos();
-  }, []);
+    // "enabled" evita pedir /inventory (admin-only en el backend) a quienes
+    // de entrada no van a poder verlo, ej. el Dashboard para un empleado sin
+    // el permiso "inventory".
+    if (enabled) fetchInsumos();
+  }, [enabled]);
 
   return { insumos, loading, error, saveInsumo, deleteInsumo, quickCreateInsumo, checkName, checkRecipeStock };
 }

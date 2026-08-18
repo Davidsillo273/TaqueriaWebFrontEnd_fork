@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
-export function useEmployees() {
+export function useEmployees(enabled = true) {
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -67,8 +67,11 @@ export function useEmployees() {
     };
 
     useEffect(() => {
-        fetchEmployees();
-    }, []);
+        // "enabled" evita pedir /users/employees (admin-only en el backend) a
+        // quienes de entrada no van a poder verla, ej. el Dashboard para un
+        // empleado sin el permiso "employees".
+        if (enabled) fetchEmployees();
+    }, [enabled]);
 
     return { employees, loading, error, updateEmployee, sendPasswordResetInvitation };
 }
