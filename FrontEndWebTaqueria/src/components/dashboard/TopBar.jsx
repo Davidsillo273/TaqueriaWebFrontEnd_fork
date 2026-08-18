@@ -29,7 +29,8 @@ const SEARCHABLE_SECTIONS = [
   { label: 'Pedidos y Órdenes', path: '/pedidos', icon: 'list', keywords: 'pedido orden comanda factura invoice', permission: 'orders' },
   { label: 'Invitar staff', path: '/InviteStaff', icon: 'envelope', keywords: 'invitar invitacion nuevo empleado admin', permission: 'invite_staff' },
   { label: 'Notificaciones', path: '/notificaciones', icon: 'bell', keywords: 'notificacion aviso alerta movimiento', permission: 'notifications' },
-  { label: 'Ajustes', path: '/ajustes', icon: 'cog', keywords: 'ajuste configuracion perfil contrasena preferencias', permission: 'settings' },
+  // Sin "permission": /ajustes es accesible a cualquier sesión (editar el propio perfil).
+  { label: 'Ajustes', path: '/ajustes', icon: 'cog', keywords: 'ajuste configuracion perfil contrasena preferencias' },
 ];
 
 const getInitials = (name, lastname) => {
@@ -58,7 +59,6 @@ const TopBar = ({ onMenuClick }) => {
   const roleLabel = user ? (ROLE_LABELS[user.role] || user.role) : '';
 
   const canSeeNotifications = hasPermission(user, 'notifications');
-  const canSeeSettings = hasPermission(user, 'settings');
 
   // Resultados del buscador: coinciden por nombre visible o por palabras clave,
   // y solo entre las secciones que este usuario puede ver
@@ -248,16 +248,18 @@ const TopBar = ({ onMenuClick }) => {
                 <p className="text-xs text-gray-500">{roleLabel}</p>
               </div>
 
-              {canSeeSettings && (
-                <Link
-                  to="/ajustes"
-                  onClick={() => setOpenPanel(null)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  <FAIcon icon="cog" className="text-gray-400" size="sm" />
-                  <span className="font-display font-medium">Ajustes</span>
-                </Link>
-              )}
+              {/* "/ajustes" ya no exige el permiso "settings": cualquier sesión
+                  puede entrar a editar su propio perfil desde ahí; la
+                  configuración general del sistema queda oculta dentro de esa
+                  pantalla si no se tiene el permiso. */}
+              <Link
+                to="/ajustes"
+                onClick={() => setOpenPanel(null)}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <FAIcon icon="cog" className="text-gray-400" size="sm" />
+                <span className="font-display font-medium">Ajustes</span>
+              </Link>
 
               <button
                 onClick={handleLogout}

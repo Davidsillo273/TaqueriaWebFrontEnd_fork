@@ -68,7 +68,12 @@ export default function App() {
 					<Route path="/pedidos" element={<ProtectedRoute requiredPermission="orders"><Orders /></ProtectedRoute>} />
 					<Route path="/InviteStaff" element={<ProtectedRoute requiredPermission="invite_staff"><InviteStaff /></ProtectedRoute>} />
 					<Route path="/notificaciones" element={<ProtectedRoute requiredPermission="notifications"><Notifications /></ProtectedRoute>} />
-					<Route path="/ajustes" element={<ProtectedRoute requiredPermission="settings"><Settings /></ProtectedRoute>} />
+					{/* Sin requiredPermission: cualquier sesión iniciada puede entrar
+					    a editar SU PROPIO perfil (pestaña "Perfil y cuenta"). Los
+					    ajustes generales del sistema, dentro de la misma pantalla,
+					    quedan ocultos si el usuario no tiene el permiso "settings"
+					    (ver TABS en Settings.jsx). */}
+					<Route path="/ajustes" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
 					<Route path="/recetas" element={<ProtectedRoute requiredPermission="recipes"><Recipes /></ProtectedRoute>} />
 
 					{/* Catch-all: cualquier URL que no coincida con ninguna ruta
