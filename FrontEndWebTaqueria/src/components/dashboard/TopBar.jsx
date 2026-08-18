@@ -198,7 +198,7 @@ const TopBar = ({ onMenuClick }) => {
         {/* Perfil: los ajustes ahora se acceden solo desde la opción "Ajustes" de este menú */}
         <div className="flex items-center bg-white/90 border border-white/80 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_1px_1px_2px_rgba(255,255,255,0.6)] p-1">
           {/* Menú del usuario */}
-          <div className="relative hidden sm:block" ref={userMenuRef}>
+          <div className="relative" ref={userMenuRef}>
             <button
               onClick={() => setOpenPanel((prev) => (prev === 'user' ? null : 'user'))}
               aria-label="Menú de usuario"
