@@ -29,11 +29,14 @@ const NotificationsPanel = ({ isOpen, onClose }) => {
 
   return (
     <>
-      {/* Capa invisible que cierra el panel al hacer clic en cualquier otro lado */}
-      <div className="fixed inset-0 z-40" onClick={onClose} aria-hidden="true" />
+      {/* Capa que cierra el panel al hacer clic en cualquier otro lado. En
+          móvil además oscurece el fondo para darle foco al panel centrado. */}
+      <div className="fixed inset-0 z-40 bg-black/40 sm:bg-transparent" onClick={onClose} aria-hidden="true" />
 
       <div
-        className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] max-w-sm z-50 bg-white rounded-3xl border border-white/80 overflow-hidden
+        className="fixed left-1/2 top-20 -translate-x-1/2 w-[calc(100vw-2rem)] max-w-sm
+          sm:absolute sm:left-auto sm:top-full sm:right-0 sm:translate-x-0 sm:mt-2
+          z-50 bg-white rounded-3xl border border-white/80 overflow-hidden
           shadow-[0_20px_60px_rgba(0,0,0,0.2),inset_1px_1px_3px_rgba(255,255,255,0.7)]"
         role="dialog"
         aria-label="Notificaciones"

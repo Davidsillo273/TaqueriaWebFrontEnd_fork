@@ -68,6 +68,14 @@ const AssistantChatWidget = () => {
       </button>
 
       {isOpen && (
+        <div
+          className="fixed inset-0 z-[65] bg-black/40 sm:hidden"
+          onClick={() => setIsOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {isOpen && (
         <div className="fixed bottom-24 right-6 z-[70] w-[92vw] max-w-md h-[32rem] max-h-[75vh] bg-[#f3f0eb] rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.25),inset_1px_1px_3px_rgba(255,255,255,0.7)] border border-white/80 flex flex-col overflow-hidden">
           <div className="flex items-center justify-between p-4 bg-red-500 text-white shadow-[inset_0_1px_2px_rgba(255,255,255,0.3),0_4px_12px_rgba(220,38,38,0.3)]">
             <div className="flex items-center gap-2 min-w-0">
