@@ -10,12 +10,17 @@ import { useAuth } from '../hooks/auth/useAuth';
 import { useSettings } from '../hooks/useSettings';
 import { useProfile } from '../hooks/useProfile';
 import { useTheme } from '../context/themeContext';
+import { hasPermission } from '../constants/permissions';
 
 const TABS = [
+  // "profile" y "appearance" son datos propios/preferencia local: cualquier
+  // sesión iniciada los ve. "operation" y "notifications" son configuración
+  // general del sistema, así que solo se muestran a quien tiene el permiso
+  // "settings" (siempre true para admin, ver adminOnly más abajo).
   { id: 'profile', label: 'Perfil y cuenta', icon: 'user' },
   { id: 'appearance', label: 'Apariencia', icon: 'moon' },
-  { id: 'operation', label: 'Operación', icon: 'sliders' },
-  { id: 'notifications', label: 'Notificaciones', icon: 'bell' },
+  { id: 'operation', label: 'Operación', icon: 'sliders', adminOnly: true },
+  { id: 'notifications', label: 'Notificaciones', icon: 'bell', adminOnly: true },
 ];
 
 // Descripción de cada categoría, para que se entienda qué se apaga al desactivarla
@@ -69,6 +74,10 @@ function SettingsContent() {
 
   // Solo el administrador puede modificar la configuración global del negocio
   const isAdmin = user?.role === 'admin';
+  // Un empleado con el permiso "settings" también puede ver/editar esa
+  // configuración general; sin él, solo ve su propio perfil y apariencia.
+  const canSeeSystemSettings = hasPermission(user, 'settings');
+  const visibleTabs = TABS.filter((tab) => !tab.adminOnly || canSeeSystemSettings);
 
   // --- Perfil ---
   // Guardamos solo lo que el usuario va escribiendo (el "borrador"). Mientras no
@@ -195,7 +204,7 @@ function SettingsContent() {
 
       {/* Pestañas */}
       <div className="flex flex-wrap items-center gap-2 mb-6">
-        {TABS.map((tab) => {
+        {visibleTabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
             <button
@@ -417,7 +426,7 @@ function SettingsContent() {
       )}
 
       {/* --- Operación --- */}
-      {activeTab === 'operation' && (
+      {activeTab === 'operation' && canSeeSystemSettings && (
         <Card className="p-4 sm:p-6 max-w-2xl">
           <h2 className="text-lg font-display font-bold text-gray-900 mb-1">
             Operación e inventario
@@ -515,7 +524,7 @@ function SettingsContent() {
       )}
 
       {/* --- Notificaciones --- */}
-      {activeTab === 'notifications' && (
+      {activeTab === 'notifications' && canSeeSystemSettings && (
         <Card className="p-4 sm:p-6 max-w-2xl">
           <h2 className="text-lg font-display font-bold text-gray-900 mb-1">
             Preferencias de notificaciones
