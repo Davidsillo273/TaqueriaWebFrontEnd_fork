@@ -6,6 +6,7 @@ import NotificationsPanel from './NotificationsPanel';
 import { useAuth } from '../../hooks/auth/useAuth';
 import { useLogout } from '../../hooks/auth/useLogout';
 import { useNotifications } from '../../hooks/useNotifications';
+import { useAssistant } from '../../hooks/useAssistant';
 import { hasPermission } from '../../constants/permissions';
 
 const ROLE_LABELS = {
@@ -47,6 +48,9 @@ const TopBar = ({ onMenuClick }) => {
   const { user, isLoading } = useAuth();
   const { logout, loading: loggingOut } = useLogout();
   const { unreadCount } = useNotifications();
+  // El asistente de IA: se puede abrir desde aquí y, cuando está ejecutando
+  // una acción, este botón lo muestra aunque el chat esté cerrado.
+  const { isOpen: assistantOpen, toggle: toggleAssistant, isBusy: assistantBusy } = useAssistant();
   const navigate = useNavigate();
 
   const [openPanel, setOpenPanel] = useState(null); // 'notifications' | 'user' | null
@@ -168,6 +172,40 @@ const TopBar = ({ onMenuClick }) => {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
+        {/* Asistente de IA: mismo trato visual que la campana. Antes solo
+            existía el botón flotante de la esquina, que pasaba desapercibido;
+            aquí queda a la vista y, sobre todo, avisa cuando está trabajando.
+            Solo lo ve quien puede usarlo (el widget se oculta a los clientes). */}
+        {(user?.role === 'admin' || user?.role === 'employee') && (
+          <div className="relative bg-white/90 border border-white/80 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_1px_1px_2px_rgba(255,255,255,0.6)]">
+            <button
+              onClick={toggleAssistant}
+              aria-label={assistantBusy ? 'Asistente de IA, ejecutando una acción' : 'Asistente de IA (Ctrl+K)'}
+              aria-expanded={assistantOpen}
+              title="Asistente de IA · Ctrl+K"
+              className={`relative p-2.5 rounded-2xl transition-colors ${
+                assistantBusy
+                  ? 'text-red-500'
+                  : assistantOpen
+                    ? 'text-gray-900 bg-white/60'
+                    : 'text-gray-500 hover:text-gray-900 hover:bg-white/60'
+              }`}
+            >
+              {/* Mientras trabaja, el robot late: es la señal de que el
+                  asistente está haciendo algo, no de que haya un error. */}
+              <FAIcon icon="robot" size="lg" className={assistantBusy ? 'animate-pulse' : ''} />
+
+              {assistantBusy && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3" aria-hidden="true">
+                  {/* Halo que se expande: se nota de reojo sin robar atención */}
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 shadow-sm" />
+                </span>
+              )}
+            </button>
+          </div>
+        )}
+
         {/* Notificaciones: tarjeta propia. Un empleado sin el permiso
             "notifications" ni siquiera ve la campanita. */}
         {canSeeNotifications && (

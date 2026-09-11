@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { ThemeProvider } from './context/themeContext'
 import { AuthProvider } from './context/authContext'
 import { NotificationsProvider } from './context/notificationsContext'
+import { SocketProvider } from './context/socketContext'
+import { AssistantProvider } from './context/assistantContext'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import PublicRoute from './components/auth/PublicRoute'
 import Login from './pages/Login'
@@ -24,6 +26,8 @@ import AcceptInvitation from './pages/AcceptInvitation'
 import Notifications from './pages/Notifications'
 import Settings from './pages/Settings'
 import Recipes from './pages/Recipes'
+import Payroll from './pages/Payroll'
+import Reports from './pages/Reports'
 import ErrorScreen from './pages/ErrorScreen'
 import AssistantChatWidget from './components/chat/AssistantChatWidget'
 
@@ -33,8 +37,14 @@ export default function App() {
 		<ThemeProvider>
 		<BrowserRouter>
 			<AuthProvider>
-				{/* El provider de notificaciones va dentro del de sesión porque
-				    necesita saber si hay usuario para empezar a consultar */}
+				{/* El provider de tiempo real va dentro del de sesión porque la
+				    conexión se autentica con la misma cookie de la API, y por
+				    encima del de notificaciones porque la campana escucha los
+				    eventos que llegan por aquí. */}
+				<SocketProvider>
+				{/* El asistente comparte su estado (abierto/ocupado) con el
+				    TopBar, así que su provider envuelve a las rutas */}
+				<AssistantProvider>
 				<NotificationsProvider>
 				<Routes>
 					{/* Rutas públicas: si ya hay sesión iniciada, PublicRoute
@@ -75,6 +85,8 @@ export default function App() {
 					    (ver TABS en Settings.jsx). */}
 					<Route path="/ajustes" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
 					<Route path="/recetas" element={<ProtectedRoute requiredPermission="recipes"><Recipes /></ProtectedRoute>} />
+					<Route path="/payroll" element={<ProtectedRoute requiredPermission="payroll"><Payroll /></ProtectedRoute>} />
+					<Route path="/reports" element={<ProtectedRoute requiredPermission="reports"><Reports /></ProtectedRoute>} />
 
 					{/* Catch-all: cualquier URL que no coincida con ninguna ruta
 					    de arriba cae aquí y muestra la pantalla de 404. */}
@@ -86,6 +98,8 @@ export default function App() {
 				    página por página. Él mismo decide si mostrarse según la sesión. */}
 				<AssistantChatWidget />
 				</NotificationsProvider>
+				</AssistantProvider>
+				</SocketProvider>
 			</AuthProvider>
 		</BrowserRouter>
 		</ThemeProvider>

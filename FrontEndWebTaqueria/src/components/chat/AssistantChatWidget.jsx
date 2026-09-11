@@ -11,6 +11,7 @@ import FAIcon from '../commons/FAIcon';
 import ChatDynamicForm from './ChatDynamicForm';
 import useAssistantChat from '../../hooks/useAssistantChat';
 import { useAuth } from '../../hooks/auth/useAuth';
+import { useAssistant } from '../../hooks/useAssistant';
 import { PERMISSIONS } from '../../constants/permissions';
 
 const WELCOME_MESSAGE = '¡Hola! Soy el asistente de SYSCOR. Puedo consultar información, hacer cálculos y ejecutar acciones en cualquier parte del sistema. ¿En qué te ayudo?';
@@ -20,7 +21,9 @@ const CONTEXT_OPTIONS = PERMISSIONS.filter((p) => p.type === 'screen');
 const AssistantChatWidget = () => {
   const { user, isAuthenticated } = useAuth();
   const { messages, loading, sendMessage, submitForm, reset } = useAssistantChat();
-  const [isOpen, setIsOpen] = useState(false);
+  // Abrir/cerrar ya no es estado local: vive en el contexto para que el atajo
+  // de teclado (Ctrl/Cmd + K) y el indicador del TopBar puedan usarlo.
+  const { isOpen, close, setIsBusy } = useAssistant();
   const [input, setInput] = useState('');
   const [context, setContext] = useState('');
   const [pendingFiles, setPendingFiles] = useState([]);
@@ -32,6 +35,16 @@ const AssistantChatWidget = () => {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, loading, isOpen]);
+
+  // Le avisamos al resto del panel cuando el asistente está trabajando, para
+  // que el TopBar pueda mostrar su indicador aunque el chat esté cerrado.
+  useEffect(() => {
+    setIsBusy(loading);
+  }, [loading, setIsBusy]);
+
+  // Si el widget se desmonta (ej. al cerrar sesión) el indicador no debe
+  // quedarse encendido para siempre.
+  useEffect(() => () => setIsBusy(false), [setIsBusy]);
 
   // Solo admins y empleados con sesión ven el asistente (clientes/visitantes no)
   if (!isAuthenticated || (user?.role !== 'admin' && user?.role !== 'employee')) return null;
@@ -56,27 +69,20 @@ const AssistantChatWidget = () => {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
-        aria-label="Asistente de IA"
-        className="fixed bottom-6 right-6 z-[70] w-14 h-14 rounded-full bg-red-500 text-white flex items-center justify-center
-          shadow-[0_10px_30px_rgba(220,38,38,0.4),inset_1px_1px_2px_rgba(255,255,255,0.3)]
-          hover:bg-red-600 hover:scale-105 transition-all"
-      >
-        <FAIcon icon={isOpen ? 'times' : 'robot'} size="xl" />
-      </button>
-
+      {/* El botón flotante se quitó: el chat ahora se abre con Ctrl+K (o
+          Cmd+K en Mac) desde cualquier pantalla, o con el ícono de robot en
+          el TopBar (que además muestra cuando el asistente está trabajando).
+          Ver context/assistantContext.jsx y components/dashboard/TopBar.jsx. */}
       {isOpen && (
         <div
           className="fixed inset-0 z-[65] bg-black/40 sm:hidden"
-          onClick={() => setIsOpen(false)}
+          onClick={close}
           aria-hidden="true"
         />
       )}
 
       {isOpen && (
-        <div className="fixed bottom-24 right-6 z-[70] w-[92vw] max-w-md h-[32rem] max-h-[75vh] bg-[#f3f0eb] rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.25),inset_1px_1px_3px_rgba(255,255,255,0.7)] border border-white/80 flex flex-col overflow-hidden">
+        <div className="fixed bottom-6 right-6 z-[70] w-[92vw] max-w-md h-[32rem] max-h-[75vh] bg-[#f3f0eb] rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.25),inset_1px_1px_3px_rgba(255,255,255,0.7)] border border-white/80 flex flex-col overflow-hidden">
           <div className="flex items-center justify-between p-4 bg-red-500 text-white shadow-[inset_0_1px_2px_rgba(255,255,255,0.3),0_4px_12px_rgba(220,38,38,0.3)]">
             <div className="flex items-center gap-2 min-w-0">
               <FAIcon icon="robot" size="sm" />
@@ -93,7 +99,7 @@ const AssistantChatWidget = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setIsOpen(false)}
+                onClick={close}
                 className="text-white/80 hover:text-white p-1.5 rounded-xl hover:bg-white/10 transition-all"
               >
                 <FAIcon icon="times" size="lg" />
