@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import Sidebar from '../components/dashboard/Sidebar';
 import TopBar from '../components/dashboard/TopBar';
 import FAIcon from '../components/commons/FAIcon';
+import Select from '../components/commons/Select';
 import ComboStats from '../components/dashboard/ComboStats';
 import EmployeeModal from '../components/employee/EmployeeModal';
 import EmployeeRadialMenu from '../components/employee/EmployeeRadialMenu';
@@ -14,6 +15,9 @@ import { useEmployees } from '../hooks/useEmployees';
 import useEmployeeLeaderboard from '../hooks/useEmployeeLeaderboard';
 import usePagination from '../hooks/usePagination';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
+import ReportButton from '../components/commons/ReportButton';
+import AttentionCenter from '../components/commons/AttentionCenter';
+import { employeesReportColumns } from '../constants/reportConfigs';
 
 const DAY_ABBR = {
   lunes: 'Lun', martes: 'Mar', miercoles: 'Mié', jueves: 'Jue',
@@ -159,7 +163,33 @@ function EmployeeManagementContent() {
                   Controla los accesos y estados del equipo de Taquería El Corral.
                 </p>
               </div>
+
+              {/* El salario queda fuera de este reporte a proposito: para eso
+                  esta la pantalla de Planilla, con su propio permiso. */}
+              <ReportButton
+                title="Empleados"
+                columns={employeesReportColumns}
+                rows={filteredEmployees}
+                getImageUrl={(e) => e.personalInfo?.image}
+                itemTag="empleado"
+                summary={[
+                  { label: 'Empleados', value: filteredEmployees.length },
+                  { label: 'Activos', value: filteredEmployees.filter((e) => (e.workInfo?.status || 'active') === 'active').length },
+                ]}
+              />
             </div>
+
+            {/* Expedientes incompletos: los identificadores de ISSS y AFP se
+                pueden dejar vacíos al invitar, así que hay que poder ver de
+                un vistazo a quién le falta completarlos. */}
+            <AttentionCenter
+              items={employees.filter((e) => e.hasMissingFields)}
+              getKey={(e) => e._id}
+              getTitle={(e) => `${e.personalInfo?.name || ''} ${e.personalInfo?.lastname || ''}`.trim() || 'Empleado'}
+              getImage={(e) => e.personalInfo?.image}
+              getReason={(e) => (e.missingFields || []).join(', ')}
+              onEdit={(emp) => setDetailModal({ isOpen: true, employee: emp, readOnly: false })}
+            />
 
             <div className="mb-6 sm:mb-8 max-w-sm">
               <ComboStats
@@ -184,17 +214,13 @@ function EmployeeManagementContent() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="px-4 py-2 bg-[#f3f0eb] border border-white/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/30 text-sm text-gray-700 placeholder:text-gray-400 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.05),inset_-2px_-2px_5px_rgba(255,255,255,0.7)]"
                   />
-                  <select
-                    value={selectedRole}
-                    onChange={(e) => setSelectedRole(e.target.value)}
-                    className="px-4 py-2 bg-[#f3f0eb] border border-white/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/30 text-sm font-medium text-gray-700 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.05),inset_-2px_-2px_5px_rgba(255,255,255,0.7)] appearance-none"
-                  >
+                  <Select value={selectedRole} onChange={(e) => setSelectedRole(e.target.value)}>
                     <option value="Todos">Todos los Puestos</option>
                     <option value="GERENTE">Gerentes</option>
                     <option value="MESERO">Meseros</option>
                     <option value="CAJERO">Cajeros</option>
                     <option value="COCINA">Cocina</option>
-                  </select>
+                  </Select>
                 </div>
               </div>
 

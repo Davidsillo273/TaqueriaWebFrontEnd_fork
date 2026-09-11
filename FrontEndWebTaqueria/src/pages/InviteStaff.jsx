@@ -2,22 +2,18 @@ import React, { useState } from 'react'
 import Sidebar from '../components/dashboard/Sidebar'
 import TopBar from '../components/dashboard/TopBar'
 import FAIcon from '../components/commons/FAIcon'
+import Select from '../components/commons/Select'
 import LoadingSpinner from '../components/commons/LoadingSpinner'
 import { useInvitation } from '../hooks/auth/useInvitation'
 import { ToastProvider, useToast } from '../components/commons/ToastProvider'
 import ConfirmModal from '../components/commons/ConfirmModal'
 import { PERMISSION_GROUPS } from '../constants/permissions'
 import { calculatePayrollDeductions } from '../utils/payroll'
+import { EMPLOYEE_TYPE_OPTIONS } from '../constants/employeeTypes'
+import useDuiScan from '../hooks/useDuiScan'
+import DuiScanStep from '../components/employee/DuiScanStep'
 
-// Debe coincidir exacto con el enum de personalInfo.type en employeeModel.js
-const EMPLOYEE_TYPE_OPTIONS = [
-  { value: 'kitchen', label: 'Cocina' },
-  { value: 'waiter', label: 'Mesero' },
-  { value: 'cashier', label: 'Cajero' },
-  { value: 'manager', label: 'Gerente' },
-  { value: 'cleaner', label: 'Limpieza' },
-  { value: 'other', label: 'Otro' },
-]
+const API_URL = import.meta.env.VITE_API_URL || '/api'
 
 const DAYS = [
   { value: 'lunes', label: 'Lun' },
@@ -46,6 +42,9 @@ const ROLE_CONFIG = {
     label: 'Empleado',
     icon: 'briefcase',
     description: 'Acceso operativo con permisos específicos',
+    // Aviso en el botón de selección: quien va a invitar a alguien necesita
+    // tener el documento a la mano ANTES de empezar, no a mitad del proceso.
+    requirement: 'Debes tener el DUI del empleado a invitar a mano',
     steps: [
       {
         title: 'Información básica',
@@ -53,14 +52,34 @@ const ROLE_CONFIG = {
         fields: ['email', 'name', 'lastname'],
       },
       {
+        title: 'Escanear el DUI',
+        subtitle: 'Toma las fotos del documento y el sistema llenará los datos por ti',
+        fields: ['duiScan'],
+      },
+      {
+        title: 'Datos del documento',
+        subtitle: 'Revisa lo que se leyó del DUI y corrige lo que haga falta',
+        fields: ['duiNit', 'birthDate', 'gender', 'maritalStatus', 'address'],
+      },
+      {
         title: 'Datos personales',
-        subtitle: 'Identificación y puesto de trabajo',
-        fields: ['phone', 'duiNit', 'address', 'type'],
+        subtitle: 'Contacto y puesto de trabajo',
+        fields: ['phone', 'type'],
       },
       {
         title: 'Información laboral',
         subtitle: 'Salario base. AFP, ISSS y renta se calculan automáticamente',
         fields: ['salary', 'additionalPay', 'workInsurance'],
+      },
+      {
+        title: 'Identificadores y banco',
+        subtitle: 'Se pueden dejar vacíos: el expediente quedará marcado como incompleto',
+        fields: ['isssNumber', 'afpInstitution', 'afpNumber', 'bankName', 'bankAccount'],
+      },
+      {
+        title: 'Documentos del expediente',
+        subtitle: 'Comprobante de domicilio y antecedentes penales (opcionales)',
+        fields: ['extraDocuments'],
       },
       {
         title: 'Horario de trabajo',
@@ -86,18 +105,115 @@ const INITIAL_FORM_DATA = {
   type: '',
   salary: '',
   additionalPay: '',
+  additionalPayDuration: '',
   workInsurance: false,
   workDays: [],
   scheduleStart: '',
   scheduleEnd: '',
   permissions: [],
+  // Datos que salen del DUI escaneado (el admin los revisa y corrige)
+  birthDate: '',
+  gender: '',
+  maritalStatus: '',
+  // Identificadores de ley: pueden quedar vacíos, el expediente queda
+  // marcado como incompleto hasta que alguien los complete
+  isssNumber: '',
+  afpInstitution: '',
+  afpNumber: '',
+  bankName: '',
+  bankAccount: '',
 }
+
+// Cuánto dura un pago adicional. Un bono se pacta por un tiempo definido,
+// no para siempre.
+const ADDITIONAL_PAY_DURATIONS = [
+  { value: '15d', label: '15 días' },
+  { value: '1m', label: '1 mes' },
+  { value: '2m', label: '2 meses' },
+  { value: '3m', label: '3 meses' },
+]
+
+const AFP_INSTITUTIONS = [
+  { value: 'confia', label: 'AFP Confía' },
+  { value: 'crecer', label: 'AFP Crecer' },
+  { value: 'ipsfa', label: 'IPSFA' },
+  { value: 'inpep', label: 'INPEP' },
+]
+
+const GENDER_OPTIONS = [
+  { value: 'masculino', label: 'Masculino' },
+  { value: 'femenino', label: 'Femenino' },
+]
+
+const MARITAL_STATUS_OPTIONS = [
+  { value: 'soltero', label: 'Soltero/a' },
+  { value: 'casado', label: 'Casado/a' },
+  { value: 'divorciado', label: 'Divorciado/a' },
+  { value: 'viudo', label: 'Viudo/a' },
+  { value: 'acompanado', label: 'Acompañado/a' },
+]
 
 // Estilo base para los inputs clay
 const inputClasses =
   'w-full px-4 py-2.5 bg-[#f3f0eb] border border-white/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-400 transition-all text-gray-700 placeholder:text-gray-400 text-sm shadow-[inset_2px_2px_5px_rgba(0,0,0,0.05),inset_-2px_-2px_5px_rgba(255,255,255,0.7)]'
 
-const selectClasses = inputClasses + ' appearance-none'
+// Sube el comprobante de domicilio y los antecedentes al mismo lugar donde
+// quedaron las fotos del DUI, y devuelve sus URLs para adjuntarlas a la
+// invitación.
+const uploadExtraDocuments = async ({ proofOfAddress, criminalRecord }) => {
+  try {
+    const body = new FormData()
+    if (proofOfAddress) body.append('proofOfAddress', proofOfAddress)
+    if (criminalRecord) body.append('criminalRecord', criminalRecord)
+
+    const res = await fetch(`${API_URL}/users/dui-scan/documents`, {
+      method: 'POST',
+      credentials: 'include',
+      body,
+    })
+
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) return { success: false, error: data.message }
+
+    return { success: true, documents: data.documents || {} }
+  } catch (err) {
+    console.error('Error al subir los documentos del expediente:', err)
+    return { success: false, error: 'Error de conexión al guardar los documentos.' }
+  }
+}
+
+// Selector de un documento del expediente. A diferencia del DUI, aquí se
+// acepta también PDF: los recibos y las solvencias suelen descargarse así.
+const DocumentSlot = ({ label, hint, file, onPick, onClear }) => (
+  <div className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-white/80 shadow-sm">
+    <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+      <FAIcon icon={file ? 'file-circle-check' : 'file-arrow-up'} className="text-red-600" />
+    </div>
+    <div className="min-w-0 flex-1">
+      <p className="text-sm font-display font-bold text-gray-900">{label}</p>
+      <p className="text-[11px] text-gray-500 truncate">{file ? file.name : hint}</p>
+    </div>
+    {file ? (
+      <button
+        type="button"
+        onClick={onClear}
+        className="text-xs text-red-500 font-display font-semibold shrink-0"
+      >
+        Quitar
+      </button>
+    ) : (
+      <label className="px-3 py-1.5 rounded-xl bg-[#f3f0eb] text-xs font-display font-semibold text-gray-600 cursor-pointer hover:bg-gray-100 transition-colors shrink-0">
+        Elegir
+        <input
+          type="file"
+          accept="image/*,application/pdf"
+          onChange={(e) => onPick(e.target.files?.[0] || null)}
+          className="hidden"
+        />
+      </label>
+    )}
+  </div>
+)
 
 function InviteStaffContent() {
   const [step, setStep] = useState(1) // 1: elegir rol, 2: formulario, 3: éxito
@@ -107,6 +223,33 @@ function InviteStaffContent() {
 
   const { loading, error, sendInvitation, reset } = useInvitation()
   const { addToast } = useToast()
+  // Cuando el DUI se lee con éxito, sus datos pasan al formulario y la
+  // pantalla avanza sola al paso de revisión: el admin no tiene que volver
+  // a pulsar nada para ver lo que se extrajo.
+  const duiScan = useDuiScan({
+    onExtracted: (d) => {
+      setFormData((prev) => ({
+        ...prev,
+        // Solo se pisa lo que el documento sí trajo: si un campo no se pudo
+        // leer, se conserva lo que el admin ya hubiera escrito.
+        ...(d.duiNumber ? { duiNit: d.duiNumber } : {}),
+        ...(d.names ? { name: d.names } : {}),
+        ...(d.lastNames ? { lastname: d.lastNames } : {}),
+        ...(d.birthDate ? { birthDate: d.birthDate } : {}),
+        ...(d.gender ? { gender: d.gender } : {}),
+        ...(d.maritalStatus ? { maritalStatus: d.maritalStatus } : {}),
+        ...(d.address ? { address: d.address } : {}),
+      }))
+
+      // Avanza del paso de escaneo al de revisión de los datos leídos.
+      setSubStep((prev) => (ROLE_CONFIG.employee.steps[prev]?.fields?.includes('duiScan') ? prev + 1 : prev))
+    },
+  })
+
+  // Comprobante de domicilio y antecedentes penales: se suben junto con la
+  // invitación, no antes, porque son opcionales.
+  const [extraDocs, setExtraDocs] = useState({ proofOfAddress: null, criminalRecord: null })
+  const [uploadingDocs, setUploadingDocs] = useState(false)
 
   const [formData, setFormData] = useState(INITIAL_FORM_DATA)
   const [validationErrors, setValidationErrors] = useState({})
@@ -149,7 +292,14 @@ function InviteStaffContent() {
       if (!formData.salary) errors.salary = 'El salario es requerido'
       else if (isNaN(formData.salary)) errors.salary = 'El salario debe ser un número'
     }
-    if (fields.includes('additionalPay') && formData.additionalPay && isNaN(formData.additionalPay)) errors.additionalPay = 'El pago adicional debe ser un número'
+    if (fields.includes('additionalPay') && formData.additionalPay) {
+      if (isNaN(formData.additionalPay)) errors.additionalPay = 'El pago adicional debe ser un número'
+      // Un bono sin plazo no se puede liquidar después: si se puso monto,
+      // hay que decir hasta cuándo.
+      else if (Number(formData.additionalPay) > 0 && !formData.additionalPayDuration) {
+        errors.additionalPayDuration = 'Indica por cuánto tiempo se dará el pago adicional'
+      }
+    }
 
     setValidationErrors(errors)
     return Object.keys(errors).length === 0
@@ -174,6 +324,21 @@ function InviteStaffContent() {
       lastname: formData.lastname.trim(),
     }
 
+    // Los documentos del expediente se guardan primero (la invitación viaja
+    // como JSON, así que solo puede llevar URLs, no archivos).
+    let uploadedDocs = {}
+    if (role === 'employee' && (extraDocs.proofOfAddress || extraDocs.criminalRecord)) {
+      setUploadingDocs(true)
+      const uploaded = await uploadExtraDocuments(extraDocs)
+      setUploadingDocs(false)
+
+      if (!uploaded.success) {
+        addToast(uploaded.error || 'No se pudieron guardar los documentos', 'error')
+        return
+      }
+      uploadedDocs = uploaded.documents
+    }
+
     if (role === 'employee') {
       Object.assign(data, {
         phone: formData.phone.trim(),
@@ -182,11 +347,25 @@ function InviteStaffContent() {
         type: formData.type,
         salary: Number(formData.salary),
         additionalPay: formData.additionalPay ? Number(formData.additionalPay) : 0,
+        // La duración solo tiene sentido si de verdad hay un bono
+        additionalPayDuration: formData.additionalPay ? (formData.additionalPayDuration || null) : null,
         workInsurance: formData.workInsurance,
         workDays: formData.workDays,
         scheduleStart: formData.scheduleStart || null,
         scheduleEnd: formData.scheduleEnd || null,
         permissions: formData.permissions,
+        // Datos que salieron del DUI (ya revisados por el admin)
+        birthDate: formData.birthDate || null,
+        gender: formData.gender || null,
+        maritalStatus: formData.maritalStatus || null,
+        // Identificadores de ley: pueden ir vacíos a propósito
+        isssNumber: formData.isssNumber.trim() || null,
+        afpInstitution: formData.afpInstitution || null,
+        afpNumber: formData.afpNumber.trim() || null,
+        bankName: formData.bankName.trim() || null,
+        bankAccount: formData.bankAccount.trim() || null,
+        // Fotos del DUI (del escaneo) + documentos del expediente
+        documents: { ...(duiScan.documents || {}), ...uploadedDocs },
       })
     }
 
@@ -207,6 +386,8 @@ function InviteStaffContent() {
     setRole(null)
     setStep(1)
     reset()
+    duiScan.reset()
+    setExtraDocs({ proofOfAddress: null, criminalRecord: null })
   }
 
   const handleSelectRole = (selectedRole) => {
@@ -214,6 +395,8 @@ function InviteStaffContent() {
     setStep(2)
     setSubStep(0)
     reset()
+    duiScan.reset()
+    setExtraDocs({ proofOfAddress: null, criminalRecord: null })
   }
 
   const handleInviteAnother = () => {
@@ -223,6 +406,9 @@ function InviteStaffContent() {
     setSubStep(0)
     setStep(1)
     reset()
+    // El siguiente empleado tiene su propio DUI y sus propios documentos
+    duiScan.reset()
+    setExtraDocs({ proofOfAddress: null, criminalRecord: null })
   }
 
   // El admin confirmó que quiere descartar el registro en curso: se limpia
@@ -252,6 +438,13 @@ function InviteStaffContent() {
           <div>
             <p className="font-display font-bold text-gray-900">{config.label}</p>
             <p className="text-xs text-gray-500">{config.description}</p>
+            {/* Aviso de lo que hay que tener listo antes de empezar */}
+            {config.requirement && (
+              <p className="text-[11px] text-amber-700 font-display font-semibold mt-1.5 inline-flex items-start gap-1">
+                <FAIcon icon="id-card" size="xs" className="mt-0.5 shrink-0" />
+                {config.requirement}
+              </p>
+            )}
           </div>
         </button>
       ))}
@@ -385,17 +578,16 @@ function InviteStaffContent() {
             <label className="block text-xs font-display font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
               Puesto <span className="text-red-500">*</span>
             </label>
-            <select
+            <Select
               name="type"
               value={formData.type}
               onChange={handleChange}
-              className={selectClasses}
             >
               <option value="">Selecciona un puesto</option>
               {EMPLOYEE_TYPE_OPTIONS.map((t) => (
                 <option key={t.value} value={t.value}>{t.label}</option>
               ))}
-            </select>
+            </Select>
             {validationErrors.type && <p className="text-red-500 text-xs mt-1 font-medium">{validationErrors.type}</p>}
           </div>
         )
@@ -440,7 +632,7 @@ function InviteStaffContent() {
         return (
           <div key={fieldName} className="mb-3">
             <label className="block text-xs font-display font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-              Pago Adicional
+              Pago Adicional <span className="text-gray-400 normal-case tracking-normal font-medium">(opcional)</span>
             </label>
             <input
               type="number"
@@ -450,7 +642,33 @@ function InviteStaffContent() {
               onChange={handleChange}
               className={inputClasses}
             />
+            <p className="text-[11px] text-gray-400 mt-1">
+              Es un bono aparte del salario: no se le descuenta AFP, ISSS ni renta.
+            </p>
             {validationErrors.additionalPay && <p className="text-red-500 text-xs mt-1 font-medium">{validationErrors.additionalPay}</p>}
+
+            {/* Un bono se pacta por un tiempo definido, así que solo se
+                pregunta la duración cuando de verdad hay un monto. */}
+            {formData.additionalPay && Number(formData.additionalPay) > 0 && (
+              <div className="mt-3">
+                <label className="block text-xs font-display font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                  ¿Por cuánto tiempo? <span className="text-red-500">*</span>
+                </label>
+                <Select
+                  name="additionalPayDuration"
+                  value={formData.additionalPayDuration}
+                  onChange={handleChange}
+                >
+                  <option value="">Selecciona la duración</option>
+                  {ADDITIONAL_PAY_DURATIONS.map((d) => (
+                    <option key={d.value} value={d.value}>{d.label}</option>
+                  ))}
+                </Select>
+                {validationErrors.additionalPayDuration && (
+                  <p className="text-red-500 text-xs mt-1 font-medium">{validationErrors.additionalPayDuration}</p>
+                )}
+              </div>
+            )}
           </div>
         )
       case 'workInsurance':
@@ -511,6 +729,170 @@ function InviteStaffContent() {
             <input type="time" name="scheduleEnd" value={formData.scheduleEnd} onChange={handleChange} className={inputClasses} />
           </div>
         )
+      // --- Escaneo del DUI ---
+      case 'duiScan':
+        return (
+          <div key={fieldName} className="mb-3 sm:col-span-2">
+            <DuiScanStep
+              {...duiScan}
+              onSkip={() => setSubStep((prev) => prev + 1)}
+            />
+          </div>
+        )
+
+      // --- Datos que salieron del documento (editables) ---
+      case 'birthDate':
+        return (
+          <div key={fieldName} className="mb-3">
+            <label className="block text-xs font-display font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+              Fecha de nacimiento
+            </label>
+            <input
+              type="date"
+              name="birthDate"
+              value={formData.birthDate}
+              onChange={handleChange}
+              className={inputClasses}
+            />
+          </div>
+        )
+      case 'gender':
+        return (
+          <div key={fieldName} className="mb-3">
+            <label className="block text-xs font-display font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+              Sexo
+            </label>
+            <Select name="gender" value={formData.gender} onChange={handleChange}>
+              <option value="">Sin especificar</option>
+              {GENDER_OPTIONS.map((g) => (
+                <option key={g.value} value={g.value}>{g.label}</option>
+              ))}
+            </Select>
+          </div>
+        )
+      case 'maritalStatus':
+        return (
+          <div key={fieldName} className="mb-3">
+            <label className="block text-xs font-display font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+              Estado familiar
+            </label>
+            <Select name="maritalStatus" value={formData.maritalStatus} onChange={handleChange}>
+              <option value="">Sin especificar</option>
+              {MARITAL_STATUS_OPTIONS.map((m) => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </Select>
+          </div>
+        )
+
+      // --- Identificadores de ley y banco (pueden quedar vacíos) ---
+      case 'isssNumber':
+        return (
+          <div key={fieldName} className="mb-3">
+            <label className="block text-xs font-display font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+              Número de ISSS
+            </label>
+            <input
+              type="text"
+              name="isssNumber"
+              placeholder="Ej. 123456789"
+              value={formData.isssNumber}
+              onChange={handleChange}
+              className={inputClasses}
+            />
+          </div>
+        )
+      case 'afpInstitution':
+        return (
+          <div key={fieldName} className="mb-3">
+            <label className="block text-xs font-display font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+              Institución de AFP
+            </label>
+            <Select name="afpInstitution" value={formData.afpInstitution} onChange={handleChange}>
+              <option value="">Sin especificar</option>
+              {AFP_INSTITUTIONS.map((a) => (
+                <option key={a.value} value={a.value}>{a.label}</option>
+              ))}
+            </Select>
+          </div>
+        )
+      case 'afpNumber':
+        return (
+          <div key={fieldName} className="mb-3">
+            <label className="block text-xs font-display font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+              Número de AFP
+            </label>
+            <input
+              type="text"
+              name="afpNumber"
+              placeholder="Ej. 000123456789"
+              value={formData.afpNumber}
+              onChange={handleChange}
+              className={inputClasses}
+            />
+          </div>
+        )
+      case 'bankName':
+        return (
+          <div key={fieldName} className="mb-3">
+            <label className="block text-xs font-display font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+              Banco
+            </label>
+            <input
+              type="text"
+              name="bankName"
+              placeholder="Ej. Banco Agrícola"
+              value={formData.bankName}
+              onChange={handleChange}
+              className={inputClasses}
+            />
+          </div>
+        )
+      case 'bankAccount':
+        return (
+          <div key={fieldName} className="mb-3">
+            <label className="block text-xs font-display font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+              Número de cuenta
+            </label>
+            <input
+              type="text"
+              name="bankAccount"
+              placeholder="Ej. 1234567890"
+              value={formData.bankAccount}
+              onChange={handleChange}
+              className={inputClasses}
+            />
+            <p className="text-[11px] text-gray-400 mt-1">
+              Es a donde se le depositará la planilla.
+            </p>
+          </div>
+        )
+
+      // --- Documentos sueltos del expediente ---
+      case 'extraDocuments':
+        return (
+          <div key={fieldName} className="mb-3 sm:col-span-2 space-y-3">
+            <DocumentSlot
+              label="Comprobante de domicilio"
+              hint="Recibo de agua o luz a nombre del empleado"
+              file={extraDocs.proofOfAddress}
+              onPick={(file) => setExtraDocs((prev) => ({ ...prev, proofOfAddress: file }))}
+              onClear={() => setExtraDocs((prev) => ({ ...prev, proofOfAddress: null }))}
+            />
+            <DocumentSlot
+              label="Antecedentes penales"
+              hint="Solvencia de la Dirección General de Centros Penales"
+              file={extraDocs.criminalRecord}
+              onPick={(file) => setExtraDocs((prev) => ({ ...prev, criminalRecord: file }))}
+              onClear={() => setExtraDocs((prev) => ({ ...prev, criminalRecord: null }))}
+            />
+            <p className="text-[11px] text-gray-400">
+              Si faltan, el empleado quedará marcado con &ldquo;Atención&rdquo; hasta que se
+              agreguen desde su ficha.
+            </p>
+          </div>
+        )
+
       case 'permissions':
         return (
           <div key={fieldName} className="sm:col-span-2 space-y-4">
@@ -580,7 +962,7 @@ function InviteStaffContent() {
           <button
             type="button"
             onClick={handleBack}
-            disabled={loading}
+            disabled={loading || uploadingDocs}
             className="flex-1 flex items-center justify-center gap-1 border border-gray-300 text-gray-600 py-3 rounded-2xl hover:bg-gray-50 transition disabled:opacity-50 font-display font-semibold text-sm
               shadow-[0_2px_8px_rgba(0,0,0,0.05),inset_0_1px_2px_rgba(255,255,255,0.8)]"
           >
@@ -589,7 +971,7 @@ function InviteStaffContent() {
           <button
             type="button"
             onClick={() => setConfirmCancelOpen(true)}
-            disabled={loading}
+            disabled={loading || uploadingDocs}
             className="flex-1 flex items-center justify-center gap-1 border border-red-200 text-red-500 py-3 rounded-2xl hover:bg-red-50 transition disabled:opacity-50 font-display font-semibold text-sm
               shadow-[0_2px_8px_rgba(0,0,0,0.05),inset_0_1px_2px_rgba(255,255,255,0.8)]"
           >
@@ -597,11 +979,11 @@ function InviteStaffContent() {
           </button>
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || uploadingDocs}
             className="flex-[1.4] bg-red-500 hover:bg-red-600 text-white font-display font-semibold py-3 rounded-2xl transition disabled:opacity-50 flex items-center justify-center text-sm
               shadow-[0_6px_16px_rgba(220,38,38,0.35),inset_1px_1px_2px_rgba(255,255,255,0.3)]"
           >
-            {loading ? <LoadingSpinner color="white" size="sm" /> : isLastSubStep ? 'Enviar invitación' : 'Continuar'}
+            {loading || uploadingDocs ? <LoadingSpinner color="white" size="sm" /> : isLastSubStep ? 'Enviar invitación' : 'Continuar'}
           </button>
         </div>
       </form>
