@@ -11,6 +11,8 @@ import useOrders from '../hooks/useOrders'
 import useInvoices from '../hooks/useInvoices'
 import { ToastProvider, useToast } from '../components/commons/ToastProvider'
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import ReportButton from '../components/commons/ReportButton'
+import { ordersReportColumns, invoicesReportColumns } from '../constants/reportConfigs'
 
 // Sección principal: igual que Inventario separa Productos/Activos fijos en
 // dos pestañas dentro de una sola página, aquí "Pedidos" (el flujo operativo
@@ -202,6 +204,23 @@ function OrdersPanel() {
             {f.label}
           </button>
         ))}
+
+        {/* El reporte incluye TODOS los pedidos del filtro de tipo activo,
+            no solo la pestaña de estado que se este viendo: un reporte de
+            "pedidos" que omitiera los entregados seria enganoso. */}
+        <ReportButton
+          title="Pedidos"
+          subtitle={orderTypeFilter === 'all' ? undefined : `Solo pedidos de tipo: ${orderTypeFilter}`}
+          columns={ordersReportColumns}
+          rows={orders}
+          itemTag="pedido"
+          className="ml-auto"
+          summary={[
+            { label: 'Pedidos', value: orders.length },
+            { label: 'Entregados', value: orders.filter((o) => o.status === 'delivered').length },
+            { label: 'Cancelados', value: orders.filter((o) => o.status === 'cancelled').length },
+          ]}
+        />
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
@@ -511,8 +530,21 @@ function InvoicesPanel() {
       </div>
 
       <div className="bg-white rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.08),inset_1px_1px_3px_rgba(255,255,255,0.7)] border border-white/80 overflow-hidden">
-        <div className="p-4 sm:p-5 flex justify-between items-center border-b border-gray-100">
+        <div className="p-4 sm:p-5 flex flex-wrap justify-between items-center gap-3 border-b border-gray-100">
           <h2 className="text-lg font-display font-bold text-gray-900">Historial de Facturación</h2>
+
+          <ReportButton
+            title="Facturacion"
+            subtitle={orderTypeFilter === 'all' ? undefined : `Solo ventas de tipo: ${orderTypeFilter}`}
+            columns={invoicesReportColumns}
+            rows={invoices}
+            itemTag="factura"
+            summary={[
+              { label: 'Ventas facturadas', value: ventas },
+              { label: 'Total facturado', value: `$${totalFacturado.toFixed(2)}` },
+              { label: 'Ticket promedio', value: `$${ticketPromedio.toFixed(2)}` },
+            ]}
+          />
         </div>
         <InvoiceTable invoices={invoices} loading={loading} onDeleteRequest={handleRequestDelete} />
       </div>

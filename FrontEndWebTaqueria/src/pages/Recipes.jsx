@@ -9,6 +9,8 @@ import useSaucers from '../hooks/useSaucers';
 import useExtras from '../hooks/useExtras';
 import { ToastProvider } from '../components/commons/ToastProvider';
 import { UNIT_LABELS } from '../constants/units';
+import ReportButton from '../components/commons/ReportButton';
+import { recipesReportColumns } from '../constants/reportConfigs';
 
 const BOOKS = [
   { id: 'drinks', label: 'Bebidas', icon: 'wine-glass', color: 'from-amber-800 to-amber-950' },
@@ -148,13 +150,31 @@ function RecipesContent() {
 
         <main className="flex-1 overflow-y-auto">
           <div className="p-4 sm:p-6 lg:p-8">
-            <div className="mb-6 sm:mb-8 text-center">
-              <h1 className="text-2xl sm:text-3xl font-display font-bold text-gray-900 mb-1 sm:mb-2">
-                Recetario
-              </h1>
-              <p className="text-sm sm:text-base text-gray-600">
-                Elige un libro: cada receta es una página, cada categoría un separador.
-              </p>
+            <div className="mb-6 sm:mb-8 relative">
+              <div className="text-center">
+                <h1 className="text-2xl sm:text-3xl font-display font-bold text-gray-900 mb-1 sm:mb-2">
+                  Recetario
+                </h1>
+                <p className="text-sm sm:text-base text-gray-600">
+                  Elige un libro: cada receta es una página, cada categoría un separador.
+                </p>
+              </div>
+
+              {/* El reporte cubre el libro abierto, con las recetas ya
+                  filtradas por el separador de categoría seleccionado. */}
+              <div className="flex justify-center mt-4 sm:mt-0 sm:absolute sm:right-0 sm:top-0">
+                <ReportButton
+                  title={`Recetas de ${activeBook?.label || ''}`.trim()}
+                  subtitle={subFilter === 'all' ? undefined : `Categoría: ${subFilter}`}
+                  columns={recipesReportColumns}
+                  rows={filteredItems.map((item) => ({ ...item, __type: activeBook?.label || '' }))}
+                  itemTag="receta"
+                  summary={[
+                    { label: 'Recetas', value: filteredItems.length },
+                    { label: 'Libro', value: activeBook?.label || '' },
+                  ]}
+                />
+              </div>
             </div>
 
             {/* Selector de libro: elegir cuál libro está abierto */}

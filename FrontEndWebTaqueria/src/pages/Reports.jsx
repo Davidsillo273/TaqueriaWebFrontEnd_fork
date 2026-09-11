@@ -6,6 +6,7 @@ import React, { useState, useMemo } from 'react';
 import Sidebar from '../components/dashboard/Sidebar';
 import TopBar from '../components/dashboard/TopBar';
 import FAIcon from '../components/commons/FAIcon';
+import Select from '../components/commons/Select';
 import ComboStats from '../components/dashboard/ComboStats';
 import ConfirmModal from '../components/commons/ConfirmModal';
 import PaginationControls from '../components/commons/PaginationControls';
@@ -15,6 +16,8 @@ import { formatPeriodLabel, getCurrentPeriod } from '../hooks/usePayroll';
 import { usePagination } from '../hooks/usePagination';
 import { exportTaxReportToPdf } from '../utils/taxReportPdf';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
+import ReportButton from '../components/commons/ReportButton';
+import { purchaseInvoicesReportColumns } from '../constants/reportConfigs';
 
 const money = (n) => `$${Number(n || 0).toFixed(2)}`;
 const shortDate = (d) => (d ? new Date(d).toLocaleDateString('es-SV') : '—');
@@ -134,6 +137,22 @@ function ReportsContent() {
                   Subir factura de compra
                 </button>
 
+                {/* Complementa al PDF del reporte de IVA: exporta el detalle
+                    de las facturas de compra en XML o JSON. */}
+                <ReportButton
+                  title={`Facturas de compra ${formatPeriodLabel(period)}`}
+                  columns={purchaseInvoicesReportColumns}
+                  rows={invoices}
+                  getImageUrl={(p) => p.fileUrl}
+                  itemTag="factura_compra"
+                  summary={report ? [
+                    { label: 'Facturas de compra', value: report.purchases.count },
+                    { label: 'IVA de compras', value: money(report.purchases.tax) },
+                    { label: 'IVA de ventas', value: money(report.sales.tax) },
+                    { label: report.result.inFavor ? 'Saldo a favor' : 'IVA a pagar', value: money(Math.abs(report.result.taxPayable)) },
+                  ] : undefined}
+                />
+
                 <button
                   type="button"
                   onClick={handleExport}
@@ -183,25 +202,17 @@ function ReportsContent() {
                 </h2>
 
                 <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                  <select
-                    value={period}
-                    onChange={(e) => setPeriod(e.target.value)}
-                    className="px-4 py-2 bg-[#f3f0eb] border border-white/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/30 text-sm font-medium text-gray-700 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.05),inset_-2px_-2px_5px_rgba(255,255,255,0.7)] appearance-none"
-                  >
+                  <Select value={period} onChange={(e) => setPeriod(e.target.value)}>
                     {periodOptions.map((o) => (
                       <option key={o.value} value={o.value}>{o.label}</option>
                     ))}
-                  </select>
+                  </Select>
 
-                  <select
-                    value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
-                    className="px-4 py-2 bg-[#f3f0eb] border border-white/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/30 text-sm font-medium text-gray-700 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.05),inset_-2px_-2px_5px_rgba(255,255,255,0.7)] appearance-none"
-                  >
+                  <Select value={filter} onChange={(e) => setFilter(e.target.value)}>
                     <option value="all">Todas</option>
                     <option value="pending">Sin procesar</option>
                     <option value="processed">Procesadas</option>
-                  </select>
+                  </Select>
                 </div>
               </div>
 

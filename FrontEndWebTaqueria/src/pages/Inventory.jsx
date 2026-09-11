@@ -11,6 +11,8 @@ import AttentionCenter from '../components/commons/AttentionCenter';
 import { useInventory } from '../hooks/useInventory';
 import { usePagination } from '../hooks/usePagination';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
+import ReportButton from '../components/commons/ReportButton';
+import { inventoryProductsReportColumns, inventoryAssetsReportColumns } from '../constants/reportConfigs';
 
 const ITEM_TYPE_TABS = [
   { id: 'producto', label: 'Productos (Mercancía)', icon: 'box' },
@@ -134,17 +136,41 @@ function InventoryContent() {
                   Gestión centralizada de productos y activos fijos.
                 </p>
               </div>
-              <button
-                onClick={handleCreate}
-                className="flex items-center gap-2 px-4 py-2.5 bg-red-500 text-white rounded-xl font-display font-semibold text-sm
-                  shadow-[0_6px_16px_rgba(220,38,38,0.35),inset_1px_1px_2px_rgba(255,255,255,0.3)]
-                  hover:bg-red-600 hover:shadow-[0_8px_20px_rgba(220,38,38,0.4)]
-                  transition-all disabled:opacity-60"
-                disabled={loading}
-              >
-                <FAIcon icon="plus" />
-                {isAssetTab ? 'Nuevo Activo Fijo' : 'Nuevo Insumo'}
-              </button>
+              <div className="flex flex-wrap gap-3">
+                {/* El reporte sigue la pestaña activa: productos y activos
+                    fijos tienen campos distintos, así que cada uno lleva sus
+                    propias columnas. */}
+                <ReportButton
+                  title={isAssetTab ? 'Activos fijos' : 'Insumos de inventario'}
+                  columns={isAssetTab ? inventoryAssetsReportColumns : inventoryProductsReportColumns}
+                  rows={insumos}
+                  getImageUrl={(i) => i.image}
+                  itemTag={isAssetTab ? 'activo' : 'insumo'}
+                  summary={[
+                    { label: 'Registros', value: insumos.length },
+                    ...(isAssetTab
+                      ? []
+                      : [{
+                          label: 'Bajo stock',
+                          value: insumos.filter(
+                            (i) => !i.pending && i.lowStockAlert != null && Number(i.quantity) <= Number(i.lowStockAlert)
+                          ).length,
+                        }]),
+                  ]}
+                />
+
+                <button
+                  onClick={handleCreate}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-red-500 text-white rounded-xl font-display font-semibold text-sm
+                    shadow-[0_6px_16px_rgba(220,38,38,0.35),inset_1px_1px_2px_rgba(255,255,255,0.3)]
+                    hover:bg-red-600 hover:shadow-[0_8px_20px_rgba(220,38,38,0.4)]
+                    transition-all disabled:opacity-60"
+                  disabled={loading}
+                >
+                  <FAIcon icon="plus" />
+                  {isAssetTab ? 'Nuevo Activo Fijo' : 'Nuevo Insumo'}
+                </button>
+              </div>
             </div>
 
             {/* Selector de categoría principal */}

@@ -11,6 +11,8 @@ import useCustomerLeaderboard from '../hooks/useCustomerLeaderboard'
 import { ToastProvider, useToast } from '../components/commons/ToastProvider'
 import { useAuth } from '../hooks/auth/useAuth'
 import { hasPermission } from '../constants/permissions'
+import ReportButton from '../components/commons/ReportButton'
+import { clientsReportColumns } from '../constants/reportConfigs'
 
 function ClientManagementContent() {
   const [activeMenu] = useState('clients')
@@ -61,13 +63,27 @@ function ClientManagementContent() {
 
         <main className="flex-1 overflow-y-auto">
           <div className="p-4 sm:p-6 lg:p-8">
-            <div className="mb-6 sm:mb-8">
-              <h1 className="text-2xl sm:text-3xl font-display font-bold text-gray-900 mb-1 sm:mb-2">
-                Gestión de Clientes
-              </h1>
-              <p className="text-sm sm:text-base text-gray-600">
-                Base de datos de comensales registrados en la plataforma
-              </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-display font-bold text-gray-900 mb-1 sm:mb-2">
+                  Gestión de Clientes
+                </h1>
+                <p className="text-sm sm:text-base text-gray-600">
+                  Base de datos de comensales registrados en la plataforma
+                </p>
+              </div>
+
+              <ReportButton
+                title="Clientes"
+                columns={clientsReportColumns}
+                rows={clients}
+                itemTag="cliente"
+                summary={[
+                  { label: 'Clientes registrados', value: clients.length },
+                  { label: 'Cuentas activas', value: clients.filter((c) => (c.status || 'active') === 'active').length },
+                  { label: 'Verificadas', value: clients.filter((c) => c.loginInfo?.isVerified).length },
+                ]}
+              />
             </div>
 
             <ClientKpis clients={clients} onOpenLeaderboard={() => setLeaderboardOpen(true)} />

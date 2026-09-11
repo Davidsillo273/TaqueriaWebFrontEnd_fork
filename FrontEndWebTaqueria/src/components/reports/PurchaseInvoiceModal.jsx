@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import FAIcon from '../commons/FAIcon';
+import Select from '../commons/Select';
 import { PURCHASE_CATEGORIES } from '../../hooks/usePurchaseInvoices';
 
 // El IVA salvadoreño. Se usa solo para SUGERIR el monto mientras el usuario
@@ -191,16 +192,15 @@ const PurchaseInvoiceModal = ({ isOpen, onClose, onSubmit }) => {
 
             <div>
               <label className={labelClass} htmlFor="category">Categoría del gasto</label>
-              <select
+              <Select
                 id="category"
                 value={form.category}
                 onChange={(e) => handleChange('category', e.target.value)}
-                className={`${inputClass} appearance-none`}
               >
                 {PURCHASE_CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>{c.label}</option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             <div>

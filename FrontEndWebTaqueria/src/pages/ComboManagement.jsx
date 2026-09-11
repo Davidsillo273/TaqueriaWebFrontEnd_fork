@@ -16,6 +16,8 @@ import FAIcon from '../components/commons/FAIcon';
 import { useCombos } from '../hooks/useCombos';
 import { usePagination } from '../hooks/usePagination';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
+import ReportButton from '../components/commons/ReportButton';
+import { combosReportColumns } from '../constants/reportConfigs';
 
 const CATEGORY_FILTERS = [
   { id: 'all', label: 'Todos' },
@@ -190,17 +192,33 @@ function ComboManagementContent() {
                   Administra el menú de la taquería fusionando platillos y bebidas.
                 </p>
               </div>
-              <button
-                onClick={handleOpenAddModal}
-                className="flex items-center gap-2 px-4 py-2.5 bg-red-500 text-white rounded-xl font-display font-semibold text-sm
-                  shadow-[0_6px_16px_rgba(220,38,38,0.35),inset_1px_1px_2px_rgba(255,255,255,0.3)]
-                  hover:bg-red-600 hover:shadow-[0_8px_20px_rgba(220,38,38,0.4)]
-                  transition-all disabled:opacity-60"
-                disabled={loading}
-              >
-                <FAIcon icon="plus" />
-                Nuevo combo
-              </button>
+              <div className="flex flex-wrap gap-3">
+                {/* Exporta lo que esta filtrado en pantalla, no solo
+                    la pagina actual del listado. */}
+                <ReportButton
+                  title="Combos"
+                  columns={combosReportColumns}
+                  rows={filteredCombos}
+                  getImageUrl={(r) => r.image}
+                  itemTag="combo"
+                  summary={[
+                    { label: 'Total de combos', value: filteredCombos.length },
+                    { label: 'Selectivos', value: filteredCombos.filter((c) => c.selective).length },
+                  ]}
+                />
+
+                <button
+                  onClick={handleOpenAddModal}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-red-500 text-white rounded-xl font-display font-semibold text-sm
+                    shadow-[0_6px_16px_rgba(220,38,38,0.35),inset_1px_1px_2px_rgba(255,255,255,0.3)]
+                    hover:bg-red-600 hover:shadow-[0_8px_20px_rgba(220,38,38,0.4)]
+                    transition-all disabled:opacity-60"
+                  disabled={loading}
+                >
+                  <FAIcon icon="plus" />
+                  Nuevo combo
+                </button>
+              </div>
             </div>
 
             {/* Error banner */}

@@ -3,11 +3,14 @@ import Sidebar from '../components/dashboard/Sidebar';
 import TopBar from '../components/dashboard/TopBar';
 import ComboStats from '../components/dashboard/ComboStats';
 import FAIcon from '../components/commons/FAIcon';
+import Select from '../components/commons/Select';
 import TableModal from '../components/tables/TableModal';
 import ConfirmModal from '../components/commons/ConfirmModal';
 import useTables from '../hooks/useTables';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import ReportButton from '../components/commons/ReportButton';
+import { tablesReportColumns } from '../constants/reportConfigs';
 
 // Los valores deben coincidir exactamente con el enum del backend (tablesModel.js / tablesController.js)
 const STATUS_LABELS = {
@@ -143,17 +146,25 @@ function TablesContent() {
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
+                <ReportButton
+                  title="Mesas"
+                  columns={tablesReportColumns}
+                  rows={tables}
+                  itemTag="mesa"
+                  summary={[
+                    { label: 'Total de mesas', value: tables.length },
+                    { label: 'Libres', value: tables.filter((t) => t.status === 'libre').length },
+                    { label: 'Ocupadas', value: tables.filter((t) => t.status === 'ocupada').length },
+                  ]}
+                />
+
                 {/* Cambia el estado de TODAS las mesas de una vez (ej. abrir/cerrar el local) */}
                 <div className="flex items-center gap-1.5 bg-white rounded-xl border border-white/80 shadow-sm p-1">
-                  <select
-                    value={bulkStatus}
-                    onChange={(e) => setBulkStatus(e.target.value)}
-                    className="text-xs sm:text-sm font-display font-semibold text-gray-700 bg-transparent px-2 py-1.5 rounded-lg focus:outline-none"
-                  >
+                  <Select variant="ghost" value={bulkStatus} onChange={(e) => setBulkStatus(e.target.value)}>
                     {Object.entries(STATUS_LABELS).map(([value, label]) => (
                       <option key={value} value={value}>{label}</option>
                     ))}
-                  </select>
+                  </Select>
                   <button
                     onClick={() => setConfirmBulk(true)}
                     disabled={loading || tables.length === 0}

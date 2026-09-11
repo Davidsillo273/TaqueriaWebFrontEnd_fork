@@ -16,6 +16,8 @@ import useExtras from '../hooks/useExtras';
 import { usePagination } from '../hooks/usePagination';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
 import { UNIT_LABELS } from '../constants/units';
+import ReportButton from '../components/commons/ReportButton';
+import { extrasReportColumns } from '../constants/reportConfigs';
 
 function ExtrasContent() {
   const [activeMenu] = useState('extras');
@@ -149,17 +151,33 @@ function ExtrasContent() {
                   Controla los acompañamientos extras disponibles en el menú.
                 </p>
               </div>
-              <button
-                onClick={() => { setEditingExtra(null); setIsModalOpen(true); }}
-                className="flex items-center gap-2 px-4 py-2.5 bg-red-500 text-white rounded-xl font-display font-semibold text-sm
-                  shadow-[0_6px_16px_rgba(220,38,38,0.35),inset_1px_1px_2px_rgba(255,255,255,0.3)]
-                  hover:bg-red-600 hover:shadow-[0_8px_20px_rgba(220,38,38,0.4)]
-                  transition-all disabled:opacity-60"
-                disabled={loading}
-              >
-                <FAIcon icon="plus" />
-                Nuevo extra
-              </button>
+              <div className="flex flex-wrap gap-3">
+                {/* Exporta lo que esta filtrado en pantalla, no solo
+                    la pagina actual del listado. */}
+                <ReportButton
+                  title="Extras"
+                  columns={extrasReportColumns}
+                  rows={filteredExtras}
+                  getImageUrl={(r) => r.image}
+                  itemTag="extra"
+                  summary={[
+                    { label: 'Total de extras', value: filteredExtras.length },
+                    { label: 'Compuestos', value: filteredExtras.filter((e) => e.isCompound).length },
+                  ]}
+                />
+
+                <button
+                  onClick={() => { setEditingExtra(null); setIsModalOpen(true); }}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-red-500 text-white rounded-xl font-display font-semibold text-sm
+                    shadow-[0_6px_16px_rgba(220,38,38,0.35),inset_1px_1px_2px_rgba(255,255,255,0.3)]
+                    hover:bg-red-600 hover:shadow-[0_8px_20px_rgba(220,38,38,0.4)]
+                    transition-all disabled:opacity-60"
+                  disabled={loading}
+                >
+                  <FAIcon icon="plus" />
+                  Nuevo extra
+                </button>
+              </div>
             </div>
 
             {/* Error */}
