@@ -16,6 +16,7 @@ import StockAlertModal from '../components/dashboard/StockAlertModal';
 import NewClientsModal from '../components/dashboard/NewClientsModal';
 import InventoryModal from '../components/inventory/InventoryModal';
 import FAIcon from '../components/commons/FAIcon';
+import Select from '../components/commons/Select';
 import { usePagination } from '../hooks/usePagination';
 import useDashboard from '../hooks/useDashboard';
 import { useEmployees } from '../hooks/useEmployees';
@@ -23,15 +24,7 @@ import useTables from '../hooks/useTables';
 import { useInventory } from '../hooks/useInventory';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
 import { useAuth } from '../hooks/auth/useAuth';
-
-const EMPLOYEE_TYPE_LABELS = {
-  kitchen: 'Cocina',
-  waiter: 'Mesero',
-  cashier: 'Cajero',
-  manager: 'Gerente',
-  cleaner: 'Limpieza',
-  other: 'Otro',
-};
+import { EMPLOYEE_TYPE_LABELS } from '../constants/employeeTypes';
 
 const ORDER_TYPE_FILTERS = [
   { id: 'all', label: 'Todos' },
@@ -55,6 +48,8 @@ function DashboardContent() {
   const [activeTab, setActiveTab] = useState('actividad');
   const [orderTypeFilter, setOrderTypeFilter] = useState('all');
   const [staffTypeFilter, setStaffTypeFilter] = useState('all');
+  // Independiente del puesto: "en turno ahora" según el horario configurado.
+  const [staffAvailabilityFilter, setStaffAvailabilityFilter] = useState('all');
 
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -107,9 +102,14 @@ function DashboardContent() {
   }, [activityData, orderTypeFilter]);
 
   const filteredStaff = useMemo(() => {
-    if (staffTypeFilter === 'all') return staffData;
-    return staffData.filter((s) => s.type === staffTypeFilter);
-  }, [staffData, staffTypeFilter]);
+    return staffData
+      .filter((s) => staffTypeFilter === 'all' || s.type === staffTypeFilter)
+      .filter((s) => {
+        if (staffAvailabilityFilter === 'available') return s.workingNow;
+        if (staffAvailabilityFilter === 'unavailable') return !s.workingNow;
+        return true;
+      });
+  }, [staffData, staffTypeFilter, staffAvailabilityFilter]);
 
   const { page, totalPages, paginatedItems, next, prev } = usePagination(filteredStaff, 4);
 
@@ -270,17 +270,32 @@ function DashboardContent() {
             </Card>
 
             <Card className="p-4 sm:p-6">
-              <div className="flex items-center justify-between mb-2 sm:mb-4 gap-2">
+              <div className="flex items-center justify-between mb-2 sm:mb-4 gap-2 flex-wrap">
                 <h2 className="text-lg sm:text-xl font-display font-bold text-gray-900">Estado del Equipo</h2>
-                <select
-                  value={staffTypeFilter}
-                  onChange={(e) => setStaffTypeFilter(e.target.value)}
-                  className="text-xs px-2 py-1.5 rounded-xl bg-gray-50 border border-gray-200 text-gray-700"
-                >
-                  {staffTypeOptions.map((t) => (
-                    <option key={t} value={t}>{t === 'all' ? 'Todos' : (EMPLOYEE_TYPE_LABELS[t] || t)}</option>
-                  ))}
-                </select>
+                <div className="flex items-center gap-2">
+                  {/* Disponibilidad: independiente del puesto, según si su
+                      horario configurado lo tiene trabajando ahora mismo. */}
+                  <Select
+                    size="sm"
+                    value={staffAvailabilityFilter}
+                    onChange={(e) => setStaffAvailabilityFilter(e.target.value)}
+                    className="w-auto min-w-[110px]"
+                  >
+                    <option value="all">Cualquiera</option>
+                    <option value="available">Disponibles</option>
+                    <option value="unavailable">Fuera de turno</option>
+                  </Select>
+                  <Select
+                    size="sm"
+                    value={staffTypeFilter}
+                    onChange={(e) => setStaffTypeFilter(e.target.value)}
+                    className="w-auto min-w-[110px]"
+                  >
+                    {staffTypeOptions.map((t) => (
+                      <option key={t} value={t}>{t === 'all' ? 'Todos' : (EMPLOYEE_TYPE_LABELS[t] || t)}</option>
+                    ))}
+                  </Select>
+                </div>
               </div>
               <p className="text-sm text-gray-600 mb-4">
                 {isLoading ? 'Cargando personal...' : `${stats.staffWorkingNowCount} de ${stats.totalEmployees} en turno ahora`}

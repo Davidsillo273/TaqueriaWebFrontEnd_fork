@@ -7,6 +7,7 @@ import useClients from './useClients';
 import useInvoices from './useInvoices';
 import { useAuth } from './auth/useAuth';
 import { hasPermission } from '../constants/permissions';
+import { translateEmployeeType } from '../constants/employeeTypes';
 
 // Etiquetas en español para el estado del pedido (ajustar si el enum del back cambia)
 const ORDER_STATUS_LABELS = {
@@ -118,8 +119,11 @@ export default function useDashboard() {
     return employees.map((emp) => ({
       id: emp._id,
       name: `${emp.personalInfo?.name || ''} ${emp.personalInfo?.lastname || ''}`.trim() || 'Sin nombre',
+      image: emp.personalInfo?.image || null,
       type: emp.personalInfo?.type || 'other',
-      role: emp.personalInfo?.type || 'Empleado',
+      // "role" es lo que se muestra en pantalla (ya traducido); "type" es el
+      // valor crudo del enum, que sigue usándose para filtrar y agrupar.
+      role: translateEmployeeType(emp.personalInfo?.type),
       shift: emp.workInfo?.shift || 'Turno',
       time: emp.workInfo?.scheduleStart && emp.workInfo?.scheduleEnd
         ? `${emp.workInfo.scheduleStart} - ${emp.workInfo.scheduleEnd}`

@@ -1,16 +1,9 @@
 // src/components/dashboard/EmployeeDetailModal.jsx
 import React, { useState, useEffect } from 'react';
 import FAIcon from '../commons/FAIcon';
+import Select from '../commons/Select';
 import ConfirmModal from '../commons/ConfirmModal';
-
-const TYPE_OPTIONS = [
-  { value: 'kitchen', label: 'Cocina' },
-  { value: 'waiter', label: 'Mesero' },
-  { value: 'cashier', label: 'Cajero' },
-  { value: 'manager', label: 'Gerente' },
-  { value: 'cleaner', label: 'Limpieza' },
-  { value: 'other', label: 'Otro' },
-];
+import { EMPLOYEE_TYPE_OPTIONS as TYPE_OPTIONS } from '../../constants/employeeTypes';
 
 const DAYS = [
   { value: 'lunes', label: 'Lun' },
@@ -146,14 +139,13 @@ const EmployeeDetailModal = ({ isOpen, onClose, employee, onSave, onSendPassword
               </div>
               <div>
                 <label className="text-xs font-display font-semibold text-gray-500">Puesto</label>
-                <select
+                <Select
                   disabled={readOnly}
-                  className={inputClass}
                   value={form.type}
                   onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
                 >
                   {TYPE_OPTIONS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                </select>
+                </Select>
               </div>
               <div>
                 <label className="text-xs font-display font-semibold text-gray-500">Salario</label>
