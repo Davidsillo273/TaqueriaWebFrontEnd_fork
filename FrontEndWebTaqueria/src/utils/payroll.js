@@ -16,10 +16,14 @@ const ISR_BRACKETS = [
 
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
+// SOLO sobre el salario base. Los bonos viven aparte, en la Planilla de
+// bonos: son un pago discrecional del dueño, no salario cotizable (ver el
+// mismo comentario en backEnd/src/utils/users/payrollUtils.js).
 export const calculatePayrollDeductions = (grossSalary) => {
   const salary = Number(grossSalary);
+
   if (!salary || salary <= 0 || Number.isNaN(salary)) {
-    return { grossSalary: 0, afp: 0, isss: 0, isr: 0, netSalary: 0 };
+    return { grossSalary: 0, afp: 0, isss: 0, isr: 0, taxableBase: 0, netSalary: 0 };
   }
 
   const afp = round2(salary * AFP_RATE);
@@ -31,7 +35,14 @@ export const calculatePayrollDeductions = (grossSalary) => {
 
   const netSalary = round2(salary - afp - isss - isr);
 
-  return { grossSalary: round2(salary), afp, isss, isr, netSalary };
+  return {
+    grossSalary: round2(salary),
+    afp,
+    isss,
+    isr,
+    taxableBase: round2(taxableBase),
+    netSalary,
+  };
 };
 
 export default { calculatePayrollDeductions };

@@ -3,12 +3,16 @@ import React, { useState, useMemo } from 'react';
 import Sidebar from '../components/dashboard/Sidebar';
 import TopBar from '../components/dashboard/TopBar';
 import FAIcon from '../components/commons/FAIcon';
+import Select from '../components/commons/Select';
 import ComboStats from '../components/dashboard/ComboStats';
 import PaginationControls from '../components/commons/PaginationControls';
 import usePayroll, { formatPeriodLabel, getCurrentPeriod } from '../hooks/usePayroll';
+import useBonusPayroll from '../hooks/useBonusPayroll';
 import { usePagination } from '../hooks/usePagination';
-import { exportPayrollToPdf } from '../utils/payrollPdf';
-import { ToastProvider, useToast } from '../components/commons/ToastProvider';
+import { ToastProvider } from '../components/commons/ToastProvider';
+import ReportButton from '../components/commons/ReportButton';
+import { payrollReportColumns, bonusPayrollReportColumns } from '../constants/reportConfigs';
+import PayslipModal from '../components/payroll/PayslipModal';
 
 const money = (n) => `$${Number(n || 0).toFixed(2)}`;
 
@@ -32,40 +36,48 @@ const BADGE_BY_TYPE = {
   Cajero: 'bg-blue-50 text-blue-700 border border-blue-200',
 };
 
+// Las dos planillas del apartado. Van separadas porque el bono es un pago
+// discrecional del dueño (una gratificación puntual, no una comisión ni
+// bonificación pactada), así que no forma parte del salario cotizable: no
+// debe arrastrar renta, AFP ni ISSS a nadie solo por recibirlo.
+const TABS = [
+  { id: 'general', label: 'Planilla general', icon: 'money-bill' },
+  { id: 'bonuses', label: 'Planilla de bonos', icon: 'gift' },
+];
+
 function PayrollContent() {
   const [activeMenu] = useState('payroll');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [tab, setTab] = useState('general');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const { rows, totals, loading, error, period, setPeriod, status, setStatus } = usePayroll(getCurrentPeriod());
-  const { addToast } = useToast();
+  const general = usePayroll(getCurrentPeriod());
+  const bonuses = useBonusPayroll(general.period);
+
+  // Boleta individual: se abre desde la fila del empleado, solo en la
+  // planilla general (la de bonos no lleva descuentos que documentar).
+  const [payslipTarget, setPayslipTarget] = useState(null);
 
   const periodOptions = useMemo(() => buildPeriodOptions(), []);
 
+  // Cada pestaña filtra sobre su propia fuente de datos, pero comparten
+  // período y estado: cambiarlos en una pestaña afecta a ambas, para que no
+  // se puedan desincronizar (ej. ver septiembre en una y agosto en la otra).
+  const active = tab === 'general' ? general : bonuses;
+
   const filteredRows = useMemo(() => {
-    if (!searchTerm.trim()) return rows;
+    if (!searchTerm.trim()) return active.rows;
     const term = searchTerm.toLowerCase();
-    return rows.filter((row) => row.name.toLowerCase().includes(term));
-  }, [rows, searchTerm]);
+    return active.rows.filter((row) => row.name.toLowerCase().includes(term));
+  }, [active.rows, searchTerm]);
 
   const { page, totalPages, paginatedItems, goTo, next, prev } = usePagination(filteredRows, 8);
 
-  const handleExport = () => {
-    if (!rows.length) {
-      addToast('No hay empleados en la planilla de este período', 'error');
-      return;
-    }
-
-    try {
-      // El PDF siempre lleva la planilla COMPLETA del período, no lo que
-      // quedó filtrado en pantalla: es un documento contable, y omitir
-      // empleados por una búsqueda momentánea lo volvería incorrecto.
-      exportPayrollToPdf({ rows, totals, period });
-      addToast('Planilla exportada correctamente', 'success');
-    } catch (err) {
-      console.error('Error al exportar la planilla:', err);
-      addToast('No se pudo generar el PDF de la planilla', 'error');
-    }
+  // Al cambiar de pestaña se limpia la búsqueda; usePagination ya reajusta
+  // la página sola si la nueva lista es más corta que la página actual.
+  const handleTabChange = (nextTab) => {
+    setTab(nextTab);
+    setSearchTerm('');
   };
 
   return (
@@ -87,55 +99,119 @@ function PayrollContent() {
                   Planilla
                 </h1>
                 <p className="text-sm sm:text-base text-gray-600">
-                  Salarios y descuentos de ley del personal por período.
+                  {tab === 'general'
+                    ? 'Salarios y descuentos de ley del personal por período.'
+                    : 'Bonos asignados al personal por período, sin descuentos de ley.'}
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={handleExport}
-                disabled={loading || !rows.length}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-red-500 text-white rounded-2xl text-sm font-display font-semibold shadow-[0_4px_12px_rgba(220,38,38,0.3),inset_1px_1px_2px_rgba(255,255,255,0.3)] hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <FAIcon icon="file-pdf" />
-                Exportar PDF
-              </button>
+              <div className="flex flex-wrap gap-3">
+                {tab === 'general' ? (
+                  <ReportButton
+                    title={`Planilla ${formatPeriodLabel(general.period)}`}
+                    columns={payrollReportColumns}
+                    rows={general.rows}
+                    itemTag="empleado"
+                    summary={general.totals ? [
+                      { label: 'Empleados', value: general.rows.length },
+                      { label: 'Salario bruto', value: money(general.totals.grossSalary) },
+                      { label: 'Descuentos', value: money(general.totals.totalDeductions) },
+                      { label: 'Total a pagar', value: money(general.totals.netSalary) },
+                    ] : undefined}
+                  />
+                ) : (
+                  <ReportButton
+                    title={`Planilla de bonos ${formatPeriodLabel(bonuses.period)}`}
+                    columns={bonusPayrollReportColumns}
+                    rows={bonuses.rows}
+                    itemTag="empleado"
+                    summary={bonuses.totals ? [
+                      { label: 'Empleados', value: bonuses.totals.employeeCount },
+                      { label: 'Con bono asignado', value: bonuses.totals.employeesWithBonus },
+                      { label: 'Total en bonos', value: money(bonuses.totals.totalBonus) },
+                    ] : undefined}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Selector de planilla */}
+            <div className="flex gap-2 mb-6 sm:mb-8">
+              {TABS.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => handleTabChange(t.id)}
+                  className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-display font-semibold transition-colors ${
+                    tab === t.id
+                      ? 'bg-red-500 text-white shadow-[0_4px_12px_rgba(220,38,38,0.3)]'
+                      : 'bg-white text-gray-600 border border-white/80 hover:bg-gray-50'
+                  }`}
+                >
+                  <FAIcon icon={t.icon} size="sm" />
+                  {t.label}
+                </button>
+              ))}
             </div>
 
             {/* Resumen del período */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 sm:mb-8">
-              <ComboStats
-                icon="users"
-                title="EMPLEADOS"
-                value={loading ? '—' : String(rows.length)}
-                label={`En la planilla de ${formatPeriodLabel(period)}`}
-              />
-              <ComboStats
-                icon="money-bill"
-                title="SALARIO BRUTO"
-                value={loading ? '—' : money(totals?.grossSalary)}
-                label="Suma de los salarios base"
-              />
-              <ComboStats
-                icon="scissors"
-                title="DESCUENTOS"
-                value={loading ? '—' : money(totals?.totalDeductions)}
-                label="AFP + ISSS + Renta"
-              />
-              <ComboStats
-                icon="hand-holding-dollar"
-                title="TOTAL A PAGAR"
-                value={loading ? '—' : money(totals?.netSalary)}
-                label="Neto, incluyendo bonos"
-                highlighted={true}
-              />
-            </div>
+            {tab === 'general' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 sm:mb-8">
+                <ComboStats
+                  icon="users"
+                  title="EMPLEADOS"
+                  value={general.loading ? '—' : String(general.rows.length)}
+                  label={`En la planilla de ${formatPeriodLabel(general.period)}`}
+                />
+                <ComboStats
+                  icon="money-bill"
+                  title="SALARIO BRUTO"
+                  value={general.loading ? '—' : money(general.totals?.grossSalary)}
+                  label="Suma de los salarios base"
+                />
+                <ComboStats
+                  icon="scissors"
+                  title="DESCUENTOS"
+                  value={general.loading ? '—' : money(general.totals?.totalDeductions)}
+                  label="AFP + ISSS + Renta"
+                />
+                <ComboStats
+                  icon="hand-holding-dollar"
+                  title="TOTAL A PAGAR"
+                  value={general.loading ? '—' : money(general.totals?.netSalary)}
+                  label="Salario neto, sin bonos"
+                  highlighted={true}
+                />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 sm:mb-8">
+                <ComboStats
+                  icon="users"
+                  title="EMPLEADOS"
+                  value={bonuses.loading ? '—' : String(bonuses.totals?.employeeCount ?? bonuses.rows.length)}
+                  label={`En la planilla de ${formatPeriodLabel(bonuses.period)}`}
+                />
+                <ComboStats
+                  icon="gift"
+                  title="CON BONO ASIGNADO"
+                  value={bonuses.loading ? '—' : String(bonuses.totals?.employeesWithBonus ?? 0)}
+                  label="Empleados que reciben bono este período"
+                />
+                <ComboStats
+                  icon="hand-holding-dollar"
+                  title="TOTAL EN BONOS"
+                  value={bonuses.loading ? '—' : money(bonuses.totals?.totalBonus)}
+                  label="Sin descuentos de ley"
+                  highlighted={true}
+                />
+              </div>
+            )}
 
             {/* Tabla de planilla */}
             <div className="bg-white rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.08),inset_1px_1px_3px_rgba(255,255,255,0.7)] border border-white/80 overflow-hidden">
               <div className="p-4 sm:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-gray-100">
                 <h2 className="text-lg font-display font-bold text-gray-800">
-                  Detalle de {formatPeriodLabel(period)}
+                  {tab === 'general' ? 'Detalle de' : 'Bonos de'} {formatPeriodLabel(active.period)}
                 </h2>
 
                 <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
@@ -147,33 +223,37 @@ function PayrollContent() {
                     className="px-4 py-2 bg-[#f3f0eb] border border-white/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/30 text-sm text-gray-700 placeholder:text-gray-400 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.05),inset_-2px_-2px_5px_rgba(255,255,255,0.7)]"
                   />
 
-                  <select
-                    value={period}
-                    onChange={(e) => setPeriod(e.target.value)}
-                    className="px-4 py-2 bg-[#f3f0eb] border border-white/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/30 text-sm font-medium text-gray-700 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.05),inset_-2px_-2px_5px_rgba(255,255,255,0.7)] appearance-none"
+                  <Select
+                    value={general.period}
+                    onChange={(e) => {
+                      general.setPeriod(e.target.value);
+                      bonuses.setPeriod(e.target.value);
+                    }}
                   >
                     {periodOptions.map((option) => (
                       <option key={option.value} value={option.value}>{option.label}</option>
                     ))}
-                  </select>
+                  </Select>
 
-                  <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value)}
-                    className="px-4 py-2 bg-[#f3f0eb] border border-white/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/30 text-sm font-medium text-gray-700 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.05),inset_-2px_-2px_5px_rgba(255,255,255,0.7)] appearance-none"
+                  <Select
+                    value={general.status}
+                    onChange={(e) => {
+                      general.setStatus(e.target.value);
+                      bonuses.setStatus(e.target.value);
+                    }}
                   >
                     <option value="active">Solo activos</option>
                     <option value="all">Todos</option>
-                  </select>
+                  </Select>
                 </div>
               </div>
 
               <div className="overflow-x-auto">
-                {loading ? (
+                {active.loading ? (
                   <div className="p-8 text-center text-gray-500 text-sm">Calculando planilla...</div>
-                ) : error ? (
-                  <div className="p-8 text-center text-red-500 text-sm">{error}</div>
-                ) : rows.length === 0 ? (
+                ) : active.error ? (
+                  <div className="p-8 text-center text-red-500 text-sm">{active.error}</div>
+                ) : active.rows.length === 0 ? (
                   <div className="p-8 text-center text-gray-500 text-sm">
                     No hay empleados en la planilla de este período.
                   </div>
@@ -181,18 +261,18 @@ function PayrollContent() {
                   <div className="p-8 text-center text-gray-500 text-sm">
                     Ningún empleado coincide con la búsqueda.
                   </div>
-                ) : (
-                  <table className="w-full text-left border-collapse min-w-[920px]">
+                ) : tab === 'general' ? (
+                  <table className="w-full text-left border-collapse min-w-[860px]">
                     <thead>
                       <tr className="bg-gray-50/80 text-xs font-display font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100">
                         <th className="p-3 sm:p-4 pl-4 sm:pl-6">Empleado</th>
                         <th className="p-3 sm:p-4">Puesto</th>
                         <th className="p-3 sm:p-4 text-right">Salario base</th>
-                        <th className="p-3 sm:p-4 text-right">Bonos</th>
                         <th className="p-3 sm:p-4 text-right">AFP</th>
                         <th className="p-3 sm:p-4 text-right">ISSS</th>
                         <th className="p-3 sm:p-4 text-right">Renta</th>
-                        <th className="p-3 sm:p-4 pr-4 sm:pr-6 text-right">Neto a pagar</th>
+                        <th className="p-3 sm:p-4 text-right">Neto a pagar</th>
+                        <th className="p-3 sm:p-4 pr-4 sm:pr-6 text-center">Boleta</th>
                       </tr>
                     </thead>
 
@@ -230,16 +310,25 @@ function PayrollContent() {
                             </td>
 
                             <td className="p-3 sm:p-4 text-right font-medium">{money(row.grossSalary)}</td>
-                            <td className="p-3 sm:p-4 text-right text-gray-500">
-                              {row.additionalPay > 0 ? `+${money(row.additionalPay)}` : '—'}
-                            </td>
                             <td className="p-3 sm:p-4 text-right text-gray-500">-{money(row.afp)}</td>
                             <td className="p-3 sm:p-4 text-right text-gray-500">-{money(row.isss)}</td>
-                            <td className="p-3 sm:p-4 text-right text-gray-500">
-                              {row.isr > 0 ? `-${money(row.isr)}` : '—'}
-                            </td>
-                            <td className="p-3 sm:p-4 pr-4 sm:pr-6 text-right font-display font-bold text-gray-900">
+                            {/* Siempre se muestra el monto, aunque sea $0: un
+                                "—" aquí se podía confundir con que la renta no
+                                se estaba calculando en absoluto. */}
+                            <td className="p-3 sm:p-4 text-right text-gray-500">-{money(row.isr)}</td>
+                            <td className="p-3 sm:p-4 text-right font-display font-bold text-gray-900">
                               {money(row.netSalary)}
+                            </td>
+                            <td className="p-3 sm:p-4 pr-4 sm:pr-6 text-center">
+                              <button
+                                type="button"
+                                onClick={() => setPayslipTarget({ id: row.employeeId, name: row.name })}
+                                title={`Ver boleta de pago de ${row.name}`}
+                                aria-label={`Ver boleta de pago de ${row.name}`}
+                                className="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-red-500 transition-colors shadow-sm"
+                              >
+                                <FAIcon icon="receipt" size="sm" />
+                              </button>
                             </td>
                           </tr>
                         );
@@ -248,19 +337,83 @@ function PayrollContent() {
 
                     {/* Totales del período: siempre sobre la planilla completa,
                         no sobre lo que quedó visible tras filtrar o paginar. */}
-                    {totals && (
+                    {general.totals && (
                       <tfoot>
                         <tr className="bg-gray-50/80 border-t-2 border-gray-200 text-sm font-display font-bold text-gray-900">
                           <td className="p-3 sm:p-4 pl-4 sm:pl-6" colSpan={2}>
-                            TOTALES ({rows.length})
+                            TOTALES ({general.rows.length})
                           </td>
-                          <td className="p-3 sm:p-4 text-right">{money(totals.grossSalary)}</td>
-                          <td className="p-3 sm:p-4 text-right">{money(totals.additionalPay)}</td>
-                          <td className="p-3 sm:p-4 text-right">-{money(totals.afp)}</td>
-                          <td className="p-3 sm:p-4 text-right">-{money(totals.isss)}</td>
-                          <td className="p-3 sm:p-4 text-right">-{money(totals.isr)}</td>
+                          <td className="p-3 sm:p-4 text-right">{money(general.totals.grossSalary)}</td>
+                          <td className="p-3 sm:p-4 text-right">-{money(general.totals.afp)}</td>
+                          <td className="p-3 sm:p-4 text-right">-{money(general.totals.isss)}</td>
+                          <td className="p-3 sm:p-4 text-right">-{money(general.totals.isr)}</td>
+                          <td className="p-3 sm:p-4 text-right text-red-600">
+                            {money(general.totals.netSalary)}
+                          </td>
+                          <td className="p-3 sm:p-4 pr-4 sm:pr-6" />
+                        </tr>
+                      </tfoot>
+                    )}
+                  </table>
+                ) : (
+                  <table className="w-full text-left border-collapse min-w-[560px]">
+                    <thead>
+                      <tr className="bg-gray-50/80 text-xs font-display font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100">
+                        <th className="p-3 sm:p-4 pl-4 sm:pl-6">Empleado</th>
+                        <th className="p-3 sm:p-4">Puesto</th>
+                        <th className="p-3 sm:p-4 pr-4 sm:pr-6 text-right">Bono asignado</th>
+                      </tr>
+                    </thead>
+
+                    <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
+                      {paginatedItems.map((row) => {
+                        const isInactive = row.status !== 'active';
+
+                        return (
+                          <tr
+                            key={row.employeeId}
+                            className={`hover:bg-gray-50/80 transition-colors ${isInactive ? 'opacity-60 bg-gray-50/30' : ''}`}
+                          >
+                            <td className="p-3 sm:p-4 pl-4 sm:pl-6">
+                              <div className="flex items-center gap-3">
+                                {row.image ? (
+                                  <img src={row.image} alt={row.name} className="w-9 h-9 rounded-xl object-cover shadow-sm" />
+                                ) : (
+                                  <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400">
+                                    <FAIcon icon="user" />
+                                  </div>
+                                )}
+                                <div>
+                                  <div className="font-display font-bold text-gray-900">{row.name}</div>
+                                  {isInactive && (
+                                    <div className="text-xs text-red-500 font-medium">Inactivo</div>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="p-3 sm:p-4">
+                              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-display font-semibold ${BADGE_BY_TYPE[row.typeLabel] || 'bg-orange-50 text-orange-700 border border-orange-200'}`}>
+                                {row.typeLabel}
+                              </span>
+                            </td>
+
+                            <td className="p-3 sm:p-4 pr-4 sm:pr-6 text-right font-display font-bold text-gray-900">
+                              {row.bonus > 0 ? money(row.bonus) : <span className="text-gray-400 font-normal">Sin bono</span>}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+
+                    {bonuses.totals && (
+                      <tfoot>
+                        <tr className="bg-gray-50/80 border-t-2 border-gray-200 text-sm font-display font-bold text-gray-900">
+                          <td className="p-3 sm:p-4 pl-4 sm:pl-6" colSpan={2}>
+                            TOTALES ({bonuses.totals.employeeCount})
+                          </td>
                           <td className="p-3 sm:p-4 pr-4 sm:pr-6 text-right text-red-600">
-                            {money(totals.netSalary)}
+                            {money(bonuses.totals.totalBonus)}
                           </td>
                         </tr>
                       </tfoot>
@@ -281,12 +434,32 @@ function PayrollContent() {
             </div>
 
             <p className="mt-4 text-xs text-gray-500">
-              Los descuentos de AFP, ISSS y renta se calculan automáticamente a partir del salario base,
-              según las tasas de ley vigentes. Los bonos se suman al neto sin descuentos.
+              {tab === 'general' ? (
+                <>
+                  AFP (7.25%), ISSS (3%, con tope de $30) y renta se calculan solo sobre el salario base
+                  del empleado. Los bonos no afectan esta planilla ni sus descuentos: se documentan
+                  aparte, en la Planilla de bonos.
+                </>
+              ) : (
+                <>
+                  El bono es un pago discrecional del dueño (una gratificación puntual, no una comisión
+                  ni una bonificación pactada como parte regular del contrato), así que no forma parte
+                  del salario cotizable: no lleva AFP, ISSS ni renta.
+                </>
+              )}
             </p>
           </div>
         </main>
       </div>
+
+      <PayslipModal
+        isOpen={Boolean(payslipTarget)}
+        onClose={() => setPayslipTarget(null)}
+        employeeId={payslipTarget?.id}
+        employeeName={payslipTarget?.name}
+        period={general.period}
+        fetchPayslip={general.fetchPayslip}
+      />
     </div>
   );
 }

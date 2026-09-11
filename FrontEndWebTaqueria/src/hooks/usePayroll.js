@@ -62,6 +62,28 @@ export default function usePayroll(initialPeriod = getCurrentPeriod()) {
     fetchPayroll();
   }, [fetchPayroll]);
 
+  // Boleta de pago individual. No se guarda en el estado del hook porque
+  // solo la necesita el modal mientras esta abierto, igual que hace
+  // useClients con el historial de pedidos de un cliente.
+  const fetchPayslip = useCallback(async (employeeId, periodOverride) => {
+    try {
+      const params = new URLSearchParams({ period: periodOverride || period });
+      const res = await fetch(`${API_URL}/users/payroll/employee/${employeeId}?${params}`, {
+        credentials: 'include',
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        return { success: false, message: data.message || 'No se pudo generar la boleta' };
+      }
+
+      return { success: true, payslip: data };
+    } catch (err) {
+      console.error('Error al obtener la boleta de pago:', err);
+      return { success: false, message: 'Error de conexion' };
+    }
+  }, [period]);
+
   return {
     rows,
     totals,
@@ -72,5 +94,6 @@ export default function usePayroll(initialPeriod = getCurrentPeriod()) {
     status,
     setStatus,
     refetch: fetchPayroll,
+    fetchPayslip,
   };
 }
