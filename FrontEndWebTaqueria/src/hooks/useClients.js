@@ -68,10 +68,61 @@ export default function useClients(enabled = true) {
     if (enabled) fetchClients();
   }, [enabled, fetchClients]);
 
+  // Activa o desactiva la cuenta de un cliente. Desactivarlo le impide
+  // iniciar sesión, pero conserva su historial (lo necesita la contabilidad).
+  const toggleClientStatus = async (id, status) => {
+    try {
+      const response = await fetch(`${API_URL}/users/customers/${id}/status`, {
+        credentials: 'include',
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        return { success: false, message: data.message || 'No se pudo actualizar el estado del cliente' };
+      }
+
+      // Se actualiza solo la fila afectada en vez de recargar toda la lista:
+      // es un cambio de un campo y así la tabla no parpadea.
+      setClients((prev) =>
+        prev.map((c) => (c._id === id ? { ...c, status: data.data?.status || status } : c))
+      );
+
+      return { success: true, message: data.message };
+    } catch (err) {
+      console.error('Error al cambiar el estado del cliente:', err);
+      return { success: false, message: 'Error de conexión' };
+    }
+  };
+
+  // Historial de pedidos de un cliente. No se guarda en el estado del hook
+  // porque solo lo necesita el modal de detalle mientras está abierto.
+  const fetchClientOrders = useCallback(async (id) => {
+    try {
+      const response = await fetch(`${API_URL}/users/customers/${id}/orders`, {
+        credentials: 'include',
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        return { success: false, message: data.message || 'No se pudo cargar el historial' };
+      }
+
+      return { success: true, orders: data.orders || [], summary: data.summary || null };
+    } catch (err) {
+      console.error('Error al cargar el historial del cliente:', err);
+      return { success: false, message: 'Error de conexión' };
+    }
+  }, []);
+
   return {
     clients,
     isLoading,
     error,
     fetchClients,
+    toggleClientStatus,
+    fetchClientOrders,
   };
 }

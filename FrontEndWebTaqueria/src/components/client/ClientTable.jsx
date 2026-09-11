@@ -47,10 +47,13 @@ const ClientTable = ({ clients, onView, isLoading }) => {
               const phone = client.personalInfo?.phones?.[0] || 'Sin teléfono';
               const registerDate = client.createdAt ? new Date(client.createdAt).toLocaleDateString() : 'N/A';
               const isVerified = !!client.loginInfo?.isVerified;
+              // Los clientes viejos no traen "status" (se agregó después), y
+              // el backend los trata como activos: aquí se asume lo mismo.
+              const isActive = (client.status || 'active') === 'active';
               const initials = fullName.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
 
               return (
-                <tr key={id} className="hover:bg-gray-50/80 transition-colors">
+                <tr key={id} className={`hover:bg-gray-50/80 transition-colors ${!isActive ? 'opacity-60 bg-gray-50/30' : ''}`}>
                   <td className="p-3 sm:p-4 pl-4 sm:pl-6">
                     {client.personalInfo?.image ? (
                       <img src={client.personalInfo.image} alt={fullName} className="w-10 h-10 rounded-xl object-cover shadow-sm" />
@@ -66,9 +69,18 @@ const ClientTable = ({ clients, onView, isLoading }) => {
                   </td>
                   <td className="p-3 sm:p-4 text-gray-700 font-medium">{email}</td>
                   <td className="p-3 sm:p-4">
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-display font-semibold border ${isVerified ? 'bg-green-100 text-green-700 border-green-200' : 'bg-yellow-100 text-yellow-700 border-yellow-200'}`}>
-                      {isVerified ? 'Verificado' : 'Sin verificar'}
-                    </span>
+                    <div className="flex flex-col gap-1 items-start">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-display font-semibold border ${isVerified ? 'bg-green-100 text-green-700 border-green-200' : 'bg-yellow-100 text-yellow-700 border-yellow-200'}`}>
+                        {isVerified ? 'Verificado' : 'Sin verificar'}
+                      </span>
+                      {/* Solo se marca la baja: mostrar "activo" en cada fila
+                          sería ruido, porque es el caso normal. */}
+                      {!isActive && (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-display font-semibold border bg-red-100 text-red-700 border-red-200">
+                          Desactivado
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="p-3 sm:p-4 text-gray-600">{registerDate}</td>
                   <td className="p-3 sm:p-4 pr-4 sm:pr-6 text-right">

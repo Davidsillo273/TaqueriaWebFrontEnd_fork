@@ -8,7 +8,9 @@ import ClientDetailModal from '../components/client/ClientDetailModal'
 import ClientLeaderboardModal from '../components/client/ClientLeaderboardModal'
 import useClients from '../hooks/useClients'
 import useCustomerLeaderboard from '../hooks/useCustomerLeaderboard'
-import { ToastProvider } from '../components/commons/ToastProvider'
+import { ToastProvider, useToast } from '../components/commons/ToastProvider'
+import { useAuth } from '../hooks/auth/useAuth'
+import { hasPermission } from '../constants/permissions'
 
 function ClientManagementContent() {
   const [activeMenu] = useState('clients')
@@ -16,8 +18,33 @@ function ClientManagementContent() {
   const [viewingClient, setViewingClient] = useState(null)
   const [leaderboardOpen, setLeaderboardOpen] = useState(false)
 
-  const { clients, isLoading } = useClients()
-  const { mostActive, topSpenders, priciestWeek, loading: loadingLeaderboard, fetchLeaderboard } = useCustomerLeaderboard()
+  const { clients, isLoading, toggleClientStatus, fetchClientOrders } = useClients()
+  const { mostActive, topSpenders, priciestWeek, period: leaderboardPeriod, loading: loadingLeaderboard, fetchLeaderboard, customRange, setCustomRange } = useCustomerLeaderboard()
+  const { user } = useAuth()
+  const { addToast } = useToast()
+
+  // Dar de baja a un cliente va detrás de su propio permiso de acción, igual
+  // que pasa con los empleados (ver constants/permissions.js).
+  const canManageStatus = hasPermission(user, 'clients_manage_status')
+
+  const handleToggleStatus = async (client, newStatus) => {
+    const result = await toggleClientStatus(client._id, newStatus)
+
+    addToast(
+      result.success
+        ? (result.message || (newStatus === 'active' ? 'Cliente reactivado' : 'Cliente desactivado'))
+        : result.message,
+      result.success ? 'success' : 'error'
+    )
+
+    // La ficha abierta muestra el estado viejo hasta que se actualice: se
+    // refresca con el nuevo para que el botón cambie al instante.
+    if (result.success) {
+      setViewingClient((prev) => (prev && prev._id === client._id ? { ...prev, status: newStatus } : prev))
+    }
+
+    return result
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f3f0eb]">
@@ -55,6 +82,9 @@ function ClientManagementContent() {
               isOpen={!!viewingClient}
               onClose={() => setViewingClient(null)}
               client={viewingClient}
+              onToggleStatus={handleToggleStatus}
+              canManageStatus={canManageStatus}
+              fetchClientOrders={fetchClientOrders}
             />
 
             <ClientLeaderboardModal
@@ -65,6 +95,10 @@ function ClientManagementContent() {
               priciestWeek={priciestWeek}
               loading={loadingLeaderboard}
               onOpen={fetchLeaderboard}
+              period={leaderboardPeriod}
+              onPeriodChange={fetchLeaderboard}
+              customRange={customRange}
+              onCustomRangeChange={setCustomRange}
             />
           </div>
         </main>
