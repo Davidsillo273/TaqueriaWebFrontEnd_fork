@@ -16,12 +16,15 @@ export const PERMISSIONS = [
   { id: 'clients', label: 'Clientes', group: 'Pantallas', type: 'screen' },
   { id: 'employees', label: 'Empleados', group: 'Pantallas', type: 'screen' },
   { id: 'invite_staff', label: 'Invitar staff', group: 'Pantallas', type: 'screen' },
+  { id: 'payroll', label: 'Planilla', group: 'Pantallas', type: 'screen' },
+  { id: 'reports', label: 'Reportes contables (IVA)', group: 'Pantallas', type: 'screen' },
 
   { id: 'notifications', label: 'Notificaciones', group: 'Pantallas', type: 'screen' },
   { id: 'settings', label: 'Ajustes', group: 'Pantallas', type: 'screen' },
 
   { id: 'orders_cancel', label: 'Cancelar pedidos', group: 'Funciones', type: 'action' },
   { id: 'employees_manage_status', label: 'Dar de alta/baja empleados', group: 'Funciones', type: 'action' },
+  { id: 'clients_manage_status', label: 'Activar/desactivar clientes', group: 'Funciones', type: 'action' },
   { id: 'inventory_adjust_stock', label: 'Ajustar existencias de inventario', group: 'Funciones', type: 'action' },
   { id: 'tables_change_status', label: 'Cambiar el estado de una mesa', group: 'Funciones', type: 'action' },
 ];
@@ -41,6 +44,8 @@ export const SCREEN_ROUTES = {
   clients: '/clients',
   employees: '/employees',
   invite_staff: '/InviteStaff',
+  payroll: '/payroll',
+  reports: '/reports',
   notifications: '/notificaciones',
   settings: '/ajustes',
 };
