@@ -1,22 +1,29 @@
 // src/components/employee/EmployeeLeaderboardModal.jsx
 import React, { useEffect } from 'react';
 import FAIcon from '../commons/FAIcon';
-
-const PERIODS = [
-  { id: 'day', label: 'Hoy' },
-  { id: 'week', label: 'Esta semana' },
-  { id: 'month', label: 'Este mes' },
-];
+import PeriodSelector from '../commons/PeriodSelector';
 
 const employeeName = (emp) => `${emp?.personalInfo?.name || ''} ${emp?.personalInfo?.lastname || ''}`.trim() || 'Empleado';
 
-const EmployeeLeaderboardModal = ({ isOpen, onClose, topEmployees, period, loading, onOpen, onPeriodChange }) => {
+const EmployeeLeaderboardModal = ({
+  isOpen, onClose, topEmployees, period, loading, onOpen, onPeriodChange,
+  customRange, onCustomRangeChange,
+}) => {
   useEffect(() => {
-    if (isOpen) onOpen?.(period);
+    if (isOpen) onOpen?.(period, customRange);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const handlePeriodChange = (nextPeriod) => onPeriodChange(nextPeriod, customRange);
+  const handleCustomRangeChange = (nextRange) => {
+    onCustomRangeChange(nextRange);
+    // Si ambas fechas ya están puestas, se vuelve a consultar de inmediato
+    // con el rango recién editado (no con el que quedó en el estado, que
+    // todavía no se actualizó cuando corre este mismo callback).
+    if (nextRange.from && nextRange.to) onPeriodChange('custom', nextRange);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/40 backdrop-blur-sm">
@@ -32,19 +39,13 @@ const EmployeeLeaderboardModal = ({ isOpen, onClose, topEmployees, period, loadi
         </div>
 
         <div className="p-5 sm:p-6">
-          <div className="flex flex-wrap gap-1.5 mb-4">
-            {PERIODS.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => onPeriodChange(p.id)}
-                className={`px-3 py-1.5 rounded-full text-xs font-display font-semibold transition-colors ${
-                  period === p.id ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
+          <div className="mb-4">
+            <PeriodSelector
+              value={period}
+              onChange={handlePeriodChange}
+              customRange={customRange}
+              onCustomRangeChange={handleCustomRangeChange}
+            />
           </div>
 
           {loading ? (

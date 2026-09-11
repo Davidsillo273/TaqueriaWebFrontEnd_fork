@@ -44,7 +44,7 @@ function EmployeeManagementContent() {
   const [selectedRole, setSelectedRole] = useState('Todos');
 
   const { employees = [], loading, updateEmployee, sendPasswordResetInvitation } = useEmployees();
-  const { topEmployees, period, loading: loadingLeaderboard, fetchLeaderboard } = useEmployeeLeaderboard();
+  const { topEmployees, period, loading: loadingLeaderboard, fetchLeaderboard, customRange, setCustomRange } = useEmployeeLeaderboard();
   const { addToast } = useToast();
 
   const translateRole = (type) => {
@@ -329,7 +329,9 @@ function EmployeeManagementContent() {
               period={period}
               loading={loadingLeaderboard}
               onOpen={openLeaderboard}
-              onPeriodChange={(p) => fetchLeaderboard(p)}
+              onPeriodChange={(p, range) => fetchLeaderboard(p, range)}
+              customRange={customRange}
+              onCustomRangeChange={setCustomRange}
             />
           </div>
         </main>

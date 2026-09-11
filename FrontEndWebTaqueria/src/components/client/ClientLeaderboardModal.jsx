@@ -1,12 +1,20 @@
 // src/components/client/ClientLeaderboardModal.jsx
 import React, { useState, useEffect } from 'react';
 import FAIcon from '../commons/FAIcon';
+import PeriodSelector from '../commons/PeriodSelector';
 
+// Etiquetas base de cada pestaña. El paréntesis con el período se agrega
+// dinámicamente (ver periodLabelFor) solo mientras no hay un filtro
+// explícito, para no decir "(7 días)" cuando el usuario ya eligió "Año".
 const TABS = [
-  { id: 'mostActive', label: 'Más activos (7 días)', icon: 'bolt' },
-  { id: 'topSpenders', label: 'Mayor gasto total', icon: 'sack-dollar' },
-  { id: 'priciestWeek', label: 'Compras más caras (semana)', icon: 'receipt' },
+  { id: 'mostActive', label: 'Más activos', icon: 'bolt', defaultHint: '7 días' },
+  { id: 'topSpenders', label: 'Mayor gasto total', icon: 'sack-dollar', defaultHint: null },
+  { id: 'priciestWeek', label: 'Compras más caras', icon: 'receipt', defaultHint: 'semana' },
 ];
+
+const PERIOD_HINTS = {
+  day: 'hoy', week: 'semana', month: 'mes', year: 'año', all: 'todo', custom: 'rango elegido',
+};
 
 const clientName = (customer) =>
   `${customer?.personalInfo?.name || ''} ${customer?.personalInfo?.lastname || ''}`.trim() || 'Cliente';
@@ -27,14 +35,24 @@ const Row = ({ rank, name, email, primary, secondary }) => (
   </div>
 );
 
-const ClientLeaderboardModal = ({ isOpen, onClose, mostActive, topSpenders, priciestWeek, loading, onOpen }) => {
+const ClientLeaderboardModal = ({
+  isOpen, onClose, mostActive, topSpenders, priciestWeek, loading, onOpen,
+  period, onPeriodChange, customRange, onCustomRangeChange,
+}) => {
   const [tab, setTab] = useState('mostActive');
 
   useEffect(() => {
-    if (isOpen) onOpen?.();
-  }, [isOpen, onOpen]);
+    if (isOpen) onOpen?.(period, customRange);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const handlePeriodChange = (nextPeriod) => onPeriodChange(nextPeriod, customRange);
+  const handleCustomRangeChange = (nextRange) => {
+    onCustomRangeChange(nextRange);
+    if (nextRange.from && nextRange.to) onPeriodChange('custom', nextRange);
+  };
 
   const rows = tab === 'mostActive' ? mostActive : tab === 'topSpenders' ? topSpenders : priciestWeek;
   const isOrderList = tab === 'priciestWeek';
@@ -53,6 +71,20 @@ const ClientLeaderboardModal = ({ isOpen, onClose, mostActive, topSpenders, pric
         </div>
 
         <div className="p-5 sm:p-6">
+          {/* Filtro de período: aplica a las tres pestañas a la vez. Sin
+              tocarlo, cada pestaña sigue usando el mismo rango de siempre
+              (7 días para "más activos", histórico para "mayor gasto",
+              semana en curso para "compras más caras") — el backend decide
+              esos valores por defecto cuando no se manda "period". */}
+          <div className="mb-4">
+            <PeriodSelector
+              value={period}
+              onChange={handlePeriodChange}
+              customRange={customRange}
+              onCustomRangeChange={handleCustomRangeChange}
+            />
+          </div>
+
           <div className="flex flex-wrap gap-1.5 mb-4">
             {TABS.map((t) => (
               <button
@@ -65,6 +97,7 @@ const ClientLeaderboardModal = ({ isOpen, onClose, mostActive, topSpenders, pric
               >
                 <FAIcon icon={t.icon} size="xs" />
                 {t.label}
+                {period ? ` (${PERIOD_HINTS[period] || period})` : (t.defaultHint ? ` (${t.defaultHint})` : '')}
               </button>
             ))}
           </div>
