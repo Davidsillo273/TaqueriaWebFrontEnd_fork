@@ -1,19 +1,70 @@
 // src/pages/recipes.jsx
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import Sidebar from '../components/dashboard/Sidebar';
 import TopBar from '../components/dashboard/TopBar';
 import FAIcon from '../components/commons/FAIcon';
 import useDrinks from '../hooks/useDrinks';
 import useSaucers from '../hooks/useSaucers';
+import useExtras from '../hooks/useExtras';
 import { ToastProvider } from '../components/commons/ToastProvider';
 import { UNIT_LABELS } from '../constants/units';
 
 const BOOKS = [
   { id: 'drinks', label: 'Bebidas', icon: 'wine-glass', color: 'from-amber-800 to-amber-950' },
   { id: 'dishes', label: 'Platillos', icon: 'utensils', color: 'from-red-900 to-red-950' },
+  // Los extras compuestos (isCompound) también gastan inventario, así que
+  // tienen receta igual que una bebida de casa o un platillo.
+  { id: 'extras', label: 'Extras', icon: 'star', color: 'from-emerald-800 to-emerald-950' },
 ];
 
 const DISH_CATEGORIES = ['Burritos', 'Tortas', 'Tacos', 'Sopas', 'Especiales'];
+
+// Color del borde de la portada, a juego con el degradado de cada libro
+const BOOK_BORDERS = {
+  drinks: 'border-amber-900/70',
+  dishes: 'border-red-950/70',
+  extras: 'border-emerald-950/70',
+};
+
+// Qué hacer cuando un libro todavía no tiene recetas. Para los extras el
+// consejo es distinto: además de poner ingredientes, hay que marcarlos como
+// compuestos, porque si no el sistema los trata como un cargo suelto.
+// A qué pantalla se va a editar la receta de cada libro. El recetario es de
+// consulta (se lee como un libro); la edición de ingredientes ya existe en la
+// pantalla de cada producto, así que se enlaza ahí en vez de duplicarla.
+const EDIT_ROUTES = {
+  drinks: { path: '/drinks', label: 'Editar en Bebidas' },
+  dishes: { path: '/dishes', label: 'Editar en Platillos' },
+  extras: { path: '/extras', label: 'Editar en Extras' },
+};
+
+const EMPTY_BOOK_HINTS = {
+  drinks: 'Agrega ingredientes al crear o editar una bebida de casa',
+  dishes: 'Agrega ingredientes al crear o editar un platillo',
+  extras: 'Marca un extra como "compuesto" y agrégale ingredientes desde la pantalla de Extras',
+};
+
+// Los extras guardan sus ingredientes en "ingredients[]" con la forma
+// { ingredientId, quantity, unit }, mientras bebidas y platillos usan
+// "recipe[]" con { name, tracked, quantity, unit }. Esta función los traduce
+// al formato de recipe[] para que la página pinte los tres libros con el
+// mismo código, en vez de tener una rama aparte solo para extras.
+//
+// El nombre del insumo llega poblado desde el backend (extrasController hace
+// populate de ingredientId con "name unit"); si por alguna razón no viniera,
+// se muestra un texto neutro en vez de dejar la línea vacía.
+const extraToRecipeShape = (extra) => ({
+  ...extra,
+  recipe: (extra.ingredients || []).map((item) => ({
+    name: item.ingredientId?.name || 'Insumo no encontrado',
+    // Siempre true: un extra compuesto solo puede apuntar a insumos que
+    // existen en Inventario, por eso descuenta stock al venderse.
+    tracked: Boolean(item.ingredientId),
+    quantity: item.quantity,
+    unit: item.unit,
+  })),
+});
 
 function RecipesContent() {
   const [activeMenu] = useState('recipes');
@@ -24,20 +75,48 @@ function RecipesContent() {
 
   const { drinks, loading: loadingDrinks } = useDrinks();
   const { saucers, loading: loadingSaucers } = useSaucers();
+  const { extras, loading: loadingExtras } = useExtras();
 
   const drinksWithRecipe = drinks.filter((d) => d.category === 'casa' && d.recipe?.length > 0);
   const dishesWithRecipe = saucers.filter((d) => d.recipe?.length > 0);
+  // Solo los extras marcados como compuestos tienen receta: el resto son un
+  // cargo adicional sin relación con el inventario (ej. "Extra de queso" que
+  // se cobra pero no se descuenta de ningún insumo).
+  const extrasWithRecipe = extras
+    .filter((e) => e.isCompound && e.ingredients?.length > 0)
+    .map(extraToRecipeShape);
 
   const subOptionsForDrinks = ['all', ...new Set(drinksWithRecipe.map((d) => d.subcategory).filter(Boolean))];
   const subOptionsForDishes = ['all', ...DISH_CATEGORIES];
-  const subOptions = typeFilter === 'drinks' ? subOptionsForDrinks : subOptionsForDishes;
+  // Los extras usan categoría libre (Verduras, Salsas...), así que las
+  // opciones salen de los datos, igual que con las subcategorías de bebidas.
+  const subOptionsForExtras = ['all', ...new Set(extrasWithRecipe.map((e) => e.category).filter(Boolean))];
 
-  const items = typeFilter === 'drinks' ? drinksWithRecipe : dishesWithRecipe;
+  const SUB_OPTIONS_BY_BOOK = {
+    drinks: subOptionsForDrinks,
+    dishes: subOptionsForDishes,
+    extras: subOptionsForExtras,
+  };
+  const subOptions = SUB_OPTIONS_BY_BOOK[typeFilter] || ['all'];
+
+  const ITEMS_BY_BOOK = {
+    drinks: drinksWithRecipe,
+    dishes: dishesWithRecipe,
+    extras: extrasWithRecipe,
+  };
+  const items = ITEMS_BY_BOOK[typeFilter] || [];
+
+  // Las bebidas agrupan por subcategoría; platillos y extras, por categoría.
   const filteredItems = subFilter === 'all'
     ? items
     : items.filter((item) => (typeFilter === 'drinks' ? item.subcategory : item.category) === subFilter);
 
-  const loading = typeFilter === 'drinks' ? loadingDrinks : loadingSaucers;
+  const LOADING_BY_BOOK = {
+    drinks: loadingDrinks,
+    dishes: loadingSaucers,
+    extras: loadingExtras,
+  };
+  const loading = LOADING_BY_BOOK[typeFilter] || false;
 
   const currentIndex = filteredItems.length === 0 ? 0 : Math.min(pageIndex, filteredItems.length - 1);
   const current = filteredItems[currentIndex];
@@ -107,9 +186,7 @@ function RecipesContent() {
             {!loading && (
               <div key={typeFilter} className="max-w-3xl mx-auto animate-[fadeIn_0.25s_ease-out]">
                 <div
-                  className={`relative flex rounded-r-3xl rounded-l-md shadow-[0_25px_60px_rgba(0,0,0,0.3)] border-4 bg-gradient-to-br ${
-                    typeFilter === 'drinks' ? 'border-amber-900/70' : 'border-red-950/70'
-                  } overflow-hidden min-h-[380px]`}
+                  className={`relative flex rounded-r-3xl rounded-l-md shadow-[0_25px_60px_rgba(0,0,0,0.3)] border-4 bg-gradient-to-br ${BOOK_BORDERS[typeFilter] || 'border-red-950/70'} overflow-hidden min-h-[380px]`}
                 >
                   {/* Lomo del libro */}
                   <div className={`w-3 sm:w-4 bg-gradient-to-r ${activeBook.color} shadow-[inset_-4px_0_10px_rgba(0,0,0,0.4)]`} />
@@ -125,7 +202,7 @@ function RecipesContent() {
                           Este libro todavía no tiene páginas escritas
                         </p>
                         <p className="text-gray-400 text-xs sm:text-sm mt-1">
-                          Agrega ingredientes al crear o editar {typeFilter === 'drinks' ? 'una bebida de casa' : 'un platillo'}
+                          {EMPTY_BOOK_HINTS[typeFilter] || EMPTY_BOOK_HINTS.dishes}
                         </p>
                       </div>
                     ) : (
@@ -134,10 +211,25 @@ function RecipesContent() {
                           <div>
                             <h2 className="font-display font-bold text-xl text-gray-900">{current.title || current.name}</h2>
                             <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[11px] font-semibold">
-                              {typeFilter === 'drinks' ? (current.subcategory || 'Sin subcategoría') : current.category}
+                              {typeFilter === 'drinks'
+                                ? (current.subcategory || 'Sin subcategoría')
+                                : (current.category || 'Sin categoría')}
                             </span>
                           </div>
-                          <FAIcon icon={activeBook.icon} size="xl" className="text-gray-200 shrink-0" />
+                          <div className="flex items-center gap-3 shrink-0">
+                            {/* Atajo a la pantalla donde sí se edita esta receta */}
+                            {EDIT_ROUTES[typeFilter] && (
+                              <Link
+                                to={EDIT_ROUTES[typeFilter].path}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 text-gray-600 text-[11px] font-display font-semibold hover:bg-gray-200 hover:text-gray-800 transition-colors"
+                                title={EDIT_ROUTES[typeFilter].label}
+                              >
+                                <FAIcon icon="pen" size="xs" />
+                                Editar
+                              </Link>
+                            )}
+                            <FAIcon icon={activeBook.icon} size="xl" className="text-gray-200" />
+                          </div>
                         </div>
 
                         <ul className="space-y-2 flex-1">
