@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import FAIcon from '../commons/FAIcon';
+import Select from '../commons/Select';
 import ImageCropModal from '../commons/ImageCropModal';
 import RecipeBuilder from '../commons/RecipeBuilder';
 import { resolveRecipeRows } from '../../utils/recipeRowUtils';
@@ -141,7 +142,6 @@ const AddDishModal = ({ isOpen, onClose, onSave, onEditExisting, dishToEdit = nu
   // Estilos clay para inputs
   const inputClasses =
     'w-full px-4 py-2.5 bg-[#f3f0eb] border border-white/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-400 transition-all text-gray-700 placeholder:text-gray-400 text-sm shadow-[inset_2px_2px_5px_rgba(0,0,0,0.05),inset_-2px_-2px_5px_rgba(255,255,255,0.7)]';
-  const selectClasses = inputClasses + ' appearance-none';
   const labelClasses = 'block text-xs font-display font-semibold text-gray-500 uppercase tracking-wider mb-1.5';
 
   return (
@@ -179,9 +179,9 @@ const AddDishModal = ({ isOpen, onClose, onSave, onEditExisting, dishToEdit = nu
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <div>
               <label className={labelClasses}>Categoría</label>
-              <select {...register('category', { required: true })} className={selectClasses}>
+              <Select {...register('category', { required: true })}>
                 {DISH_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
+              </Select>
             </div>
             <div>
               <label className={labelClasses}>Precio ($)</label>
@@ -204,10 +204,10 @@ const AddDishModal = ({ isOpen, onClose, onSave, onEditExisting, dishToEdit = nu
           {subcategoryApplies && (
             <div>
               <label className={labelClasses}>Subcategoría</label>
-              <select {...register('subcategory')} className={selectClasses}>
+              <Select {...register('subcategory')}>
                 <option value="">Selecciona una subcategoría...</option>
                 {SUBCATEGORY_SUGGESTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
+              </Select>
             </div>
           )}
 
@@ -246,10 +246,10 @@ const AddDishModal = ({ isOpen, onClose, onSave, onEditExisting, dishToEdit = nu
           {dishToEdit && (
             <div>
               <label className={labelClasses}>Estado</label>
-              <select {...register('status')} className={selectClasses}>
+              <Select {...register('status')}>
                 <option value="Activo">Activo</option>
                 <option value="Inactivo">Inactivo</option>
-              </select>
+              </Select>
             </div>
           )}
 

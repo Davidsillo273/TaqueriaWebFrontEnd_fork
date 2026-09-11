@@ -5,6 +5,7 @@
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import FAIcon from '../commons/FAIcon';
+import Select from '../commons/Select';
 import ImageCropModal from '../commons/ImageCropModal';
 import DuplicateNameDialog from '../commons/DuplicateNameDialog';
 import { useToast } from '../commons/ToastProvider';
@@ -162,7 +163,6 @@ const InventoryModal = ({ isOpen, onClose, insumoData, itemType = 'producto', on
 
   const inputClasses =
     'w-full px-4 py-2.5 bg-[#f3f0eb] border border-white/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-400 transition-all text-gray-700 placeholder:text-gray-400 text-sm shadow-[inset_2px_2px_5px_rgba(0,0,0,0.05),inset_-2px_-2px_5px_rgba(255,255,255,0.7)]';
-  const selectClasses = inputClasses + ' appearance-none';
   const labelClasses = 'block text-xs font-display font-semibold text-gray-500 uppercase tracking-wider mb-1.5';
 
   return (
@@ -237,13 +237,13 @@ const InventoryModal = ({ isOpen, onClose, insumoData, itemType = 'producto', on
           {!isAsset && (
             <div>
               <label className={labelClasses}>Unidad</label>
-              <select {...register('unit', { required: true })} className={selectClasses}>
+              <Select {...register('unit', { required: true })}>
                 {Object.entries(UNITS_BY_GROUP).map(([group, units]) => (
                   <optgroup key={group} label={GROUP_LABELS[group]}>
                     {units.map((u) => <option key={u} value={u}>{u}</option>)}
                   </optgroup>
                 ))}
-              </select>
+              </Select>
             </div>
           )}
 
@@ -265,28 +265,28 @@ const InventoryModal = ({ isOpen, onClose, insumoData, itemType = 'producto', on
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <div>
               <label className={labelClasses}>Categoría</label>
-              <select {...register('type')} className={selectClasses}>
+              <Select {...register('type')}>
                 {(isAsset ? ASSET_CATEGORIES : INVENTORY_CATEGORIES).map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             {isAsset ? (
               <div>
                 <label className={labelClasses}>Condición</label>
-                <select {...register('condition')} className={selectClasses}>
+                <Select {...register('condition')}>
                   {ASSET_CONDITIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
+                </Select>
               </div>
             ) : (
               <div>
                 <label className={labelClasses}>Estado</label>
-                <select {...register('status')} className={selectClasses}>
+                <Select {...register('status')}>
                   <option value="Disponible">Disponible</option>
                   <option value="Agotado">Agotado</option>
                   <option value="En Pedido">En Pedido</option>
-                </select>
+                </Select>
               </div>
             )}
           </div>
@@ -295,10 +295,10 @@ const InventoryModal = ({ isOpen, onClose, insumoData, itemType = 'producto', on
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <label className={labelClasses}>Estado de uso</label>
-                <select {...register('status')} className={selectClasses}>
+                <Select {...register('status')}>
                   <option value="Disponible">En uso</option>
                   <option value="Agotado">Fuera de servicio</option>
-                </select>
+                </Select>
               </div>
               <div>
                 <label className={labelClasses}>Fecha de adquisición (opcional)</label>

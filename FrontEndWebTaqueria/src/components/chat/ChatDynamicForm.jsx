@@ -5,6 +5,7 @@
 // este componente no sabe nada de negocio: solo sabe pintar text/number/select.
 import React, { useState } from 'react';
 import FAIcon from '../commons/FAIcon';
+import Select from '../commons/Select';
 
 const ChatDynamicForm = ({ formRequest, onSubmit, disabled }) => {
   const [values, setValues] = useState(() => ({ ...formRequest.knownArgs }));
@@ -32,18 +33,18 @@ const ChatDynamicForm = ({ formRequest, onSubmit, disabled }) => {
               {field.label}{field.required && <span className="text-red-500"> *</span>}
             </label>
             {field.type === 'select' ? (
-              <select
+              <Select
+                size="sm"
                 value={values[field.name] ?? ''}
                 onChange={(e) => handleChange(field.name, e.target.value)}
                 disabled={disabled || sent}
                 required={field.required}
-                className="w-full px-2.5 py-1.5 bg-[#f3f0eb] border border-white/80 rounded-lg text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500/30"
               >
                 <option value="">Selecciona...</option>
                 {field.options.map((opt) => (
                   <option key={opt} value={opt}>{opt}</option>
                 ))}
-              </select>
+              </Select>
             ) : (
               <input
                 type={field.type === 'number' ? 'number' : 'text'}

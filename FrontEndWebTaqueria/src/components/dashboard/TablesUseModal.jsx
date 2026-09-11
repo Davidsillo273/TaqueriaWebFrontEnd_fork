@@ -1,6 +1,7 @@
 // src/components/dashboard/TablesUseModal.jsx
 import React, { useState } from 'react';
 import FAIcon from '../commons/FAIcon';
+import Select from '../commons/Select';
 import ConfirmModal from '../commons/ConfirmModal';
 
 const STATUS_OPTIONS = [
@@ -46,14 +47,9 @@ const TableCard = ({ table, onUpdate, addToast }) => {
           {STATUS_OPTIONS.find((s) => s.value === status)?.label || status}
         </span>
       </div>
-      <select
-        value={status}
-        onChange={handleChange}
-        disabled={saving}
-        className="w-full px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs disabled:opacity-50"
-      >
+      <Select size="sm" value={status} onChange={handleChange} disabled={saving}>
         {STATUS_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-      </select>
+      </Select>
     </div>
   );
 };
@@ -90,13 +86,9 @@ const TablesUseModal = ({ isOpen, onClose, tables, onUpdate, onBulkUpdate, addTo
           <div className="p-5 sm:p-6">
             {onBulkUpdate && (
               <div className="flex items-center gap-1.5 bg-white rounded-xl border border-gray-200 p-1 mb-4 w-fit">
-                <select
-                  value={bulkStatus}
-                  onChange={(e) => setBulkStatus(e.target.value)}
-                  className="text-xs font-display font-semibold text-gray-700 bg-transparent px-2 py-1.5 rounded-lg focus:outline-none"
-                >
+                <Select variant="ghost" value={bulkStatus} onChange={(e) => setBulkStatus(e.target.value)}>
                   {STATUS_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-                </select>
+                </Select>
                 <button
                   type="button"
                   onClick={() => setConfirmBulk(true)}

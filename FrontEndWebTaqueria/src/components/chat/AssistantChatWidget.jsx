@@ -8,6 +8,7 @@
 // mostrarse según la sesión activa.
 import React, { useEffect, useRef, useState } from 'react';
 import FAIcon from '../commons/FAIcon';
+import Select from '../commons/Select';
 import ChatDynamicForm from './ChatDynamicForm';
 import useAssistantChat from '../../hooks/useAssistantChat';
 import { useAuth } from '../../hooks/auth/useAuth';
@@ -109,16 +110,12 @@ const AssistantChatWidget = () => {
 
           {/* Selector de contexto: le dice al asistente de qué pantalla habla el admin */}
           <div className="px-3 pt-2.5 pb-1.5 border-b border-white/60 bg-white/40">
-            <select
-              value={context}
-              onChange={(e) => setContext(e.target.value)}
-              className="w-full text-xs px-2.5 py-1.5 rounded-lg bg-white border border-white/80 text-gray-600 focus:outline-none focus:ring-2 focus:ring-red-500/20"
-            >
+            <Select size="sm" value={context} onChange={(e) => setContext(e.target.value)}>
               <option value="">Sin contexto específico</option>
               {CONTEXT_OPTIONS.map((c) => (
                 <option key={c.id} value={c.label}>Sobre: {c.label}</option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-2">

@@ -5,6 +5,7 @@
 // crear uno nuevo al vuelo (queda "pendiente" hasta que el admin lo complete).
 import React, { useState } from 'react';
 import FAIcon from './FAIcon';
+import Select from './Select';
 import { useInventory } from '../../hooks/useInventory';
 import { UNIT_LIST } from '../../constants/units';
 import { createEmptyRecipeRow } from '../../utils/recipeRowUtils';
@@ -42,7 +43,6 @@ const RecipeBuilder = ({ rows, setRows, categories = [], showRemovable = false, 
 
   const inputClasses =
     'w-full px-4 py-2.5 bg-[#f3f0eb] border border-white/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-400 transition-all text-gray-700 placeholder:text-gray-400 text-sm shadow-[inset_2px_2px_5px_rgba(0,0,0,0.05),inset_-2px_-2px_5px_rgba(255,255,255,0.7)]';
-  const selectClasses = inputClasses + ' appearance-none';
 
   return (
     <div>
@@ -116,13 +116,12 @@ const RecipeBuilder = ({ rows, setRows, categories = [], showRemovable = false, 
                   placeholder="Cantidad"
                   className={inputClasses}
                 />
-                <select
+                <Select
                   value={row.unit}
                   onChange={(e) => updateRow(row.key, { unit: e.target.value })}
-                  className={selectClasses}
                 >
                   {UNIT_LIST.map((u) => <option key={u} value={u}>{u}</option>)}
-                </select>
+                </Select>
               </div>
 
               <div className="flex items-center gap-4 flex-wrap">
@@ -154,13 +153,14 @@ const RecipeBuilder = ({ rows, setRows, categories = [], showRemovable = false, 
                   <p className="text-[11px] text-amber-600 flex-1">
                     Se creará como insumo pendiente en Inventario al guardar
                   </p>
-                  <select
+                  <Select
+                    size="sm"
+                    className="w-auto"
                     value={row.ingredientCategory || categories[0]}
                     onChange={(e) => updateRow(row.key, { ingredientCategory: e.target.value })}
-                    className="text-xs px-2 py-1 rounded-lg bg-white border border-white/80"
                   >
                     {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                  </Select>
                 </div>
               )}
             </div>

@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import FAIcon from '../commons/FAIcon';
+import Select from '../commons/Select';
 import ImageCropModal from '../commons/ImageCropModal';
 import RecipeBuilder from '../commons/RecipeBuilder';
 import { resolveRecipeRows } from '../../utils/recipeRowUtils';
@@ -253,8 +254,6 @@ const AddExtraModal = ({ isOpen, onClose, onAdd, onEditExisting, editingExtra = 
   // Estilos clay para inputs
   const inputClasses =
     'w-full px-4 py-2.5 bg-[#f3f0eb] border border-white/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-400 transition-all text-gray-700 placeholder:text-gray-400 text-sm shadow-[inset_2px_2px_5px_rgba(0,0,0,0.05),inset_-2px_-2px_5px_rgba(255,255,255,0.7)]';
-  const selectClasses = inputClasses + ' appearance-none';
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/40 backdrop-blur-sm">
       <div className="bg-[#f3f0eb] rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.2),inset_1px_1px_3px_rgba(255,255,255,0.7)] w-full max-w-md max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-white/80">
@@ -389,13 +388,10 @@ const AddExtraModal = ({ isOpen, onClose, onAdd, onEditExisting, editingExtra = 
             <label className="block text-xs font-display font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
               Estado
             </label>
-            <select
-              {...register('status')}
-              className={selectClasses}
-            >
+            <Select {...register('status')}>
               <option value="DISPONIBLE">Disponible</option>
               <option value="AGOTADO">Agotado</option>
-            </select>
+            </Select>
           </div>
 
           {/* ¿Depende de insumos de inventario? */}
