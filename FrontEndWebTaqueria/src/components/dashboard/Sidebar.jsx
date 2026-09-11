@@ -49,6 +49,8 @@ const Sidebar = ({ activeMenu, isOpen, onClose }) => {
         { id: 'clients', label: 'Clientes', icon: 'users', path: '/clients', permission: 'clients' },
         { id: 'staff', label: 'Empleados', icon: 'user-tie', path: '/employees', permission: 'employees' },
         { id: 'invite-staff', label: 'Invitar staff', icon: 'user-plus', path: '/InviteStaff', permission: 'invite_staff' },
+        { id: 'payroll', label: 'Planilla', icon: 'sack-dollar', path: '/payroll', permission: 'payroll' },
+        { id: 'reports', label: 'Reportes (IVA)', icon: 'file-invoice-dollar', path: '/reports', permission: 'reports' },
       ],
     },
   ]
