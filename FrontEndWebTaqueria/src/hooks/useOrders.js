@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useSocketEvent, useSocket } from "./useSocket";
+import { SOCKET_EVENTS } from "../constants/socketEvents";
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -15,8 +17,12 @@ export default function useOrders() {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(false);
 
-    // 1. READ - Traigo todas las comandas (mesas/dine-in) de la base de datos
-    const fetchOrders = async () => {
+    const { reconnectCount } = useSocket();
+
+    // 1. READ - Traigo todas las comandas (mesas/dine-in) de la base de datos.
+    // Es la "foto" inicial: a partir de ahí el servidor manda cada cambio por
+    // socket, así que esta consulta ya no se repite tras cada acción.
+    const fetchOrders = useCallback(async () => {
         setLoading(true);
         try {
             // credentials: 'include' manda la cookie de sesión, para que el
@@ -32,7 +38,44 @@ export default function useOrders() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    // --- Tiempo real ---
+    // Cada evento toca SOLO la comanda afectada, en vez de volver a pedir la
+    // lista completa. Así la pantalla no parpadea y el servidor no recibe una
+    // consulta entera por cada cambio de estado.
+
+    // Comanda nueva: entra arriba, que es donde la ordena el backend
+    // (sort createdAt descendente).
+    useSocketEvent(SOCKET_EVENTS.ORDER_CREATED, ({ order }) => {
+        if (!order?._id) return;
+        setOrders((prev) => (prev.some((o) => o._id === order._id) ? prev : [order, ...prev]));
+    });
+
+    // Cambio de estado, de pago, cancelación o el "atrasado" que marca solo el
+    // servidor: se reemplaza el registro completo, que llega ya poblado con
+    // mesa/mesero/cliente igual que en la consulta normal.
+    useSocketEvent(SOCKET_EVENTS.ORDER_UPDATED, ({ order }) => {
+        if (!order?._id) return;
+        setOrders((prev) => {
+            const exists = prev.some((o) => o._id === order._id);
+            // Si no estaba en la lista (ej. se creó mientras esta pestaña
+            // estaba desconectada), se agrega en vez de perderse.
+            if (!exists) return [order, ...prev];
+            return prev.map((o) => (o._id === order._id ? order : o));
+        });
+    });
+
+    useSocketEvent(SOCKET_EVENTS.ORDER_DELETED, ({ orderId }) => {
+        if (!orderId) return;
+        setOrders((prev) => prev.filter((o) => o._id !== orderId));
+    });
+
+    // Al reconectar sí se pide la lista completa: los cambios ocurridos
+    // mientras el cable estuvo caído no llegaron como eventos.
+    useEffect(() => {
+        if (reconnectCount > 0) fetchOrders();
+    }, [reconnectCount, fetchOrders]);
 
     // 2. UPDATE - Avanza el estado de la comanda al siguiente de la secuencia
     const updateOrderStatus = async (id, currentStatus) => {
@@ -52,7 +95,8 @@ export default function useOrders() {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            await fetchOrders();
+            // No se recarga la lista: el backend emite order:updated y el
+            // listener de arriba actualiza esta comanda al instante.
         } catch (err) {
             console.error("Error al cambiar el estado del pedido:", err);
             throw err;
@@ -74,7 +118,6 @@ export default function useOrders() {
                 return { success: false, message: data.message || 'No se pudo actualizar el estado de pago' };
             }
 
-            await fetchOrders();
             return { success: true };
         } catch (err) {
             console.error("Error al actualizar el estado de pago:", err);
@@ -100,7 +143,6 @@ export default function useOrders() {
                 return { success: false, message: data.message || 'No se pudo cancelar el pedido' };
             }
 
-            await fetchOrders();
             return { success: true };
         } catch (err) {
             console.error("Error al cancelar el pedido:", err);
@@ -120,7 +162,6 @@ export default function useOrders() {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            await fetchOrders();
             return { success: true };
         } catch (err) {
             console.error("Error al borrar el pedido:", err);
@@ -130,7 +171,7 @@ export default function useOrders() {
 
     useEffect(() => {
         fetchOrders();
-    }, []);
+    }, [fetchOrders]);
 
     return { orders, loading, fetchOrders, updateOrderStatus, updatePaymentStatus, cancelOrder, deleteOrder };
 }

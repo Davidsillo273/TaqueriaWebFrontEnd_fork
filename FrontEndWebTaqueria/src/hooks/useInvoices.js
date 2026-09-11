@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSocketEvent } from './useSocket';
+import { SOCKET_EVENTS } from '../constants/socketEvents';
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/invoices` : '/api/invoices';
 
@@ -35,6 +37,27 @@ export default function useInvoices() {
   useEffect(() => {
     fetchInvoices();
   }, [fetchInvoices]);
+
+  // El resumen de ventas lo calcula el backend con agregaciones sobre TODAS
+  // las facturas, así que no se puede actualizar sumando un delta: hay que
+  // volver a pedirlo. Solo se hace cuando una comanda llega a "delivered",
+  // que es el único momento en que nace una factura (ver generateInvoice).
+  //
+  // El aviso se agrupa en una pequeña espera porque al cerrar varias mesas
+  // seguidas llegan varios eventos casi a la vez, y sería absurdo recalcular
+  // el análisis completo una vez por cada uno.
+  const refreshTimerRef = useRef(null);
+
+  useSocketEvent(SOCKET_EVENTS.ORDER_UPDATED, ({ order }) => {
+    if (order?.status !== 'delivered') return;
+
+    clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = setTimeout(fetchInvoices, 800);
+  });
+
+  // Si el componente se desmonta con un refresco pendiente, se cancela para
+  // no dejar una consulta huérfana actualizando estado que ya no existe.
+  useEffect(() => () => clearTimeout(refreshTimerRef.current), []);
 
   return { invoices, analytics, loading, error, refetch: fetchInvoices };
 }
