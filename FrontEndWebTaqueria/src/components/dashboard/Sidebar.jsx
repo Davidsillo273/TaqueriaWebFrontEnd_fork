@@ -30,6 +30,7 @@ const Sidebar = ({ activeMenu, isOpen, onClose }) => {
       items: [
         { id: 'combos', label: 'Combos', icon: 'shopping-bag', path: '/combos', permission: 'combos' },
         { id: 'drinks', label: 'Bebidas', icon: 'wine-glass', path: '/drinks', permission: 'drinks' },
+        { id: 'drink-sets', label: 'Conjuntos de bebidas', icon: 'layer-group', path: '/drink-sets', permission: 'drink_sets' },
         { id: 'dishes', label: 'Platillos', icon: 'utensils', path: '/dishes', permission: 'dishes' },
         { id: 'extras', label: 'Extras', icon: 'star', path: '/extras', permission: 'extras' },
         { id: 'recipes', label: 'Recetas', icon: 'flask', path: '/recetas', permission: 'recipes' },

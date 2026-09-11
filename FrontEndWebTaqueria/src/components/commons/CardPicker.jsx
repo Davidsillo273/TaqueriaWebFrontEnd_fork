@@ -1,6 +1,7 @@
 // src/components/commons/CardPicker.jsx
 import React, { useMemo, useState } from 'react';
 import FAIcon from './FAIcon';
+import Select from './Select';
 import { usePagination } from '../../hooks/usePagination';
 
 const PLACEHOLDER_IMAGE = 'https://placehold.co/300x200/f3f0eb/9ca3af?text=Sin+imagen';
@@ -37,14 +38,10 @@ const CardPicker = ({ items, selectedIds, onToggle, categories = [] }) => {
           />
         </div>
         {categories.length > 0 && (
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="px-3 py-2 bg-white border border-white/80 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500/30"
-          >
+          <Select className="w-auto" value={category} onChange={(e) => setCategory(e.target.value)}>
             <option value="all">Todas las categorías</option>
             {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
+          </Select>
         )}
       </div>
 

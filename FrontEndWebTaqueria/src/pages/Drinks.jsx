@@ -5,7 +5,6 @@ import TopBar from '../components/dashboard/TopBar';
 import ComboStats from '../components/dashboard/ComboStats'; // 👈 mismo componente que en Combos
 import DrinkCard from '../components/drinks/DrinkCard';
 import AddDrinkModal from '../components/drinks/AddDrinkModal';
-import DrinkSetsPanel from '../components/drinks/DrinkSetsPanel';
 import ConfirmModal from '../components/commons/ConfirmModal';
 import PaginationControls from '../components/commons/PaginationControls';
 import AttentionCenter from '../components/commons/AttentionCenter';
@@ -18,6 +17,8 @@ import { usePagination } from '../hooks/usePagination';
 import { useSettings } from '../hooks/useSettings';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
 import { UNIT_LABELS } from '../constants/units';
+import ReportButton from '../components/commons/ReportButton';
+import { drinksReportColumns } from '../constants/reportConfigs';
 
 const CATEGORY_FILTERS = [
   { id: 'all', label: 'Todas' },
@@ -178,17 +179,36 @@ function DrinksContent() {
                   Administra el catálogo de bebidas y su disponibilidad.
                 </p>
               </div>
-              <button
-                onClick={handleOpenCreateModal}
-                className="flex items-center gap-2 px-4 py-2.5 bg-red-500 text-white rounded-xl font-display font-semibold text-sm
-                  shadow-[0_6px_16px_rgba(220,38,38,0.35),inset_1px_1px_2px_rgba(255,255,255,0.3)]
-                  hover:bg-red-600 hover:shadow-[0_8px_20px_rgba(220,38,38,0.4)]
-                  transition-all disabled:opacity-60"
-                disabled={loading}
-              >
-                <FAIcon icon="plus" />
-                Nueva Bebida
-              </button>
+              <div className="flex flex-wrap gap-3">
+                {/* El reporte exporta lo que el usuario tiene filtrado en
+                    pantalla, no la paginación: si busca "Coca" y exporta,
+                    espera esas bebidas, no solo las 6 de la página actual. */}
+                <ReportButton
+                  title="Bebidas"
+                  columns={drinksReportColumns}
+                  rows={filteredDrinks}
+                  getImageUrl={(d) => d.image}
+                  itemTag="bebida"
+                  summary={[
+                    { label: 'Total de bebidas', value: filteredDrinks.length },
+                    { label: 'Disponibles', value: filteredDrinks.filter((d) => d.status === 'disponible').length },
+                    { label: 'De casa', value: filteredDrinks.filter((d) => d.category === 'casa').length },
+                    { label: 'De tercero', value: filteredDrinks.filter((d) => d.category === 'tercero').length },
+                  ]}
+                />
+
+                <button
+                  onClick={handleOpenCreateModal}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-red-500 text-white rounded-xl font-display font-semibold text-sm
+                    shadow-[0_6px_16px_rgba(220,38,38,0.35),inset_1px_1px_2px_rgba(255,255,255,0.3)]
+                    hover:bg-red-600 hover:shadow-[0_8px_20px_rgba(220,38,38,0.4)]
+                    transition-all disabled:opacity-60"
+                  disabled={loading}
+                >
+                  <FAIcon icon="plus" />
+                  Nueva Bebida
+                </button>
+              </div>
             </div>
 
             {/* Error banner */}
@@ -207,8 +227,6 @@ function DrinksContent() {
               getReason={() => 'Falta imagen'}
               onEdit={handleOpenEditModal}
             />
-
-            <DrinkSetsPanel />
 
             <FilterBar
               filters={[

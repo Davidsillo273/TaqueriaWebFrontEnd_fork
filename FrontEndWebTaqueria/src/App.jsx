@@ -14,6 +14,7 @@ import ResetPassword from "./pages/ResetPassword"
 import Dashboard from './pages/Dashboard'
 import ComboManagement from './pages/ComboManagement'
 import Drinks from './pages/Drinks'
+import DrinkSets from './pages/DrinkSets'
 import Dishes from './pages/Dishes'
 import ClientManagement from './pages/ClientManagement'
 import Extras from './pages/Extras'
@@ -23,6 +24,7 @@ import Inventory from './pages/Inventory'
 import Orders from './pages/Orders'
 import InviteStaff from './pages/InviteStaff'
 import AcceptInvitation from './pages/AcceptInvitation'
+import CaptureDui from './pages/CaptureDui'
 import Notifications from './pages/Notifications'
 import Settings from './pages/Settings'
 import Recipes from './pages/Recipes'
@@ -61,6 +63,12 @@ export default function App() {
 					<Route path="/admin/accept-invitation" element={<AcceptInvitation />} />
 					<Route path="/employee/accept-invitation" element={<AcceptInvitation />} />
 
+					{/* Captura del DUI desde el teléfono: la abre quien escanea el
+					    QR que muestra la computadora al invitar a un empleado. Es
+					    pública porque el teléfono no tiene sesión iniciada; el
+					    acceso lo da el token temporal del enlace. */}
+					<Route path="/capturar-dui/:token" element={<CaptureDui />} />
+
 					{/* Rutas privadas: requieren sesión iniciada. "/dashboard" se deja
 					    siempre accesible (sin requiredPermission) porque es a donde se
 					    manda a cualquier empleado sin acceso a la pantalla que pidió:
@@ -69,6 +77,7 @@ export default function App() {
 					<Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
 					<Route path="/combos" element={<ProtectedRoute requiredPermission="combos"><ComboManagement /></ProtectedRoute>} />
 					<Route path="/drinks" element={<ProtectedRoute requiredPermission="drinks"><Drinks /></ProtectedRoute>} />
+					<Route path="/drink-sets" element={<ProtectedRoute requiredPermission="drink_sets"><DrinkSets /></ProtectedRoute>} />
 					<Route path="/dishes" element={<ProtectedRoute requiredPermission="dishes"><Dishes /></ProtectedRoute>} />
 					<Route path="/clients" element={<ProtectedRoute requiredPermission="clients"><ClientManagement /></ProtectedRoute>} />
 					<Route path="/extras" element={<ProtectedRoute requiredPermission="extras"><Extras /></ProtectedRoute>} />

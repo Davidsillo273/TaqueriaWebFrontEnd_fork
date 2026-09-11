@@ -5,6 +5,7 @@ export const PERMISSIONS = [
 
   { id: 'combos', label: 'Combos', group: 'Pantallas', type: 'screen' },
   { id: 'drinks', label: 'Bebidas', group: 'Pantallas', type: 'screen' },
+  { id: 'drink_sets', label: 'Conjuntos de bebidas', group: 'Pantallas', type: 'screen' },
   { id: 'dishes', label: 'Platillos', group: 'Pantallas', type: 'screen' },
   { id: 'extras', label: 'Extras', group: 'Pantallas', type: 'screen' },
   { id: 'recipes', label: 'Recetas', group: 'Pantallas', type: 'screen' },
@@ -35,6 +36,7 @@ export const SCREEN_ROUTES = {
   dashboard: '/dashboard',
   combos: '/combos',
   drinks: '/drinks',
+  drink_sets: '/drink-sets',
   dishes: '/dishes',
   extras: '/extras',
   recipes: '/recetas',

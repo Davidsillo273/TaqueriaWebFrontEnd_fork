@@ -6,6 +6,7 @@ import useDrinks from '../../hooks/useDrinks';
 import useDrinkSets from '../../hooks/useDrinkSets';
 import { useCombos } from '../../hooks/useCombos';
 import FAIcon from '../commons/FAIcon';
+import Select from '../commons/Select';
 import CardPicker from '../commons/CardPicker';
 import ImageCropModal from '../commons/ImageCropModal';
 import DuplicateNameDialog from '../commons/DuplicateNameDialog';
@@ -217,7 +218,6 @@ const AddComboModal = ({ isOpen, onClose, onSave, onEditExisting, loading, combo
 
   const inputClasses =
     'w-full px-4 py-2.5 bg-[#f3f0eb] border border-white/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-400 transition-all text-gray-700 placeholder:text-gray-400 text-sm shadow-[inset_2px_2px_5px_rgba(0,0,0,0.05),inset_-2px_-2px_5px_rgba(255,255,255,0.7)]';
-  const selectClasses = inputClasses + ' appearance-none';
   const labelClasses = 'block text-xs font-display font-semibold text-gray-500 uppercase tracking-wider mb-1.5';
 
   return (
@@ -272,21 +272,21 @@ const AddComboModal = ({ isOpen, onClose, onSave, onEditExisting, loading, combo
             </div>
             <div>
               <label className={labelClasses}>Categoría</label>
-              <select {...register('category', { required: true })} className={selectClasses} disabled={loading}>
+              <Select {...register('category', { required: true })} disabled={loading}>
                 <option value="individual">Individual</option>
                 <option value="duo">Duo</option>
                 <option value="familiar">Familiar</option>
-              </select>
+              </Select>
             </div>
           </div>
 
           {comboToEdit && (
             <div>
               <label className={labelClasses}>Estado</label>
-              <select {...register('status', { required: true })} className={selectClasses} disabled={loading}>
+              <Select {...register('status', { required: true })} disabled={loading}>
                 <option value="disponible">Disponible</option>
                 <option value="no disponible">No disponible</option>
-              </select>
+              </Select>
             </div>
           )}
 
