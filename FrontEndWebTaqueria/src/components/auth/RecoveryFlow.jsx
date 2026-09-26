@@ -43,7 +43,7 @@ const PrimaryAction = ({ children, className = '', ...props }) => (
   </button>
 );
 
-const RecoveryFlow = ({ onBackToChat, onClose, onDone }) => {
+const RecoveryFlow = ({ onBack, onBackToChat, onClose, onDone }) => {
   const [step, setStep] = useState('request');
 
   const {
@@ -75,8 +75,8 @@ const RecoveryFlow = ({ onBackToChat, onClose, onDone }) => {
       <div className="flex items-center gap-3 px-4 py-3.5 border-b border-line">
         <button
           type="button"
-          onClick={onBackToChat}
-          aria-label="Volver al chat"
+          onClick={onBack}
+          aria-label="Volver"
           className="w-6 h-6 flex items-center justify-center border border-line text-muted hover:text-ink hover:border-linealt transition-colors"
         >
           <FAIcon icon="chevron-left" size="xs" />

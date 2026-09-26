@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import FAIcon from '../components/commons/FAIcon';
 import LoginHelpChat from '../components/chat/LoginHelpChat';
+import PanchitaIcon from '../components/chat/PanchitaIcon';
 import RecoveryFlow from '../components/auth/RecoveryFlow';
 import { useTheme } from '../context/themeContext';
 import { useAuth } from '../hooks/auth/useAuth';
@@ -118,6 +119,14 @@ export default function Login() {
   // El panel lateral sirve para dos cosas: preguntarle a Panchita y
   // recuperar la contraseña. null = cerrado.
   const [panel, setPanel] = useState(null); // 'chat' | 'recovery' | null
+  // Desde dónde se abrió la recuperación, para que "volver" regrese ahí:
+  // al chat si vino de Panchita, o al login si vino del enlace del formulario.
+  const [recoveryFrom, setRecoveryFrom] = useState(null); // 'chat' | 'login' | null
+
+  const openRecovery = (from) => {
+    setRecoveryFrom(from);
+    setPanel('recovery');
+  };
 
   // El SVG del panel trae su propio degradado y su textura, y hay uno por
   // tema (el claro es crema, el oscuro azul noche).
@@ -129,7 +138,7 @@ export default function Login() {
 
   // localhost cuenta como origen seguro para el navegador, pero aquí interesa
   // el cifrado real del tráfico, así que solo se considera segura una
-  // conexión por HTTPS.
+  // conexión por HTTPS. Sin HTTPS simplemente no se muestra el sello.
   const isSecure = typeof window !== 'undefined' && window.location.protocol === 'https:';
 
   const handleVerifyCode = async (e) => {
@@ -284,7 +293,7 @@ export default function Login() {
           <img
             src={theme === 'dark' ? '/logos/nav-dark-plain.png' : '/logos/nav-light-plain.png'}
             alt="SYSCOR"
-            className="lg:hidden h-8 w-auto object-contain mb-1"
+            className="lg:hidden h-14 sm:h-8 w-auto object-contain mb-1"
           />
 
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -322,7 +331,7 @@ export default function Login() {
             <div className="flex justify-end -mt-1">
               <button
                 type="button"
-                onClick={() => setPanel('recovery')}
+                onClick={() => openRecovery('login')}
                 className="text-xs text-ac hover:text-ink transition-colors cursor-pointer"
               >
                 ¿Olvidó su contraseña?
@@ -371,21 +380,27 @@ export default function Login() {
             {codeError && <p className="text-ac text-xs mt-2">{codeError}</p>}
           </div>
 
+          {/* En móvil el panel ilustrado (y su botón de Panchita) está oculto,
+              así que el acceso al chat se repite aquí, al final del formulario. */}
+          <button
+            type="button"
+            onClick={() => setPanel('chat')}
+            className="lg:hidden w-full flex items-center justify-center gap-2 px-4 py-2.5 text-[12.5px] font-medium
+              border border-linealt text-inkalt hover:border-ac hover:text-ac transition-colors"
+          >
+            <PanchitaIcon variant="icon" className="w-5 h-5" />
+            Preguntar a Chef Panchita
+          </button>
+
           {/* El sello de cifrado se muestra solo si la conexión lo está de
               verdad: la cookie de sesión únicamente viaja como "secure" bajo
               HTTPS (ver cookieConfig en el backend), y en desarrollo esto
-              corre sobre HTTP plano. Afirmarlo siempre sería mentir justo en
-              la pantalla donde se escribe una contraseña. */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-line">
-            {isSecure ? (
+              corre sobre HTTP plano. */}
+          <div className={`flex flex-wrap items-center gap-3 pt-4 border-t border-line ${isSecure ? 'justify-between' : 'justify-end'}`}>
+            {isSecure && (
               <span className="flex items-center gap-1.5 text-[11.5px] text-muted">
                 <FAIcon icon="shield-alt" size="xs" className="text-ok" />
                 Conexión cifrada
-              </span>
-            ) : (
-              <span className="flex items-center gap-1.5 text-[11.5px] text-warn">
-                <FAIcon icon="triangle-exclamation" size="xs" />
-                Conexión sin cifrar
               </span>
             )}
             <span className="text-[11.5px] text-muted">
@@ -410,10 +425,11 @@ export default function Login() {
             {panel === 'chat' ? (
               <LoginHelpChat
                 onClose={() => setPanel(null)}
-                onStartRecovery={() => setPanel('recovery')}
+                onStartRecovery={() => openRecovery('chat')}
               />
             ) : (
               <RecoveryFlow
+                onBack={() => setPanel(recoveryFrom === 'chat' ? 'chat' : null)}
                 onBackToChat={() => setPanel('chat')}
                 onClose={() => setPanel(null)}
                 onDone={() => setPanel(null)}
