@@ -11,6 +11,7 @@ import { useToast } from '../commons/ToastProvider';
 import { useInventory } from '../../hooks/useInventory';
 import useExtras from '../../hooks/useExtras';
 import { INGREDIENT_CATEGORIES_DISHES } from '../../constants/units';
+import { EXTRA_TARGETS } from '../../constants/extraTargets';
 
 const AI_API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/ai/suggest-recipe` : '/api/ai/suggest-recipe';
 
@@ -27,6 +28,8 @@ const AddExtraModal = ({ isOpen, onClose, onAdd, onEditExisting, editingExtra = 
   const [missingIngredients, setMissingIngredients] = useState([]);
   const [pendingFormData, setPendingFormData] = useState(null);
   const [restockAmounts, setRestockAmounts] = useState({});
+  // A qué tipos de platillo se le puede agregar (la app solo lo ofrece ahí).
+  const [appliesTo, setAppliesTo] = useState([]);
 
   const {
     register,
@@ -56,6 +59,7 @@ const AddExtraModal = ({ isOpen, onClose, onAdd, onEditExisting, editingExtra = 
         setValue('category', editingExtra.category || '');
         setValue('status', editingExtra.status || 'DISPONIBLE');
         setValue('isCompound', Boolean(editingExtra.isCompound));
+        setAppliesTo(editingExtra.appliesTo || []);
         setIngredientRows(
           (editingExtra.ingredients || []).map((item) => ({
             key: crypto.randomUUID(),
@@ -76,6 +80,7 @@ const AddExtraModal = ({ isOpen, onClose, onAdd, onEditExisting, editingExtra = 
           status: 'DISPONIBLE',
           isCompound: false,
         });
+        setAppliesTo([]);
         setIngredientRows([]);
       }
     }
@@ -93,6 +98,7 @@ const AddExtraModal = ({ isOpen, onClose, onAdd, onEditExisting, editingExtra = 
     formData.append('category', data.category || '');
     formData.append('status', data.status);
     formData.append('isCompound', Boolean(data.isCompound));
+    formData.append('appliesTo', JSON.stringify(appliesTo));
     formData.append(
       'ingredients',
       JSON.stringify(
@@ -381,6 +387,48 @@ const AddExtraModal = ({ isOpen, onClose, onAdd, onEditExisting, editingExtra = 
               <option value="Especial" />
               <option value="Otros" />
             </datalist>
+          </div>
+
+          {/* A qué se le puede agregar */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-display font-semibold text-muted uppercase tracking-wider">
+                Se puede agregar a
+              </label>
+              <div className="flex gap-3 text-xs font-display font-semibold">
+                <button type="button" onClick={() => setAppliesTo(EXTRA_TARGETS)} className="text-ac hover:underline">
+                  Todos
+                </button>
+                <button type="button" onClick={() => setAppliesTo([])} className="text-muted hover:underline">
+                  Ninguno
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {EXTRA_TARGETS.map((target) => {
+                const selected = appliesTo.includes(target);
+                return (
+                  <button
+                    key={target}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() =>
+                      setAppliesTo((list) => (selected ? list.filter((t) => t !== target) : [...list, target]))
+                    }
+                    className={`px-3 py-1.5 text-xs font-medium border transition-colors ${
+                      selected ? 'bg-ac text-white border-ac' : 'bg-surface text-inkalt border-line hover:border-ac'
+                    }`}
+                  >
+                    {target}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted mt-1.5">
+              {appliesTo.length === 0
+                ? 'Sin tipos marcados, este extra no se ofrece en la app de clientes.'
+                : 'En la app solo se ofrece en los platillos (o combos con platillos) de estos tipos.'}
+            </p>
           </div>
 
           {/* Estado */}
