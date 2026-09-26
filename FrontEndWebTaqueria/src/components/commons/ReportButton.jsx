@@ -46,6 +46,7 @@ const ReportButton = ({
   className = '',
   label = 'Generar reporte',
   compact = false,
+  buttonText,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -123,7 +124,7 @@ const ReportButton = ({
         {(generating || !compact) && (
           <FAIcon icon={generating ? 'spinner' : 'file-arrow-down'} className={generating ? 'animate-spin' : ''} />
         )}
-        {generating ? 'Generando...' : label}
+        {generating ? 'Generando...' : buttonText || label}
       </button>
 
       {isOpen && (
