@@ -1,12 +1,32 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import FAIcon from '../commons/FAIcon'
+import { orderCode } from '../../utils/orderCode'
+
+// Milisegundos que le quedan al cliente para agregar productos a su pedido
+// ("Agregar más productos" en la app; mientras, el pedido está en pausa).
+// 0 si no está agregando o ya se le acabó el tiempo: el backend lo devuelve
+// solo a la cola y avisa por socket.
+const holdRemaining = (pedido, now) =>
+  pedido.hold?.active && pedido.hold?.until ? Math.max(0, new Date(pedido.hold.until).getTime() - now) : 0
+
+// Cuenta regresiva de la espera, se actualiza cada segundo solo mientras dura.
+const useHoldCountdown = (pedido) => {
+  const [now, setNow] = useState(() => Date.now())
+  const remaining = holdRemaining(pedido, now)
+  useEffect(() => {
+    if (remaining <= 0) return undefined
+    const timer = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(timer)
+  }, [remaining > 0]) // eslint-disable-line react-hooks/exhaustive-deps
+  return remaining
+}
 
 // Etiquetas del botón en formato exacto a la imagen de referencia: "Pasar a cocina"
 const getAction = (pedido) => {
   if (pedido.status === 'pending') return { label: 'Pasar a cocina' }
   if (pedido.status === 'preparing' || pedido.status === 'atrasado') return { label: 'Marcar como listo' }
   if (pedido.status === 'ready') {
-    if (pedido.orderType === 'local') return { label: 'Servir en mesa' }
+    if (pedido.orderType === 'local' || pedido.fulfillment === 'dine_in') return { label: 'Servir en mesa' }
     if (pedido.isDelivery) return { label: 'Marcar entregado' }
     return { label: 'Marcar recogido' }
   }
@@ -15,29 +35,43 @@ const getAction = (pedido) => {
 
 export default function OrderCard({ pedido, onAdvance, onCancelRequest, onDeleteRequest }) {
   const esFinal = pedido.status === 'delivered' || pedido.status === 'cancelled'
-  const codigo = `#${(pedido._id || '').slice(-4).toUpperCase()}`
+  const codigo = orderCode(pedido)
   const action = getAction(pedido)
+  const holdLeft = useHoldCountdown(pedido)
+  const enEspera = pedido.status === 'pending' && holdLeft > 0
+  const holdLabel = `${Math.floor(holdLeft / 60000)}:${String(Math.floor((holdLeft % 60000) / 1000)).padStart(2, '0')}`
 
   const customerName = pedido.customer?.personalInfo
     ? `${pedido.customer.personalInfo.name || ''} ${pedido.customer.personalInfo.lastname || ''}`.trim()
     : (pedido.customerName || 'Cliente')
 
   // Detalle derecho: "LOCAL · MESA 2" o "EN LÍNEA · SOFÍA MENA"
+  // Un pedido en línea para comer en el local lleva mesa cuando el cliente
+  // escanea el QR al llegar (ver reservationController en el backend).
   const headerDetail = pedido.orderType === 'local'
     ? `LOCAL · MESA ${pedido.table?.number || (pedido.tableNumber ? pedido.tableNumber : '—')}`
-    : `EN LÍNEA · ${customerName.toUpperCase()}`
+    : pedido.fulfillment === 'dine_in'
+      ? `COMER AQUÍ · ${pedido.table?.number ? `MESA ${pedido.table.number}` : 'POR LLEGAR'} · ${customerName.toUpperCase()}`
+      : `EN LÍNEA · ${customerName.toUpperCase()}`
 
   // Resumen de productos separados por punto medio: "3 quesadillas · 1 horchata"
   const itemsSummary = (pedido.items || []).length > 0
     ? pedido.items.map((item) => {
         const qty = item.quantity ? `${item.quantity} ` : ''
         const name = item.name || item.product?.name || 'Producto'
-        return `${qty}${name}`.trim()
+        // Sumado después con "Agregar más productos" en la app.
+        return `${qty}${name}${item.addedAt ? ' (agregado)' : ''}`.trim()
       }).join(' · ')
     : 'Sin productos'
 
   return (
-    <div className="bg-surface border border-line rounded-none p-5 sm:p-6 flex flex-col justify-between transition-colors hover:border-linealt group w-full">
+    <div className={`bg-surface border border-line rounded-none p-5 sm:p-6 flex flex-col justify-between transition-colors hover:border-linealt group w-full ${enEspera ? 'opacity-60' : ''}`}>
+      {enEspera && (
+        <div className="kick mb-3 inline-flex items-center gap-1.5 px-2.5 py-1 border border-warn/40 text-warn bg-warnsoft w-fit" title="El cliente está agregando productos desde la app. Sigue con el siguiente; este vuelve solo a la cola.">
+          <FAIcon icon="pause" size="xs" />
+          CLIENTE AGREGANDO · <span className="num">{holdLabel}</span>
+        </div>
+      )}
       <div>
         {/* Cabecera: Código a la izquierda (#D7E1), Detalle a la derecha (LOCAL · MESA 2) */}
         <div className="flex items-center justify-between gap-3">
@@ -89,9 +123,11 @@ export default function OrderCard({ pedido, onAdvance, onCancelRequest, onDelete
               <button
                 type="button"
                 onClick={() => onAdvance(pedido._id, pedido.status)}
-                className="border border-ac text-ac hover:bg-ac hover:text-white px-5 py-2 text-xs sm:text-[13px] font-normal rounded-none transition-colors duration-150 active:scale-[0.98]"
+                disabled={enEspera}
+                title={enEspera ? 'El cliente está agregando productos a este pedido' : undefined}
+                className="border border-ac text-ac hover:bg-ac hover:text-white px-5 py-2 text-xs sm:text-[13px] font-normal rounded-none transition-colors duration-150 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-ac"
               >
-                {action.label}
+                {enEspera ? 'En espera' : action.label}
               </button>
             </>
           )}

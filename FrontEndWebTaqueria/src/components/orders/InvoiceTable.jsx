@@ -1,5 +1,6 @@
 import React from 'react'
 import FAIcon from '../commons/FAIcon'
+import { orderCode } from '../../utils/orderCode'
 
 const PAYMENT_LABELS = {
   card: 'Tarjeta',
@@ -43,7 +44,7 @@ export default function InvoiceTable({ invoices, loading, onDeleteRequest }) {
           {invoices.map((invoice) => (
             <tr key={invoice._id} className="hover:bg-surfalt/50 transition-colors">
               <td className="py-3.5 px-4 pl-6 num font-bold text-ink">
-                #{(invoice.order || invoice._id).toString().slice(-4).toUpperCase()}
+                {invoice.orderCode || orderCode(invoice.order || invoice._id)}
               </td>
               <td className="py-3.5 px-4">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-line text-muted bg-surfalt">

@@ -5,42 +5,51 @@
 // nacimiento y dirección (que es justo donde más errores de captura hay).
 //
 // Dos caminos, porque el admin puede estar en cualquiera de los dos lados:
-//   - Desde el celular: el <input capture> abre la cámara directamente.
-//   - Desde la computadora: se muestra un QR, el admin lo escanea con su
-//     teléfono, toma las fotos ahí, y llegan a esta pantalla por socket.
+//   - Desde esta computadora (o el celular): elegir o tomar las fotos aquí.
+//   - Con el teléfono: se muestra un QR, el admin lo escanea, toma las fotos
+//     ahí y llegan solas a esta pantalla (socket, con consulta de respaldo;
+//     ver useDuiScan).
 import { useState, useEffect, useRef, useMemo } from 'react';
 import QRCode from 'qrcode';
 import FAIcon from '../commons/FAIcon';
 
-// Vista previa de una de las caras del documento, con su selector de archivo.
-const PhotoSlot = ({ label, hint, file, onPick, onClear, disabled }) => {
-  // La URL del preview se deriva del archivo (no hace falta estado) y se
-  // libera al cambiar de archivo para no dejar blobs colgando en memoria.
+// Proporción de una tarjeta de identidad (85.6 × 54 mm).
+const CARD_RATIO = 'aspect-[1.586]';
+
+// Una cara del documento: vacía (para elegir foto), con archivo local o con
+// una URL ya guardada.
+const PhotoSlot = ({ label, hint, file, url, onPick, onClear, disabled }) => {
+  // La URL del preview se deriva del archivo y se libera al cambiarlo.
   const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
+  const src = preview || url || null;
 
   return (
-    <div className="flex-1 min-w-0">
-      <div className="flex items-center justify-between mb-1.5">
+    <div className="min-w-0">
+      <div className="flex items-end justify-between gap-2 mb-1.5">
         <div className="min-w-0">
-          <p className="text-xs font-display font-medium text-inkalt">{label}</p>
-          <p className="text-[10px] text-muted truncate">{hint}</p>
+          <p className="kick text-ink">{label}</p>
+          {hint && <p className="text-[11px] text-muted truncate">{hint}</p>}
         </div>
-        {file && !disabled && (
-          <button type="button" onClick={onClear} className="text-[11px] text-ac font-display font-medium shrink-0">
-            Quitar
+        {file && !disabled && onClear && (
+          <button type="button" onClick={onClear} className="text-[11px] text-ac font-display font-medium shrink-0 cursor-pointer">
+            Cambiar
           </button>
         )}
       </div>
 
-      {preview ? (
-        <img src={preview} alt={label} className="w-full h-32 object-cover rounded-lg border border-line" />
+      {src ? (
+        <img src={src} alt={label} className={`w-full ${CARD_RATIO} object-cover border border-line bg-surfalt`} />
       ) : (
-        <label className={`flex flex-col items-center justify-center gap-1.5 h-32 rounded-lg border-2 border-dashed border-line bg-surfalt transition-colors ${disabled ? 'opacity-50' : 'cursor-pointer hover:bg-surfalt'}`}>
+        <label
+          className={`flex flex-col items-center justify-center gap-2 w-full ${CARD_RATIO} border border-dashed border-linealt bg-surfalt transition-colors ${
+            disabled ? 'opacity-50' : 'cursor-pointer hover:border-ac hover:bg-acsoft'
+          }`}
+        >
           <FAIcon icon="camera" size="lg" className="text-muted" />
-          <span className="text-[11px] font-display font-medium text-muted">Elegir foto</span>
+          <span className="text-[12px] font-display font-medium text-inkalt">Elegir o tomar foto</span>
           {/* En un teléfono, "capture" abre la cámara; en una computadora
-              simplemente abre el explorador de archivos. */}
+              abre el explorador de archivos. */}
           <input
             type="file"
             accept="image/*"
@@ -55,6 +64,27 @@ const PhotoSlot = ({ label, hint, file, onPick, onClear, disabled }) => {
   );
 };
 
+// Cuenta regresiva del código QR (la sesión vence en el servidor a los 10 min).
+const useCountdown = (seconds, key) => {
+  // Se guarda de qué sesión es cada lectura: con una sesión nueva se muestra
+  // el tiempo completo hasta el primer tic.
+  const [tick, setTick] = useState({ key: null, left: 0 });
+  useEffect(() => {
+    if (!seconds) return undefined;
+    const end = Date.now() + seconds * 1000;
+    const timer = setInterval(() => setTick({ key, left: Math.max(0, Math.round((end - Date.now()) / 1000)) }), 1000);
+    return () => clearInterval(timer);
+  }, [seconds, key]);
+  const left = tick.key === key ? tick.left : seconds;
+  return `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
+};
+
+const PHONE_STEPS = [
+  'Abre la cámara del teléfono y apunta a este código.',
+  'Toma la foto del frente y del reverso del DUI.',
+  'Toca "Enviar fotos": aparecerán aquí solas.',
+];
+
 const DuiScanStep = ({
   scanning,
   error,
@@ -65,57 +95,83 @@ const DuiScanStep = ({
   retryScanFromSession,
   captureSession,
   waitingForPhone,
+  receivedPhotos,
+  documents,
   onSkip,
 }) => {
   const [front, setFront] = useState(null);
   const [back, setBack] = useState(null);
   const [confirming, setConfirming] = useState(false);
   const canvasRef = useRef(null);
+  const countdown = useCountdown(captureSession?.expiresInSeconds || 0, captureSession?.token);
 
-  // Dibuja el QR cuando se abre una sesión de captura. Se genera en el
-  // navegador (sin mandar la URL a ningún servicio externo), porque ese
-  // enlace es un token de acceso temporal.
+  // Dibuja el QR en el navegador (sin mandar la URL a ningún servicio
+  // externo): el enlace es un token de acceso temporal.
   useEffect(() => {
     if (!captureSession?.captureUrl || !canvasRef.current) return;
-
     QRCode.toCanvas(canvasRef.current, captureSession.captureUrl, {
-      width: 220,
+      width: 208,
       margin: 1,
-      color: { dark: '#1f2937', light: '#ffffff' },
+      color: { dark: '#292b31', light: '#ffffff' },
     }).catch((err) => console.error('No se pudo generar el QR:', err));
-  }, [captureSession]);
+  }, [captureSession, waitingForPhone]);
+
+  // Fotos ya guardadas (del teléfono o de un escaneo anterior).
+  const savedFront = receivedPhotos?.front?.url || documents?.duiFront?.url || null;
+  const savedBack = receivedPhotos?.back?.url || documents?.duiBack?.url || null;
 
   const handleConfirmAndScan = async () => {
     setConfirming(false);
     await scanFiles(front, back);
   };
 
+  const header = (
+    <div className="mb-5">
+      <p className="kick text-muted">Documento de identidad</p>
+      <h3 className="font-display text-lg text-ink mt-0.5">Escanea el DUI del empleado</h3>
+      <p className="text-sm text-muted mt-1">
+        Leemos el nombre, el número, la fecha de nacimiento y la dirección para llenar el formulario. Tú revisas antes de enviar.
+      </p>
+    </div>
+  );
+
   // --- Esperando al teléfono ---
   if (waitingForPhone && captureSession) {
     return (
-      <div className="text-center py-2">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-warnsoft border border-warn text-warn text-xs font-display font-medium mb-4">
-          <FAIcon icon="mobile-screen" size="xs" />
-          Esperando las fotos del teléfono
+      <div>
+        {header}
+        <div className="grid gap-0 md:grid-cols-[auto_1fr] border border-line bg-surface">
+          <div className="p-5 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-line bg-white">
+            <canvas ref={canvasRef} />
+            <p className="kick text-muted mt-3">
+              Vence en <span className="num text-ink">{countdown}</span>
+            </p>
+          </div>
+          <div className="p-5 flex flex-col">
+            <div className="inline-flex items-center gap-2 kick text-warn mb-4">
+              <span className="relative flex w-2 h-2">
+                <span className="absolute inline-flex w-full h-full rounded-full bg-warn opacity-60 animate-ping" />
+                <span className="relative inline-flex w-2 h-2 rounded-full bg-warn" />
+              </span>
+              Esperando las fotos del teléfono
+            </div>
+            <ol className="space-y-3 flex-1">
+              {PHONE_STEPS.map((step, i) => (
+                <li key={step} className="flex gap-3 text-sm text-inkalt">
+                  <span className="num w-6 h-6 shrink-0 flex items-center justify-center border border-line text-[11px] text-ink">{i + 1}</span>
+                  <span className="pt-0.5">{step}</span>
+                </li>
+              ))}
+            </ol>
+            <button
+              type="button"
+              onClick={cancelPhoneCapture}
+              className="mt-5 self-start text-[12px] font-display font-medium text-muted hover:text-ac transition-colors cursor-pointer"
+            >
+              ← Cancelar y subir desde esta computadora
+            </button>
+          </div>
         </div>
-
-        <div className="bg-surface rounded-lg border border-line p-5 inline-block">
-          <canvas ref={canvasRef} className="rounded-lg" />
-        </div>
-
-        <p className="text-sm text-inkalt mt-4 max-w-sm mx-auto">
-          Escanea este código con la cámara de tu teléfono. Ahí podrás tomar las
-          fotos del DUI y llegarán solas a esta pantalla.
-        </p>
-        <p className="text-[11px] text-muted mt-1">El código vence en 10 minutos.</p>
-
-        <button
-          type="button"
-          onClick={cancelPhoneCapture}
-          className="mt-5 text-xs font-display font-medium text-muted hover:text-inkalt"
-        >
-          Cancelar y subir desde esta computadora
-        </button>
       </div>
     );
   }
@@ -123,10 +179,23 @@ const DuiScanStep = ({
   // --- Leyendo el documento ---
   if (scanning) {
     return (
-      <div className="text-center py-10">
-        <div className="w-12 h-12 mx-auto mb-3 rounded-full border-4 border-acline border-t-red-500 animate-spin" />
-        <p className="font-display font-medium text-ink">Leyendo el documento...</p>
-        <p className="text-sm text-muted mt-1">Esto toma unos segundos.</p>
+      <div>
+        {header}
+        <div className="border border-line bg-surface p-5">
+          {(savedFront || front) && (
+            <div className="grid grid-cols-2 gap-3 mb-5">
+              <PhotoSlot label="Frente" file={savedFront ? null : front} url={savedFront} disabled />
+              <PhotoSlot label="Reverso" file={savedBack ? null : back} url={savedBack} disabled />
+            </div>
+          )}
+          <div className="flex items-center gap-3">
+            <span className="w-5 h-5 rounded-full border-2 border-acline border-t-ac animate-spin shrink-0" />
+            <div>
+              <p className="font-display text-ink text-sm">Leyendo el documento…</p>
+              <p className="text-xs text-muted">Esto toma unos segundos.</p>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -135,33 +204,30 @@ const DuiScanStep = ({
   if (confirming) {
     return (
       <div>
-        <p className="text-sm text-inkalt font-display font-medium mb-1">
-          ¿Se ven bien las fotos?
-        </p>
-        <p className="text-xs text-muted mb-4">
-          Revisa que los datos del documento se lean con claridad antes de continuar.
-        </p>
-
-        <div className="flex gap-3 mb-5">
-          <PhotoSlot label="Frente" hint="" file={front} disabled />
-          <PhotoSlot label="Reverso" hint="" file={back} disabled />
-        </div>
-
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={() => setConfirming(false)}
-            className="flex-1 py-2.5 rounded-lg bg-surfalt text-inkalt font-display font-medium text-sm hover:bg-line transition-colors"
-          >
-            Cambiar fotos
-          </button>
-          <button
-            type="button"
-            onClick={handleConfirmAndScan}
-            className="flex-1 py-2.5 rounded-lg bg-ac text-white font-display font-medium text-sm hover:bg-ac transition-colors"
-          >
-            Sí, leer el DUI
-          </button>
+        {header}
+        <div className="border border-line bg-surface p-5">
+          <p className="font-display text-ink text-sm">¿Se leen bien los datos?</p>
+          <p className="text-xs text-muted mb-4">Revisa que el texto no salga borroso ni con reflejos antes de continuar.</p>
+          <div className="grid grid-cols-2 gap-3 mb-5">
+            <PhotoSlot label="Frente" file={front} disabled />
+            <PhotoSlot label="Reverso" file={back} disabled />
+          </div>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setConfirming(false)}
+              className="flex-1 py-2.5 border border-line bg-surface text-inkalt font-display text-sm hover:border-linealt transition-colors cursor-pointer"
+            >
+              Cambiar fotos
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmAndScan}
+              className="flex-1 py-2.5 border border-ac bg-ac text-white font-display text-sm hover:opacity-90 transition-opacity cursor-pointer"
+            >
+              Sí, leer el DUI
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -169,22 +235,28 @@ const DuiScanStep = ({
 
   return (
     <div>
+      {header}
+
       {/* Si la lectura falló, se ofrece reintentar: normalmente es porque el
           servicio de IA estaba saturado, no porque la foto esté mal. */}
       {ocrFailed && (
-        <div className="mb-4 px-4 py-3 bg-warnsoft border border-warn rounded-lg">
-          <p className="text-sm text-warn font-display font-medium mb-1">
-            No se pudieron leer los datos automáticamente
-          </p>
-          <p className="text-xs text-warn mb-2">
+        <div className="mb-4 border border-warn/40 bg-warnsoft p-4">
+          <p className="kick text-warn mb-1">No se pudieron leer los datos</p>
+          <p className="text-xs text-inkalt mb-3">
             Las fotos sí se guardaron. Puedes intentar leerlas de nuevo o escribir los datos a mano.
           </p>
+          {(savedFront || savedBack) && (
+            <div className="grid grid-cols-2 gap-3 mb-3 max-w-md">
+              <PhotoSlot label="Frente" url={savedFront} disabled />
+              <PhotoSlot label="Reverso" url={savedBack} disabled />
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
             {captureSession && (
               <button
                 type="button"
                 onClick={retryScanFromSession}
-                className="px-3 py-1.5 rounded-lg bg-warn text-white text-xs font-display font-medium hover:bg-warn transition-colors"
+                className="px-3 py-1.5 border border-warn bg-warn text-white text-xs font-display cursor-pointer"
               >
                 Reintentar lectura
               </button>
@@ -192,7 +264,7 @@ const DuiScanStep = ({
             <button
               type="button"
               onClick={onSkip}
-              className="px-3 py-1.5 rounded-lg bg-surface border border-warn text-warn text-xs font-display font-medium hover:bg-warnsoft transition-colors"
+              className="px-3 py-1.5 border border-warn text-warn bg-surface text-xs font-display cursor-pointer"
             >
               Escribir los datos a mano
             </button>
@@ -200,60 +272,52 @@ const DuiScanStep = ({
         </div>
       )}
 
-      {error && (
-        <div className="mb-4 px-4 py-3 bg-acsoft border border-acline rounded-lg text-sm text-ac">
-          {error}
+      {error && <div className="mb-4 border border-acline bg-acsoft px-4 py-3 text-sm text-ac">{error}</div>}
+
+      <div className="grid gap-4 lg:grid-cols-[1fr_260px]">
+        {/* Subir desde aquí */}
+        <div className="border border-line bg-surface p-5">
+          <p className="kick text-muted mb-3">Desde esta computadora</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <PhotoSlot label="Frente" hint="El lado con la foto y el número" file={front} onPick={setFront} onClear={() => setFront(null)} />
+            <PhotoSlot label="Reverso" hint="El lado con la dirección" file={back} onPick={setBack} onClear={() => setBack(null)} />
+          </div>
+          <button
+            type="button"
+            onClick={() => setConfirming(true)}
+            disabled={!front}
+            className="w-full py-2.5 border border-ac bg-ac text-white font-display text-sm hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          >
+            Continuar con estas fotos
+          </button>
         </div>
-      )}
 
-      <div className="flex gap-3 mb-4">
-        <PhotoSlot
-          label="Frente del DUI"
-          hint="El lado con la foto"
-          file={front}
-          onPick={setFront}
-          onClear={() => setFront(null)}
-        />
-        <PhotoSlot
-          label="Reverso del DUI"
-          hint="El lado con la dirección"
-          file={back}
-          onPick={setBack}
-          onClear={() => setBack(null)}
-        />
+        {/* Con el teléfono */}
+        <div className="border border-line bg-surface p-5 flex flex-col">
+          <p className="kick text-muted mb-3">Con tu teléfono</p>
+          <div className="w-10 h-10 flex items-center justify-center border border-line text-ac mb-3">
+            <FAIcon icon="qrcode" />
+          </div>
+          <p className="text-sm text-inkalt flex-1">
+            ¿La computadora no tiene cámara? Escanea un código con tu teléfono, toma las fotos ahí y llegan aquí solas.
+          </p>
+          <button
+            type="button"
+            onClick={startPhoneCapture}
+            className="mt-4 w-full py-2.5 border border-line bg-surface text-ink font-display text-sm hover:border-ac hover:text-ac transition-colors cursor-pointer inline-flex items-center justify-center gap-2"
+          >
+            <FAIcon icon="mobile-screen" size="xs" />
+            Mostrar código QR
+          </button>
+        </div>
       </div>
-
-      <button
-        type="button"
-        onClick={() => setConfirming(true)}
-        disabled={!front}
-        className="w-full py-2.5 rounded-lg bg-ac text-white font-display font-medium text-sm hover:bg-ac transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-3"
-      >
-        Continuar con estas fotos
-      </button>
-
-      {/* Alternativa para quien está en una computadora sin cámara decente */}
-      <div className="flex items-center gap-3 my-3">
-        <div className="flex-1 h-px bg-line" />
-        <span className="kick text-muted">o</span>
-        <div className="flex-1 h-px bg-line" />
-      </div>
-
-      <button
-        type="button"
-        onClick={startPhoneCapture}
-        className="w-full py-2.5 rounded-lg bg-surface border border-line text-inkalt font-display font-medium text-sm hover:bg-surfalt transition-colors inline-flex items-center justify-center gap-2"
-      >
-        <FAIcon icon="qrcode" />
-        Tomar las fotos con mi teléfono
-      </button>
 
       <button
         type="button"
         onClick={onSkip}
-        className="w-full mt-3 text-xs font-display font-medium text-muted hover:text-inkalt"
+        className="mt-4 text-[12px] font-display font-medium text-muted hover:text-ac transition-colors cursor-pointer"
       >
-        Prefiero escribir los datos a mano
+        Prefiero escribir los datos a mano →
       </button>
     </div>
   );

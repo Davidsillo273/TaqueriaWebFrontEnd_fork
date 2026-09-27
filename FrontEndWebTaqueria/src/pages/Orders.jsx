@@ -12,6 +12,7 @@ import { ToastProvider, useToast } from '../components/commons/ToastProvider'
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import ReportButton from '../components/commons/ReportButton'
 import { ordersReportColumns, invoicesReportColumns } from '../constants/reportConfigs'
+import { orderCode } from '../utils/orderCode'
 
 // Vistas de la pantalla (debajo del sub navbar de Operaciones)
 const SECTION_TABS = [
@@ -255,7 +256,7 @@ function OrdersPanel({ ordersApi, orderTypeFilter, setOrderTypeFilter }) {
   const handleAdvance = async (id, currentStatus) => {
     try {
       await updateOrderStatus(id, currentStatus)
-      addToast(`Pedido #${id.slice(-4).toUpperCase()} actualizado`, 'success')
+      addToast(`Pedido ${orderCode(orders.find((o) => o._id === id) || id)} actualizado`, 'success')
     } catch (err) {
       addToast('Error al actualizar el pedido', 'error')
     }
@@ -287,7 +288,7 @@ function OrdersPanel({ ordersApi, orderTypeFilter, setOrderTypeFilter }) {
     {
       title: 'EN COCINA',
       value: enCocinaTotal > 0 ? `$${enCocinaTotal.toFixed(2)}` : (pedidoMasCaro ? `$${Number(pedidoMasCaro.total).toFixed(2)}` : '$0.00'),
-      subtitle: pedidoMasCaro ? `Pedido más caro: #${pedidoMasCaro._id.slice(-4).toUpperCase()}` : 'Sin pedidos activos',
+      subtitle: pedidoMasCaro ? `Pedido más caro: ${orderCode(pedidoMasCaro)}` : 'Sin pedidos activos',
       onClick: () => setSoloMasCaro((v) => !v),
     },
   ]
@@ -409,7 +410,7 @@ function OrdersPanel({ ordersApi, orderTypeFilter, setOrderTypeFilter }) {
                 <>
                   <span className="font-semibold">{pedidosAtrasados.length}</span> pedido{pedidosAtrasados.length > 1 ? 's llevan' : ' lleva'} más de 20 minutos en cocina:{' '}
                   <span className="num font-semibold">
-                    {pedidosAtrasados.map((p) => `#${p._id.slice(-4).toUpperCase()}`).join(' y ')}
+                    {pedidosAtrasados.map((p) => orderCode(p)).join(' y ')}
                   </span>.
                 </>
               ) : (
@@ -424,7 +425,7 @@ function OrdersPanel({ ordersApi, orderTypeFilter, setOrderTypeFilter }) {
         isOpen={!!cancelTarget}
         onClose={() => setCancelTarget(null)}
         onConfirm={handleCancelConfirm}
-        orderCode={cancelTarget ? `#${cancelTarget._id.slice(-4).toUpperCase()}` : ''}
+        orderCode={cancelTarget ? orderCode(cancelTarget) : ''}
         loading={cancelLoading}
       />
 
@@ -561,7 +562,7 @@ function ScheduledPanel({ ordersApi }) {
   const handleAdvance = async (id, currentStatus) => {
     try {
       await updateOrderStatus(id, currentStatus)
-      addToast(`Pedido #${id.slice(-4).toUpperCase()} actualizado`, 'success')
+      addToast(`Pedido ${orderCode(orders.find((o) => o._id === id) || id)} actualizado`, 'success')
     } catch (err) {
       addToast('Error al actualizar el pedido', 'error')
     }
@@ -638,7 +639,7 @@ function ScheduledPanel({ ordersApi }) {
         isOpen={!!cancelTarget}
         onClose={() => setCancelTarget(null)}
         onConfirm={handleCancelConfirm}
-        orderCode={cancelTarget ? `#${cancelTarget._id.slice(-4).toUpperCase()}` : ''}
+        orderCode={cancelTarget ? orderCode(cancelTarget) : ''}
         loading={cancelLoading}
       />
 

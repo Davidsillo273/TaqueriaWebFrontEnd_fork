@@ -1,7 +1,7 @@
 // src/components/tables/TableCard.jsx
 import FAIcon from '../commons/FAIcon';
 import Select from '../commons/Select';
-import { STATUS_CONFIG } from '../../constants/tables';
+import { STATUS_CONFIG, TABLE_ZONES } from '../../constants/tables';
 
 export default function TableCard({
   table,
@@ -9,10 +9,12 @@ export default function TableCard({
   onStatusChange,
   onEdit,
   onDelete,
+  onPrintQr,
 }) {
   const status = table.status || 'libre';
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.libre;
   const numStr = String(table.number).padStart(2, '0');
+  const zone = TABLE_ZONES[table.zone];
 
   return (
     <div className={`group bg-surface border border-line ${cfg.border} transition-colors flex flex-col justify-between p-4 sm:p-5 min-h-[175px] relative shadow-xs`}>
@@ -27,18 +29,28 @@ export default function TableCard({
               Mesa {numStr}
             </h3>
             <span className="kick text-muted">
-              Área de comedor
+              {zone ? `${zone.label} · ${table.capacity || 4} pers.` : 'Área de comedor'}
             </span>
           </div>
         </div>
 
         {/* Acciones de edición y eliminación */}
         <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity shrink-0">
+          {table.qrToken && onPrintQr ? (
+            <button
+              type="button"
+              onClick={() => onPrintQr(table)}
+              className="w-7 h-7 flex items-center justify-center border border-line bg-surface text-inkalt hover:border-ac hover:text-ac transition-colors cursor-pointer"
+              title="Imprimir código QR de la mesa"
+            >
+              <FAIcon icon="qrcode" size="xs" />
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => onEdit(table)}
             className="w-7 h-7 flex items-center justify-center border border-line bg-surface text-inkalt hover:border-ac hover:text-ac transition-colors cursor-pointer"
-            title="Editar número de mesa"
+            title="Editar mesa"
           >
             <FAIcon icon="pen" size="xs" />
           </button>

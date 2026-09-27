@@ -44,3 +44,11 @@ export const STATUS_CONFIG = {
     actionStyle: 'border-warn/40 text-warn bg-warnsoft/30 hover:bg-warn hover:text-white',
   },
 };
+
+// Ubicaciones del comedor (las mismas claves que el backend en
+// tablesModel.TABLE_ZONES). La planta sale de la zona.
+export const TABLE_ZONES = {
+  ventanal: { label: 'Junto al ventanal', floor: 'Planta baja' },
+  salon_central: { label: 'Salón central', floor: 'Planta baja' },
+  terraza: { label: 'Terraza', floor: 'Planta alta' },
+};

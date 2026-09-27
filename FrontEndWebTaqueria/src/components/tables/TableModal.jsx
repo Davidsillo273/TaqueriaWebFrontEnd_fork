@@ -4,6 +4,9 @@ import { useForm } from 'react-hook-form';
 import FormModal, { FormSection, FORM_INPUT, FORM_LABEL, FORM_ERROR } from '../commons/FormModal';
 import Select from '../commons/Select';
 import { useToast } from '../commons/ToastProvider';
+import { TABLE_ZONES } from '../../constants/tables';
+
+const EMPTY = { number: '', status: 'libre', capacity: 4, zone: 'salon_central' };
 
 export default function TableModal({ isOpen, onClose, onSave, currentTable }) {
   const { addToast } = useToast();
@@ -14,7 +17,7 @@ export default function TableModal({ isOpen, onClose, onSave, currentTable }) {
     setValue,
     formState: { errors },
   } = useForm({
-    defaultValues: { number: '', status: 'libre' },
+    defaultValues: EMPTY,
   });
 
   useEffect(() => {
@@ -22,8 +25,10 @@ export default function TableModal({ isOpen, onClose, onSave, currentTable }) {
       if (currentTable) {
         setValue('number', currentTable.number || '');
         setValue('status', currentTable.status || 'libre');
+        setValue('capacity', currentTable.capacity || 4);
+        setValue('zone', currentTable.zone || 'salon_central');
       } else {
-        reset({ number: '', status: 'libre' });
+        reset(EMPTY);
       }
     }
   }, [currentTable, isOpen, setValue, reset]);
@@ -34,7 +39,12 @@ export default function TableModal({ isOpen, onClose, onSave, currentTable }) {
       addToast('El número de mesa debe ser un entero positivo', 'error');
       return;
     }
-    onSave({ number: num, status: data.status });
+    const capacity = parseInt(data.capacity);
+    if (isNaN(capacity) || capacity < 1 || capacity > 20) {
+      addToast('La capacidad debe estar entre 1 y 20 personas', 'error');
+      return;
+    }
+    onSave({ number: num, status: data.status, capacity, zone: data.zone });
   };
 
   if (!isOpen) return null;
@@ -66,6 +76,37 @@ export default function TableModal({ isOpen, onClose, onSave, currentTable }) {
             />
             {errors.number && <span className={FORM_ERROR}>{errors.number.message}</span>}
           </label>
+
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block">
+              <span className={FORM_LABEL}>Capacidad (personas)</span>
+              <input
+                type="number"
+                {...register('capacity', {
+                  required: 'La capacidad es obligatoria',
+                  min: { value: 1, message: 'Mínimo 1' },
+                  max: { value: 20, message: 'Máximo 20' },
+                  valueAsNumber: true,
+                })}
+                placeholder="Ej: 4"
+                className={`${FORM_INPUT} num`}
+              />
+              {errors.capacity && <span className={FORM_ERROR}>{errors.capacity.message}</span>}
+            </label>
+
+            <label className="block">
+              <span className={FORM_LABEL}>Ubicación</span>
+              <div className="mt-1">
+                <Select {...register('zone')}>
+                  {Object.entries(TABLE_ZONES).map(([key, zone]) => (
+                    <option key={key} value={key}>
+                      {zone.label} · {zone.floor}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            </label>
+          </div>
 
           <label className="block">
             <span className={FORM_LABEL}>Estado</span>

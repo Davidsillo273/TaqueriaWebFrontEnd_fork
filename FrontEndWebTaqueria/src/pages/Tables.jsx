@@ -12,6 +12,7 @@ import useTables from '../hooks/useTables';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
 import { tablesReportColumns } from '../constants/reportConfigs';
 import { STATUS_CONFIG, STATUS_LABELS } from '../constants/tables';
+import { printTableQrs } from '../utils/tableQr';
 
 function TablesContent() {
   const [activeMenu] = useState('tables');
@@ -103,6 +104,12 @@ function TablesContent() {
     }
   };
 
+  // Hoja para imprimir los QR que el cliente escanea al llegar con su reserva.
+  const handlePrintQrs = async (list) => {
+    const result = await printTableQrs(list);
+    if (!result.success) addToast(result.message, 'error');
+  };
+
   const handleRequestDelete = (id) => setConfirmDelete({ isOpen: true, tableId: id });
 
   const handleDeleteConfirm = async () => {
@@ -173,6 +180,17 @@ function TablesContent() {
                 Aplicar a todas
               </button>
             </div>
+
+            <button
+              type="button"
+              onClick={() => handlePrintQrs(tables)}
+              disabled={loading || tables.length === 0}
+              className="inline-flex items-center gap-2 px-4 py-2 border border-line text-inkalt bg-surface text-[13px] font-medium hover:border-ac hover:text-ac transition-colors cursor-pointer disabled:opacity-60"
+              title="Imprimir los códigos QR de todas las mesas"
+            >
+              <FAIcon icon="qrcode" size="xs" />
+              Imprimir QR
+            </button>
 
             <button
               type="button"
@@ -330,6 +348,7 @@ function TablesContent() {
                   setIsModalOpen(true);
                 }}
                 onDelete={handleRequestDelete}
+                onPrintQr={(m) => handlePrintQrs([m])}
               />
             ))}
 
