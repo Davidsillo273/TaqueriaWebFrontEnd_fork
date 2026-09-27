@@ -2,6 +2,7 @@
 import React from 'react';
 import FAIcon from '../commons/FAIcon';
 import { ModalShell, ModalHeader, ModalBody, ModalFooter, FormSection, MODAL_BTN_PRIMARY } from '../commons/FormModal';
+import { orderCode } from '../../utils/orderCode';
 
 const STATUS_CONFIG = {
   delivered: {
@@ -92,7 +93,7 @@ const OrderDetailModal = ({ isOpen, onClose, order }) => {
   if (!isOpen || !order) return null;
 
   const isOnline = order.orderType === 'online';
-  const orderShortId = (order._id || '').toString().slice(-4).toUpperCase();
+  const orderShortId = orderCode(order);
   const customerName = order.customer?.personalInfo
     ? `${order.customer.personalInfo.name || ''} ${order.customer.personalInfo.lastname || ''}`.trim()
     : (order.localCustomerName || order.customerName || '');
@@ -119,7 +120,7 @@ const OrderDetailModal = ({ isOpen, onClose, order }) => {
     <ModalShell maxWidth="max-w-lg">
       <ModalHeader
         icon="receipt"
-        title={`Pedido #${orderShortId}`}
+        title={`Pedido ${orderShortId}`}
         badge={isOnline ? 'En línea' : 'En local'}
         subtitle={isOnline ? 'Pedido en línea' : 'Pedido en local'}
         onClose={onClose}
@@ -159,10 +160,16 @@ const OrderDetailModal = ({ isOpen, onClose, order }) => {
 
               <Section title="TIPO DE ENTREGA">
                 <InfoRow
-                  icon={order.isDelivery ? 'motorcycle' : 'store'}
+                  icon={order.isDelivery ? 'motorcycle' : order.fulfillment === 'dine_in' ? 'chair' : 'store'}
                   iconColor="text-warn"
                   label="MODALIDAD"
-                  value={order.isDelivery ? 'Entrega a domicilio' : 'Para recoger en el local'}
+                  value={
+                    order.isDelivery
+                      ? 'Entrega a domicilio'
+                      : order.fulfillment === 'dine_in'
+                        ? `Comer en el local${order.table?.number ? ` · Mesa ${order.table.number}` : ' · mesa reservada desde la app'}`
+                        : 'Para recoger en el local'
+                  }
                 />
                 {order.isDelivery && (
                   <InfoRow icon="location-dot" iconColor="text-ac" label="DIRECCIÓN" value={order.deliveryAddress} />

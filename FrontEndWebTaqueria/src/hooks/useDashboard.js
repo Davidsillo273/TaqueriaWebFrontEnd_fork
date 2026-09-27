@@ -8,6 +8,7 @@ import useInvoices from './useInvoices';
 import { useAuth } from './auth/useAuth';
 import { hasPermission } from '../constants/permissions';
 import { translateEmployeeType } from '../constants/employeeTypes';
+import { orderCode } from '../utils/orderCode';
 
 // Etiquetas en español para el estado del pedido (ajustar si el enum del back cambia)
 const ORDER_STATUS_LABELS = {
@@ -96,7 +97,7 @@ export default function useDashboard() {
           : order.customerName || 'Cliente';
 
         return {
-          id: `#${(order._id || '').toString().slice(-4).toUpperCase() || '----'}`,
+          id: orderCode(order) || '----',
           orderType: order.orderType,
           tipo: order.orderType === 'online' ? 'En línea' : 'En local',
           mesa: order.table?.number ? `Mesa ${order.table.number}` : cliente,

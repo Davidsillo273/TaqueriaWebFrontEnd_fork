@@ -4,6 +4,11 @@ import { SOCKET_EVENTS } from '../constants/socketEvents';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
+// Cada cuánto se pregunta al servidor si el teléfono ya subió las fotos. Es
+// el respaldo del aviso por socket (que puede no llegar si el socket no está
+// conectado).
+const POLL_MS = 3000;
+
 /**
  * Escaneo del DUI al invitar a un empleado.
  *
@@ -31,6 +36,11 @@ export default function useDuiScan({ onExtracted } = {}) {
   // --- Captura desde el teléfono ---
   const [captureSession, setCaptureSession] = useState(null);
   const [waitingForPhone, setWaitingForPhone] = useState(false);
+  // Fotos que llegaron del teléfono ({ front, back } con url), para
+  // mostrarlas mientras se leen y después en el resumen.
+  const [receivedPhotos, setReceivedPhotos] = useState(null);
+  // Evita leer dos veces la misma sesión (llegan el socket y la consulta).
+  const scannedTokenRef = useRef(null);
 
   // Se guarda en ref además del estado porque el listener del socket se
   // registra una sola vez y necesita leer el token vigente sin re-suscribirse.
@@ -109,6 +119,8 @@ export default function useDuiScan({ onExtracted } = {}) {
       }
 
       captureTokenRef.current = data.token;
+      scannedTokenRef.current = null;
+      setReceivedPhotos(null);
       setCaptureSession(data);
       setWaitingForPhone(true);
       return { success: true, session: data };
@@ -164,12 +176,49 @@ export default function useDuiScan({ onExtracted } = {}) {
     }
   }, []);
 
+  // Las fotos llegaron (por socket o por la consulta): se muestran y se leen
+  // una sola vez.
+  const handlePhotosArrived = useCallback((token, photos) => {
+    if (!token || token !== captureTokenRef.current || scannedTokenRef.current === token) return;
+    scannedTokenRef.current = token;
+    if (photos?.front?.url) setReceivedPhotos({ front: photos.front, back: photos.back || null });
+    scanFromSession(token);
+  }, [scanFromSession]);
+
   // El teléfono terminó de subir: la pantalla avanza sola, sin que el admin
   // tenga que refrescar ni volver a tocar nada.
-  useSocketEvent(SOCKET_EVENTS.DUI_CAPTURE_UPLOADED, ({ token }) => {
-    if (!token || token !== captureTokenRef.current) return;
-    scanFromSession(token);
+  useSocketEvent(SOCKET_EVENTS.DUI_CAPTURE_UPLOADED, ({ token, front, back }) => {
+    handlePhotosArrived(token, { front, back });
   });
+
+  // Respaldo: mientras se espera al teléfono, se pregunta cada POLL_MS.
+  useEffect(() => {
+    if (!waitingForPhone || !captureSession?.token) return undefined;
+    const token = captureSession.token;
+    let stopped = false;
+    const check = async () => {
+      try {
+        const res = await fetch(`${API_URL}/users/dui-scan/session/${token}`, { credentials: 'include' });
+        const data = await res.json().catch(() => ({}));
+        if (stopped) return;
+        if (res.status === 404) {
+          setError('El código venció. Genera uno nuevo para tomar las fotos con el teléfono.');
+          captureTokenRef.current = null;
+          setCaptureSession(null);
+          setWaitingForPhone(false);
+          return;
+        }
+        if (res.ok && data.status !== 'pending') handlePhotosArrived(token, data);
+      } catch {
+        // Sin red por un momento: se reintenta en la siguiente vuelta.
+      }
+    };
+    const timer = setInterval(check, POLL_MS);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+  }, [waitingForPhone, captureSession, handlePhotosArrived]);
 
   // Reintenta la lectura con las mismas fotos ya subidas (para el caso de
   // que Gemini estuviera saturado el primer intento).
@@ -184,6 +233,7 @@ export default function useDuiScan({ onExtracted } = {}) {
     setDocuments(null);
     setOcrFailed(false);
     setError(null);
+    setReceivedPhotos(null);
     cancelPhoneCapture();
   }, [cancelPhoneCapture]);
 
@@ -207,6 +257,7 @@ export default function useDuiScan({ onExtracted } = {}) {
     retryScanFromSession,
     captureSession,
     waitingForPhone,
+    receivedPhotos,
     reset,
     restore,
   };
