@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import FAIcon from '../commons/FAIcon';
 import NotificationsPanel from './NotificationsPanel';
 import NavMenu from './NavMenu';
+import PanchitaIcon from '../chat/PanchitaIcon';
 import { useTheme } from '../../context/themeContext';
 import { useAuth } from '../../hooks/auth/useAuth';
 import { useLogout } from '../../hooks/auth/useLogout';
@@ -146,8 +147,8 @@ const TopBar = ({ onMenuClick }) => {
 
       {/* Buscador de secciones: tarjeta propia, ya no comparte el fondo con el resto de la barra.
           En móvil no cabe junto al resto de la barra, así que se oculta ahí (igual que NavMenu). */}
-      <div className="hidden md:block flex-1 max-w-[190px] relative ml-auto" ref={searchRef}>
-        <div className="bg-bg border border-line rounded-none">
+      <div className="hidden md:block flex-1 max-w-[200px] relative ml-auto" ref={searchRef}>
+        <div className="bg-white dark:bg-surface border border-line rounded-lg">
           <form onSubmit={handleSearchSubmit}>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none">
@@ -159,7 +160,7 @@ const TopBar = ({ onMenuClick }) => {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Buscar sección..."
                 aria-label="Buscar sección"
-                className="w-full pl-9 pr-3 py-2 text-xs bg-transparent rounded-none text-inkalt placeholder:text-muted
+                className="w-full pl-9 pr-3 py-2 text-[13px] bg-transparent rounded-lg text-inkalt placeholder:text-muted
                   focus:outline-none focus:ring-2 focus:ring-acline transition-all"
               />
             </div>
@@ -167,7 +168,7 @@ const TopBar = ({ onMenuClick }) => {
         </div>
 
         {searchTerm.trim() && (
-          <div className="absolute left-0 right-0 top-full mt-2 z-50 bg-surface rounded-none border border-line overflow-hidden">
+          <div className="absolute left-0 right-0 top-full mt-2 z-50 bg-surface rounded-lg border border-line shadow-lg overflow-hidden">
             {searchResults.length === 0 ? (
               <p className="px-4 py-3 text-sm text-muted">Sin resultados para "{searchTerm}"</p>
             ) : (
@@ -186,29 +187,30 @@ const TopBar = ({ onMenuClick }) => {
         )}
       </div>
 
-      <div className="flex items-center gap-1 sm:gap-2 lg:gap-3 ml-auto md:ml-0 shrink-0">
+      <div className="flex items-center gap-1 sm:gap-1.5 ml-auto md:ml-0 shrink-0">
         {/* Asistente de IA: mismo trato visual que la campana. Antes solo
             existía el botón flotante de la esquina, que pasaba desapercibido;
             aquí queda a la vista y, sobre todo, avisa cuando está trabajando.
             Solo lo ve quien puede usarlo (el widget se oculta a los clientes). */}
         {(user?.role === 'admin' || user?.role === 'employee') && (
-          <div className="relative bg-bg border border-line rounded-none">
+          <div className="relative">
             <button
               onClick={toggleAssistant}
-              aria-label={assistantBusy ? 'Asistente de IA, ejecutando una acción' : 'Asistente de IA (Ctrl+K)'}
+              aria-label={assistantBusy ? 'Chef Panchita, ejecutando una acción' : 'Chef Panchita (Ctrl+K)'}
               aria-expanded={assistantOpen}
-              title="Asistente de IA · Ctrl+K"
-              className={`relative p-2 sm:p-2.5 rounded-none transition-colors ${
+              title="Chef Panchita · Ctrl+K"
+              className={`relative p-2 rounded-lg transition-colors ${
                 assistantBusy
                   ? 'text-ac'
                   : assistantOpen
-                    ? 'text-ink bg-surface'
-                    : 'text-muted hover:text-ink hover:bg-surface'
+                    ? 'text-ink'
+                    : 'text-inkalt hover:text-ink'
               }`}
             >
-              {/* Mientras trabaja, el robot late: es la señal de que el
-                  asistente está haciendo algo, no de que haya un error. */}
-              <FAIcon icon="robot" size="lg" className={assistantBusy ? 'animate-pulse' : ''} />
+              {/* Retrato de Chef Panchita (cambia con el tema). Mientras
+                  trabaja, late: es la señal de que está haciendo algo, no de
+                  que haya un error. */}
+              <PanchitaIcon variant="icon" className={`w-6 h-6 ${assistantBusy ? 'animate-pulse' : ''}`} />
 
               {assistantBusy && (
                 <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3" aria-hidden="true">
@@ -224,18 +226,17 @@ const TopBar = ({ onMenuClick }) => {
         {/* Notificaciones: tarjeta propia. Un empleado sin el permiso
             "notifications" ni siquiera ve la campanita. */}
         {canSeeNotifications && (
-          <div className="relative bg-bg border border-line rounded-none">
+          <div className="relative">
             <button
               onClick={() => setOpenPanel((prev) => (prev === 'notifications' ? null : 'notifications'))}
               aria-label={`Notificaciones${unreadCount > 0 ? `, ${unreadCount} sin leer` : ''}`}
               aria-expanded={openPanel === 'notifications'}
-              className="relative p-2 sm:p-2.5 text-muted hover:text-ink hover:bg-surface rounded-none transition-colors"
+              className="relative p-2 text-inkalt hover:text-ink rounded-lg transition-colors"
             >
               <FAIcon icon="bell" size="lg" />
               {/* El contador solo aparece si de verdad hay algo sin leer */}
               {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center
-                  bg-ac text-white text-[10px] font-display font-bold rounded-full">
+                <span className="num absolute top-0.5 right-0 text-[10px] leading-none text-ac">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
@@ -249,7 +250,7 @@ const TopBar = ({ onMenuClick }) => {
         )}
 
         {/* Perfil: los ajustes ahora se acceden solo desde la opción "Ajustes" de este menú */}
-        <div className="flex items-center bg-bg border border-line rounded-none p-1">
+        <div className="flex items-center pl-2 sm:pl-4 ml-1 sm:ml-2 border-l border-line">
           {/* Menú del usuario */}
           <div className="relative" ref={userMenuRef}>
             <button
@@ -257,11 +258,11 @@ const TopBar = ({ onMenuClick }) => {
               aria-label="Menú de usuario"
               aria-expanded={openPanel === 'user'}
               disabled={isLoading}
-              className="flex items-center gap-1.5 sm:gap-3 pl-1.5 sm:pl-2 pr-2 sm:pr-3 py-1 rounded-none hover:bg-surface transition-colors"
+              className="flex items-center gap-1.5 sm:gap-3 px-1.5 py-1 rounded-lg hover:bg-surfalt/60 transition-colors"
             >
               {isLoading ? (
                 <>
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-line rounded-full animate-pulse" />
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 bg-line rounded-full animate-pulse" />
                   <div className="flex-col text-xs sm:text-sm hidden sm:flex gap-1">
                     <div className="w-20 h-3 bg-line rounded animate-pulse" />
                     <div className="w-14 h-2 bg-line rounded animate-pulse" />
@@ -273,16 +274,16 @@ const TopBar = ({ onMenuClick }) => {
                     <img
                       src={user.image}
                       alt={fullName}
-                      className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover ring-2 ring-white/80"
+                      className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover border border-acline"
                     />
                   ) : (
-                    <div className="relative w-8 h-8 sm:w-10 sm:h-10 bg-ink rounded-full flex items-center justify-center text-white font-display font-semibold text-xs sm:text-sm ring-2 ring-white/80">
+                    <div className="num relative w-8 h-8 sm:w-9 sm:h-9 bg-acsoft text-ac border border-acline rounded-full flex items-center justify-center text-[11px]">
                       {getInitials(user?.name, user?.lastname)}
                     </div>
                   )}
                   <div className="relative flex-col text-xs sm:text-sm hidden sm:flex text-left">
-                    <span className="font-display font-semibold text-ink leading-tight">{fullName || 'Usuario'}</span>
-                    <span className="text-xs text-muted font-sans">{roleLabel}</span>
+                    <span className="font-display font-medium text-[14px] text-ink leading-tight">{fullName || 'Usuario'}</span>
+                    <span className="kick text-muted mt-0.5">{roleLabel}</span>
                   </div>
                   <FAIcon
                     icon="chevron-down"
@@ -294,10 +295,10 @@ const TopBar = ({ onMenuClick }) => {
             </button>
 
             {openPanel === 'user' && (
-            <div className="absolute right-0 top-full mt-2 w-56 z-50 bg-surface rounded-none border border-line overflow-hidden">
+            <div className="absolute right-0 top-full mt-2 w-56 z-50 bg-surface rounded-lg border border-line shadow-lg overflow-hidden">
               <div className="px-4 py-3 border-b border-line">
-                <p className="font-display font-semibold text-ink text-sm truncate">{fullName || 'Usuario'}</p>
-                <p className="text-xs text-muted">{roleLabel}</p>
+                <p className="font-display font-medium text-ink text-sm truncate">{fullName || 'Usuario'}</p>
+                <p className="kick text-muted mt-0.5">{roleLabel}</p>
               </div>
 
               {/* "/ajustes" ya no exige el permiso "settings": cualquier sesión

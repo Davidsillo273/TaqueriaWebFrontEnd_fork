@@ -121,7 +121,7 @@ const ClientDetailModal = ({
             <FAIcon icon="triangle-exclamation" size="xs" />
           </span>
           <div className="min-w-0">
-            <p className="text-[13px] font-display font-bold text-ink">Cuenta sin verificar</p>
+            <p className="text-[13px] font-display font-medium text-ink">Cuenta sin verificar</p>
             <p className="text-[11.5px] text-muted mt-0.5">
               El cliente todavía no confirma su correo electrónico.
             </p>
@@ -250,7 +250,7 @@ const ClientDetailModal = ({
                 <div key={order._id} className="p-3 bg-white dark:bg-surface hover:bg-ac/5 flex items-center justify-between gap-3 transition-colors">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-display font-bold text-sm text-ac tabular-nums">{money(order.total)}</span>
+                      <span className="font-display font-medium text-sm text-ac num">{money(order.total)}</span>
                       <span className="text-xs text-muted">
                         · {order.items?.length || 0} producto{(order.items?.length || 0) === 1 ? '' : 's'}
                       </span>

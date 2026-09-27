@@ -19,7 +19,7 @@ const SUBCATEGORY_SUGGESTIONS = ['Al pastor', 'Pollo', 'Carne', 'Birria', 'Veget
 
 const AddDishModal = ({ isOpen, onClose, onSave, onEditExisting, dishToEdit = null }) => {
   const { addToast } = useToast();
-  const { quickCreateInsumo } = useInventory();
+  const { quickCreateInsumo } = useInventory(false); // solo mutaciones: la lista no hace falta aquí
   const { checkName } = useSaucers();
 
   const {

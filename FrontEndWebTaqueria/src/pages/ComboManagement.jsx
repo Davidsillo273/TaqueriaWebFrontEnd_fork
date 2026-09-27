@@ -223,14 +223,16 @@ function ComboManagementContent() {
       }
       modals={
         <>
-          <AddComboModal
-            isOpen={isModalOpen}
-            onClose={() => { setIsModalOpen(false); setSelectedCombo(null); }}
-            onSave={handleSaveCombo}
-            onEditExisting={(existing) => { setSelectedCombo(existing); setIsModalOpen(true); }}
-            loading={loading}
-            comboToEdit={selectedCombo}
-          />
+          {isModalOpen && (
+            <AddComboModal
+              isOpen={isModalOpen}
+              onClose={() => { setIsModalOpen(false); setSelectedCombo(null); }}
+              onSave={handleSaveCombo}
+              onEditExisting={(existing) => { setSelectedCombo(existing); setIsModalOpen(true); }}
+              loading={loading}
+              comboToEdit={selectedCombo}
+            />
+          )}
 
           <ConfirmModal
             isOpen={confirmDelete.isOpen}

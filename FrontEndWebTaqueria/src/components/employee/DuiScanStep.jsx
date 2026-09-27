@@ -23,22 +23,22 @@ const PhotoSlot = ({ label, hint, file, onPick, onClear, disabled }) => {
     <div className="flex-1 min-w-0">
       <div className="flex items-center justify-between mb-1.5">
         <div className="min-w-0">
-          <p className="text-xs font-display font-bold text-inkalt">{label}</p>
+          <p className="text-xs font-display font-medium text-inkalt">{label}</p>
           <p className="text-[10px] text-muted truncate">{hint}</p>
         </div>
         {file && !disabled && (
-          <button type="button" onClick={onClear} className="text-[11px] text-ac font-display font-semibold shrink-0">
+          <button type="button" onClick={onClear} className="text-[11px] text-ac font-display font-medium shrink-0">
             Quitar
           </button>
         )}
       </div>
 
       {preview ? (
-        <img src={preview} alt={label} className="w-full h-32 object-cover rounded-none border border-line" />
+        <img src={preview} alt={label} className="w-full h-32 object-cover rounded-lg border border-line" />
       ) : (
-        <label className={`flex flex-col items-center justify-center gap-1.5 h-32 rounded-none border-2 border-dashed border-line bg-surfalt transition-colors ${disabled ? 'opacity-50' : 'cursor-pointer hover:bg-surfalt'}`}>
+        <label className={`flex flex-col items-center justify-center gap-1.5 h-32 rounded-lg border-2 border-dashed border-line bg-surfalt transition-colors ${disabled ? 'opacity-50' : 'cursor-pointer hover:bg-surfalt'}`}>
           <FAIcon icon="camera" size="lg" className="text-muted" />
-          <span className="text-[11px] font-display font-semibold text-muted">Elegir foto</span>
+          <span className="text-[11px] font-display font-medium text-muted">Elegir foto</span>
           {/* En un teléfono, "capture" abre la cámara; en una computadora
               simplemente abre el explorador de archivos. */}
           <input
@@ -94,13 +94,13 @@ const DuiScanStep = ({
   if (waitingForPhone && captureSession) {
     return (
       <div className="text-center py-2">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-warnsoft border border-warn text-warn text-xs font-display font-semibold mb-4">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-warnsoft border border-warn text-warn text-xs font-display font-medium mb-4">
           <FAIcon icon="mobile-screen" size="xs" />
           Esperando las fotos del teléfono
         </div>
 
-        <div className="bg-surface rounded-none border border-line p-5 inline-block">
-          <canvas ref={canvasRef} className="rounded-none" />
+        <div className="bg-surface rounded-lg border border-line p-5 inline-block">
+          <canvas ref={canvasRef} className="rounded-lg" />
         </div>
 
         <p className="text-sm text-inkalt mt-4 max-w-sm mx-auto">
@@ -112,7 +112,7 @@ const DuiScanStep = ({
         <button
           type="button"
           onClick={cancelPhoneCapture}
-          className="mt-5 text-xs font-display font-semibold text-muted hover:text-inkalt"
+          className="mt-5 text-xs font-display font-medium text-muted hover:text-inkalt"
         >
           Cancelar y subir desde esta computadora
         </button>
@@ -125,7 +125,7 @@ const DuiScanStep = ({
     return (
       <div className="text-center py-10">
         <div className="w-12 h-12 mx-auto mb-3 rounded-full border-4 border-acline border-t-red-500 animate-spin" />
-        <p className="font-display font-bold text-ink">Leyendo el documento...</p>
+        <p className="font-display font-medium text-ink">Leyendo el documento...</p>
         <p className="text-sm text-muted mt-1">Esto toma unos segundos.</p>
       </div>
     );
@@ -135,7 +135,7 @@ const DuiScanStep = ({
   if (confirming) {
     return (
       <div>
-        <p className="text-sm text-inkalt font-display font-semibold mb-1">
+        <p className="text-sm text-inkalt font-display font-medium mb-1">
           ¿Se ven bien las fotos?
         </p>
         <p className="text-xs text-muted mb-4">
@@ -151,14 +151,14 @@ const DuiScanStep = ({
           <button
             type="button"
             onClick={() => setConfirming(false)}
-            className="flex-1 py-2.5 rounded-none bg-surfalt text-inkalt font-display font-semibold text-sm hover:bg-line transition-colors"
+            className="flex-1 py-2.5 rounded-lg bg-surfalt text-inkalt font-display font-medium text-sm hover:bg-line transition-colors"
           >
             Cambiar fotos
           </button>
           <button
             type="button"
             onClick={handleConfirmAndScan}
-            className="flex-1 py-2.5 rounded-none bg-ac text-white font-display font-semibold text-sm hover:bg-ac transition-colors"
+            className="flex-1 py-2.5 rounded-lg bg-ac text-white font-display font-medium text-sm hover:bg-ac transition-colors"
           >
             Sí, leer el DUI
           </button>
@@ -172,8 +172,8 @@ const DuiScanStep = ({
       {/* Si la lectura falló, se ofrece reintentar: normalmente es porque el
           servicio de IA estaba saturado, no porque la foto esté mal. */}
       {ocrFailed && (
-        <div className="mb-4 px-4 py-3 bg-warnsoft border border-warn rounded-none">
-          <p className="text-sm text-warn font-display font-semibold mb-1">
+        <div className="mb-4 px-4 py-3 bg-warnsoft border border-warn rounded-lg">
+          <p className="text-sm text-warn font-display font-medium mb-1">
             No se pudieron leer los datos automáticamente
           </p>
           <p className="text-xs text-warn mb-2">
@@ -184,7 +184,7 @@ const DuiScanStep = ({
               <button
                 type="button"
                 onClick={retryScanFromSession}
-                className="px-3 py-1.5 rounded-none bg-warn text-white text-xs font-display font-semibold hover:bg-warn transition-colors"
+                className="px-3 py-1.5 rounded-lg bg-warn text-white text-xs font-display font-medium hover:bg-warn transition-colors"
               >
                 Reintentar lectura
               </button>
@@ -192,7 +192,7 @@ const DuiScanStep = ({
             <button
               type="button"
               onClick={onSkip}
-              className="px-3 py-1.5 rounded-none bg-surface border border-warn text-warn text-xs font-display font-semibold hover:bg-warnsoft transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-surface border border-warn text-warn text-xs font-display font-medium hover:bg-warnsoft transition-colors"
             >
               Escribir los datos a mano
             </button>
@@ -201,7 +201,7 @@ const DuiScanStep = ({
       )}
 
       {error && (
-        <div className="mb-4 px-4 py-3 bg-acsoft border border-acline rounded-none text-sm text-ac">
+        <div className="mb-4 px-4 py-3 bg-acsoft border border-acline rounded-lg text-sm text-ac">
           {error}
         </div>
       )}
@@ -227,7 +227,7 @@ const DuiScanStep = ({
         type="button"
         onClick={() => setConfirming(true)}
         disabled={!front}
-        className="w-full py-2.5 rounded-none bg-ac text-white font-display font-semibold text-sm hover:bg-ac transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-3"
+        className="w-full py-2.5 rounded-lg bg-ac text-white font-display font-medium text-sm hover:bg-ac transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-3"
       >
         Continuar con estas fotos
       </button>
@@ -235,14 +235,14 @@ const DuiScanStep = ({
       {/* Alternativa para quien está en una computadora sin cámara decente */}
       <div className="flex items-center gap-3 my-3">
         <div className="flex-1 h-px bg-line" />
-        <span className="text-[11px] text-muted font-display font-semibold uppercase tracking-wider">o</span>
+        <span className="kick text-muted">o</span>
         <div className="flex-1 h-px bg-line" />
       </div>
 
       <button
         type="button"
         onClick={startPhoneCapture}
-        className="w-full py-2.5 rounded-none bg-surface border border-line text-inkalt font-display font-semibold text-sm hover:bg-surfalt transition-colors inline-flex items-center justify-center gap-2"
+        className="w-full py-2.5 rounded-lg bg-surface border border-line text-inkalt font-display font-medium text-sm hover:bg-surfalt transition-colors inline-flex items-center justify-center gap-2"
       >
         <FAIcon icon="qrcode" />
         Tomar las fotos con mi teléfono
@@ -251,7 +251,7 @@ const DuiScanStep = ({
       <button
         type="button"
         onClick={onSkip}
-        className="w-full mt-3 text-xs font-display font-semibold text-muted hover:text-inkalt"
+        className="w-full mt-3 text-xs font-display font-medium text-muted hover:text-inkalt"
       >
         Prefiero escribir los datos a mano
       </button>

@@ -210,17 +210,19 @@ function DrinksContent() {
       }
       modals={
         <>
-          <AddDrinkModal
-            isOpen={isModalOpen}
-            onClose={() => { setIsModalOpen(false); setSelectedDrink(null); }}
-            onSave={handleSaveDrink}
-            onEditExisting={(raw) => {
-              const match = drinks.find((d) => d.id === raw._id);
-              if (match) handleOpenEditModal(match);
-              else addToast('No se encontró el registro existente, actualiza la página', 'error');
-            }}
-            editData={selectedDrink}
-          />
+          {isModalOpen && (
+            <AddDrinkModal
+              isOpen={isModalOpen}
+              onClose={() => { setIsModalOpen(false); setSelectedDrink(null); }}
+              onSave={handleSaveDrink}
+              onEditExisting={(raw) => {
+                const match = drinks.find((d) => d.id === raw._id);
+                if (match) handleOpenEditModal(match);
+                else addToast('No se encontró el registro existente, actualiza la página', 'error');
+              }}
+              editData={selectedDrink}
+            />
+          )}
 
           <ConfirmModal
             isOpen={confirmDelete.isOpen}

@@ -377,7 +377,7 @@ const AddComboModal = ({ isOpen, onClose, onSave, onEditExisting, loading, combo
             <button
               type="button"
               onClick={() => setIsDrinkSetModalOpen(true)}
-              className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-display font-semibold text-ac border border-ac/30 bg-ac/5 hover:bg-ac hover:text-white transition-colors cursor-pointer"
+              className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-display font-medium text-ac border border-ac/30 bg-ac/5 hover:bg-ac hover:text-white transition-colors cursor-pointer"
             >
               <FAIcon icon="plus" size="xs" /> Nuevo conjunto
             </button>
@@ -411,7 +411,7 @@ const AddComboModal = ({ isOpen, onClose, onSave, onEditExisting, loading, combo
                       {isSelected && <FAIcon icon="check" size="xs" />}
                     </span>
                     <span className="min-w-0">
-                      <span className={`block text-sm font-display font-semibold ${isSelected ? 'text-ac' : 'text-ink'}`}>{set.name}</span>
+                      <span className={`block text-sm font-display font-medium ${isSelected ? 'text-ac' : 'text-ink'}`}>{set.name}</span>
                       <span className="block text-[11px] text-muted mt-0.5 line-clamp-1">
                         {(set.drinkIds || []).map((d) => d.name).join(', ') || 'Sin bebidas'}
                       </span>

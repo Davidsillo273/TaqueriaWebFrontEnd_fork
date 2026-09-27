@@ -29,7 +29,7 @@ const AvatarItem = ({ src, name = '' }) => {
 
   return (
     <div
-      className="w-11 h-11 rounded-lg shrink-0 flex items-center justify-center font-display font-bold text-xs bg-ac text-white select-none shadow-2xs"
+      className="w-11 h-11 rounded-lg shrink-0 flex items-center justify-center font-display font-medium text-xs bg-ac text-white select-none shadow-2xs"
       title={name}
     >
       {initials}
@@ -133,7 +133,7 @@ const AttentionCenter = ({
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-base sm:text-lg font-display font-bold text-ink leading-tight">
+                    <h2 className="text-base sm:text-lg font-display font-medium text-ink leading-tight">
                       {hasIssues ? 'Expedientes por completar' : 'Todo en orden'}
                     </h2>
                     {hasIssues && (
@@ -194,7 +194,7 @@ const AttentionCenter = ({
                   <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-3">
                     <FAIcon icon="face-smile" size="2xl" className="text-emerald-600 dark:text-emerald-400" />
                   </div>
-                  <p className="text-ink font-display font-bold text-base">
+                  <p className="text-ink font-display font-medium text-base">
                     ¡Excelente! No hay nada pendiente
                   </p>
                   <p className="text-muted text-xs mt-1 max-w-sm">
@@ -234,7 +234,7 @@ const AttentionCenter = ({
 
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center justify-between gap-1.5">
-                              <h3 className="font-display font-bold text-ink text-[13.5px] leading-tight truncate group-hover:text-ac transition-colors">
+                              <h3 className="font-display font-medium text-ink text-[13.5px] leading-tight truncate group-hover:text-ac transition-colors">
                                 {title}
                               </h3>
                               {clickable && (
@@ -301,7 +301,7 @@ const AttentionCenter = ({
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="px-4 py-1.5 text-xs font-display font-semibold text-inkalt hover:text-ink bg-surface hover:bg-surfalt border border-line rounded-lg transition-colors ml-auto cursor-pointer"
+                className="px-4 py-1.5 text-xs font-display font-medium text-inkalt hover:text-ink bg-surface hover:bg-surfalt border border-line rounded-lg transition-colors ml-auto cursor-pointer"
               >
                 Cerrar
               </button>

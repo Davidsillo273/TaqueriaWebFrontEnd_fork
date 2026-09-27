@@ -1,6 +1,7 @@
 // src/components/client/ClientLeaderboardModal.jsx
 import React, { useState, useEffect } from 'react';
 import FAIcon from '../commons/FAIcon';
+import { ModalHeader, FormSection, MODAL_BTN_PRIMARY } from '../commons/FormModal';
 import PeriodSelector from '../commons/PeriodSelector';
 
 const TABS = [
@@ -22,17 +23,17 @@ const clientName = (customer) =>
   `${customer?.personalInfo?.name || ''} ${customer?.personalInfo?.lastname || ''}`.trim() || 'Cliente';
 
 const Row = ({ rank, name, email, primary, secondary }) => (
-  <div className="flex items-center gap-3.5 bg-surface rounded-none border border-line border-l-2 border-l-ac p-3.5 hover:border-acline transition-colors shadow-xs">
-    <span className="w-7 h-7 bg-acsoft text-ac border border-acline/60 font-mono font-bold text-xs flex items-center justify-center shrink-0">
+  <div className="flex items-center gap-3.5 bg-surface rounded-lg border border-line p-3 hover:border-ac/40 transition-colors shadow-xs">
+    <span className="w-7 h-7 rounded-lg bg-ac text-white num text-xs flex items-center justify-center shrink-0 shadow-2xs">
       {rank}
     </span>
     <div className="min-w-0 flex-1">
-      <p className="font-display font-semibold text-ink text-sm truncate">{name}</p>
-      <p className="text-xs text-muted truncate font-mono">{email || 'Sin correo'}</p>
+      <p className="font-display font-medium text-ink text-sm truncate">{name}</p>
+      <p className="text-xs text-muted truncate num">{email || 'Sin correo'}</p>
     </div>
     <div className="text-right shrink-0">
-      <p className="font-mono font-bold text-ac text-base">{primary}</p>
-      {secondary && <p className="text-xs text-muted font-mono">{secondary}</p>}
+      <p className="num text-ac text-base">{primary}</p>
+      {secondary && <p className="text-xs text-muted num">{secondary}</p>}
     </div>
   </div>
 );
@@ -69,54 +70,40 @@ const ClientLeaderboardModal = ({
   const isOrderList = tab === 'priciestWeek';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-xs animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
       {/* Contenedor del Modal con borde superior de acento rojo institucional */}
-      <div className="bg-surface rounded-none border border-line border-t-4 border-t-ac max-w-xl w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl">
-        {/* Cabecera institucional limpia */}
-        <div className="bg-surface border-b border-line px-5 sm:px-6 py-4 flex items-center justify-between gap-4">
-          <div className="min-w-0">
-            <p className="kick text-[10px] font-bold text-ac tracking-wider mb-0.5">
-              ESTADÍSTICAS Y FIDELIZACIÓN
-            </p>
-            <h3 className="text-lg sm:text-xl font-display font-bold text-ink leading-tight truncate">
-              Clientes destacados
-            </h3>
-            <p className="text-xs text-muted truncate">
-              Rankings basados en pedidos en línea entregados
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar modal"
-            className="w-8 h-8 flex items-center justify-center border border-line text-muted hover:text-ac hover:border-acline hover:bg-acsoft/20 transition-colors shrink-0 cursor-pointer"
-          >
-            <FAIcon icon="times" size="sm" />
-          </button>
-        </div>
+      <div className="bg-surface rounded-2xl border border-line w-full max-w-xl max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+        <ModalHeader
+          icon="trophy"
+          title="Clientes destacados"
+          badge="Fidelización"
+          subtitle="Rankings basados en pedidos en línea entregados"
+          onClose={onClose}
+        />
 
-        <div className="p-5 sm:p-6 overflow-y-auto flex-1 min-h-0 space-y-4">
+        <div className="p-4 sm:p-5 overflow-y-auto flex-1 min-h-0 space-y-4 bg-surfalt/30">
           {/* Selector de período */}
-          <div className="p-3 bg-surfalt/30 border border-line border-l-2 border-l-ac">
+          <FormSection icon="calendar" title="Periodo">
             <PeriodSelector
               value={period}
               onChange={handlePeriodChange}
               customRange={customRange}
               onCustomRangeChange={handleCustomRangeChange}
             />
-          </div>
+          </FormSection>
 
-          {/* Pestañas de métrica con acento de color activo */}
-          <div className="flex flex-wrap gap-1.5">
+          <FormSection icon="trophy" title="Ranking de clientes">
+          {/* Pestañas de métrica: mismas píldoras que los días de la ficha */}
+          <div className="flex flex-wrap gap-1.5 mb-4">
             {TABS.map((t) => (
               <button
                 key={t.id}
                 type="button"
                 onClick={() => setTab(t.id)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-display font-semibold border transition-colors cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-display font-semibold rounded-full border transition-all cursor-pointer ${
                   tab === t.id
-                    ? 'bg-ac text-white border-ac shadow-xs'
-                    : 'bg-surface text-inkalt border-line hover:border-acline hover:text-ac'
+                    ? 'bg-ac text-white border-ac shadow-2xs'
+                    : 'bg-white dark:bg-surface text-inkalt border-line hover:border-ac hover:text-ac'
                 }`}
               >
                 <FAIcon icon={t.icon} size="xs" />
@@ -132,11 +119,11 @@ const ClientLeaderboardModal = ({
 
           {/* Lista de posiciones con borde rojo sutil y hover */}
           {loading ? (
-            <div className="p-8 bg-surfalt/20 border border-line text-center text-xs text-muted">
+            <div className="p-6 text-center text-xs text-muted">
               Cargando ranking de clientes...
             </div>
           ) : rows.length === 0 ? (
-            <div className="p-8 bg-surfalt/20 border border-line text-center text-xs text-muted">
+            <div className="p-6 text-center text-xs text-muted">
               Todavía no hay suficientes pedidos registrados para este ranking.
             </div>
           ) : (
@@ -177,14 +164,15 @@ const ClientLeaderboardModal = ({
               })}
             </div>
           )}
+          </FormSection>
         </div>
 
         {/* Footer del Modal */}
-        <div className="px-5 sm:px-6 py-3 border-t border-line bg-surface flex justify-end">
+        <div className="px-5 py-3.5 border-t border-line bg-surface flex items-center justify-end gap-2 shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-display font-semibold text-inkalt hover:text-ac hover:border-acline border border-line bg-surfalt hover:bg-acsoft/20 transition-colors cursor-pointer"
+            className={MODAL_BTN_PRIMARY}
           >
             Cerrar
           </button>

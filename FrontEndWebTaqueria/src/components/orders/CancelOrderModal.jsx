@@ -1,5 +1,8 @@
-import React, { useState, useEffect } from 'react'
-import FAIcon from '../commons/FAIcon'
+import { useState, useEffect } from 'react'
+import {
+  ModalShell, ModalHeader, ModalBody, ModalFooter, FormSection,
+  FORM_INPUT, FORM_LABEL, FORM_ERROR, MODAL_BTN_SECONDARY, MODAL_BTN_PRIMARY,
+} from '../commons/FormModal'
 
 // Pide la contraseña de un administrador para autorizar la cancelación de un
 // pedido ya tomado (a diferencia de un simple "Eliminar", esto queda
@@ -30,55 +33,44 @@ export default function CancelOrderModal({ isOpen, onClose, onConfirm, orderCode
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-surface rounded-none border border-line max-w-md w-full p-6">
-        <div className="flex items-start gap-4 mb-4">
-          <div className="w-10 h-10 rounded-full bg-acsoft flex items-center justify-center flex-shrink-0">
-            <FAIcon icon="ban" className="text-ac" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-display font-bold text-ink mb-1">Cancelar pedido {orderCode}</h3>
-            <p className="text-sm text-inkalt leading-relaxed">
+    <ModalShell maxWidth="max-w-md">
+      <ModalHeader
+        icon="ban"
+        title={`Cancelar pedido ${orderCode || ''}`.trim()}
+        subtitle="Requiere autorización de un administrador"
+        onClose={loading ? undefined : onClose}
+      />
+
+      <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+        <ModalBody>
+          <FormSection icon="lock" title="Autorización">
+            <p className="text-[13px] text-inkalt leading-relaxed mb-3.5">
               Esta acción requiere autorización de un administrador. Ingresa su contraseña para confirmar.
             </p>
-          </div>
-        </div>
+            <label className="block">
+              <span className={FORM_LABEL}>Contraseña del administrador</span>
+              <input
+                type="password"
+                autoFocus
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); setError('') }}
+                placeholder="••••••••"
+                className={FORM_INPUT}
+              />
+              {error && <span className={FORM_ERROR}>{error}</span>}
+            </label>
+          </FormSection>
+        </ModalBody>
 
-        <form onSubmit={handleSubmit}>
-          <label className="block text-xs font-display font-semibold text-muted uppercase tracking-wider mb-1.5">
-            Contraseña del administrador
-          </label>
-          <input
-            type="password"
-            autoFocus
-            value={password}
-            onChange={(e) => { setPassword(e.target.value); setError('') }}
-            placeholder="••••••••"
-            className="w-full px-4 py-2.5 bg-surfalt border border-line rounded-none focus:outline-none focus:ring-2 focus:ring-acline focus:border-acline transition-all text-inkalt text-sm"
-          />
-          {error && (
-            <span className="text-ac text-xs mt-1.5 block font-medium">{error}</span>
-          )}
-
-          <div className="flex justify-end gap-3 mt-6">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="px-4 py-2.5 text-sm font-display font-semibold text-inkalt bg-surfalt hover:bg-line rounded-none transition-colors disabled:opacity-50 cursor-pointer"
-            >
-              Volver
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-4 py-2.5 text-sm font-display font-semibold text-white rounded-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer bg-ac hover:bg-ac"
-            >
-              {loading ? 'Cancelando...' : 'Cancelar pedido'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <ModalFooter>
+          <button type="button" onClick={onClose} disabled={loading} className={MODAL_BTN_SECONDARY}>
+            Volver
+          </button>
+          <button type="submit" disabled={loading} className={MODAL_BTN_PRIMARY}>
+            {loading ? 'Cancelando...' : 'Cancelar pedido'}
+          </button>
+        </ModalFooter>
+      </form>
+    </ModalShell>
   )
 }

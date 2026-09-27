@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react'
-import Sidebar from '../components/dashboard/Sidebar'
-import TopBar from '../components/dashboard/TopBar'
+import PageShell from '../components/commons/PageShell'
+import { useOperationsTabs } from '../hooks/useSectionTabs'
 import FAIcon from '../components/commons/FAIcon'
 import OrderCard from '../components/orders/OrderCard'
 import InvoiceTable from '../components/orders/InvoiceTable'
@@ -13,7 +13,7 @@ import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'rechar
 import ReportButton from '../components/commons/ReportButton'
 import { ordersReportColumns, invoicesReportColumns } from '../constants/reportConfigs'
 
-// Pestañas principales con la tipografía monoespaciada exacta del diseño (IBM Plex Mono, versalitas espaciadas)
+// Vistas de la pantalla (debajo del sub navbar de Operaciones)
 const SECTION_TABS = [
   { id: 'orders', label: 'PEDIDOS' },
   { id: 'invoices', label: 'ÓRDENES (FACTURACIÓN)' },
@@ -93,7 +93,7 @@ const calcularTraficoPorHora = (orders) => {
 // Barra de pestañas que abarca todo el ancho con la tipografía monoespaciada exacta de la foto
 function SectionTabs({ section, setSection }) {
   return (
-    <div className="flex items-center gap-8 sm:gap-10 border-b border-line mb-6 overflow-x-auto w-full">
+    <div className="flex items-center gap-5 sm:gap-7 border-b border-line mb-6 overflow-x-auto w-full">
       {SECTION_TABS.map((tab) => {
         const isActive = section === tab.id
         return (
@@ -101,16 +101,11 @@ function SectionTabs({ section, setSection }) {
             key={tab.id}
             type="button"
             onClick={() => setSection(tab.id)}
-            className={`pb-3 font-mono text-xs sm:text-[13px] tracking-[0.14em] uppercase transition-colors relative whitespace-nowrap ${
-              isActive
-                ? 'text-ink font-semibold'
-                : 'text-muted hover:text-ink font-medium'
+            className={`kick whitespace-nowrap py-3 border-b-2 transition-colors cursor-pointer ${
+              isActive ? 'border-ac text-ink' : 'border-transparent text-muted hover:text-ink'
             }`}
           >
             {tab.label}
-            {isActive && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-ac" />
-            )}
           </button>
         )
       })}
@@ -122,7 +117,7 @@ function SectionTabs({ section, setSection }) {
 function OrderTypeFilterBar({ orderTypeFilter, setOrderTypeFilter }) {
   return (
     <div className="flex items-center gap-2 mb-6 w-full">
-      <span className="font-mono text-xs tracking-[0.14em] uppercase font-semibold text-muted mr-1">
+      <span className="kick text-muted mr-1">
         TIPO
       </span>
       {ORDER_TYPE_FILTERS.map((f) => {
@@ -132,7 +127,7 @@ function OrderTypeFilterBar({ orderTypeFilter, setOrderTypeFilter }) {
             key={f.id}
             type="button"
             onClick={() => setOrderTypeFilter(f.id)}
-            className={`px-4 py-1 font-mono text-xs tracking-[0.08em] uppercase rounded-full transition-colors ${
+            className={`kick px-4 py-1 rounded-full transition-colors ${
               isActive
                 ? 'border border-ac text-ac bg-acsoft/40 font-semibold'
                 : 'border border-line text-muted hover:text-ink hover:border-linealt bg-surface font-medium'
@@ -158,7 +153,7 @@ function StatsRow({ stats }) {
             idx === 0 ? 'border-t-2 border-ac pt-3' : 'border-t border-line/70 pt-3'
           }`}
         >
-          <span className="font-mono text-xs tracking-[0.14em] uppercase text-muted font-semibold">
+          <span className="kick text-muted">
             {stat.title}
           </span>
           <span className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold text-ink leading-tight my-2 num group-hover:text-ac transition-colors">
@@ -173,7 +168,7 @@ function StatsRow({ stats }) {
   )
 }
 
-function OrdersPanel({ orderTypeFilter, setOrderTypeFilter }) {
+function OrdersPanel({ ordersApi, orderTypeFilter, setOrderTypeFilter }) {
   const [tabActiva, setTabActiva] = useState('pendientes')
   const [soloMasCaro, setSoloMasCaro] = useState(false)
 
@@ -181,7 +176,7 @@ function OrdersPanel({ orderTypeFilter, setOrderTypeFilter }) {
   const [cancelTarget, setCancelTarget] = useState(null)
   const [cancelLoading, setCancelLoading] = useState(false)
 
-  const { orders: allOrders, loading, updateOrderStatus, cancelOrder, deleteOrder } = useOrders()
+  const { orders: allOrders, loading, updateOrderStatus, cancelOrder, deleteOrder } = ordersApi
   const { addToast } = useToast()
 
   const orders = useMemo(() => {
@@ -316,7 +311,7 @@ function OrdersPanel({ orderTypeFilter, setOrderTypeFilter }) {
               key={tab.key}
               type="button"
               onClick={() => setTabActiva(tab.key)}
-              className={`pb-2.5 font-mono text-xs sm:text-[12px] tracking-[0.14em] uppercase transition-colors relative whitespace-nowrap ${
+              className={`kick pb-2.5 transition-colors relative whitespace-nowrap ${
                 isActive
                   ? 'text-ac font-semibold'
                   : 'text-muted hover:text-ink font-medium'
@@ -341,7 +336,7 @@ function OrdersPanel({ orderTypeFilter, setOrderTypeFilter }) {
               Cargando pedidos...
             </div>
           ) : listaActiva.length === 0 ? (
-            <div className="bg-surface border border-line p-14 text-center font-mono text-xs tracking-[0.14em] uppercase text-muted w-full">
+            <div className="kick bg-surface border border-line p-14 text-center text-muted w-full">
               No hay pedidos en este estado
             </div>
           ) : (
@@ -363,7 +358,7 @@ function OrdersPanel({ orderTypeFilter, setOrderTypeFilter }) {
         <div className="w-full lg:w-80 xl:w-96 flex flex-col gap-5 shrink-0">
           {/* Gráfico de barras */}
           <div className="bg-surface border border-line p-5 w-full">
-            <h3 className="font-mono text-xs tracking-[0.14em] uppercase font-semibold text-ink mb-4">
+            <h3 className="kick text-ink mb-4">
               Tráfico de pedidos por hora
             </h3>
 
@@ -406,14 +401,14 @@ function OrdersPanel({ orderTypeFilter, setOrderTypeFilter }) {
 
           {/* Tarjeta informativa de atrasados */}
           <div className="bg-[#fcf3f3] border border-red-200/90 p-5 w-full">
-            <h4 className="font-mono text-xs font-bold text-ac uppercase tracking-[0.14em] mb-2">
+            <h4 className="kick text-ac mb-2">
               ATRASADOS
             </h4>
             <p className="text-xs text-inkalt leading-relaxed font-sans">
               {pedidosAtrasados.length > 0 ? (
                 <>
                   <span className="font-semibold">{pedidosAtrasados.length}</span> pedido{pedidosAtrasados.length > 1 ? 's llevan' : ' lleva'} más de 20 minutos en cocina:{' '}
-                  <span className="font-mono font-semibold">
+                  <span className="num font-semibold">
                     {pedidosAtrasados.map((p) => `#${p._id.slice(-4).toUpperCase()}`).join(' y ')}
                   </span>.
                 </>
@@ -446,9 +441,9 @@ function OrdersPanel({ orderTypeFilter, setOrderTypeFilter }) {
   )
 }
 
-function InvoicesPanel({ orderTypeFilter, setOrderTypeFilter }) {
+function InvoicesPanel({ invoicesApi, orderTypeFilter, setOrderTypeFilter }) {
   const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, invoiceId: null })
-  const { invoices: allInvoices, loading, fetchInvoices } = useInvoices()
+  const { invoices: allInvoices, loading, refetch: fetchInvoices } = invoicesApi
   const { addToast } = useToast()
 
   const invoices = useMemo(() => {
@@ -507,10 +502,10 @@ function InvoicesPanel({ orderTypeFilter, setOrderTypeFilter }) {
 
       <div className="w-full bg-surface border border-line overflow-hidden">
         <div className="p-4 sm:p-5 border-b border-line flex items-center justify-between">
-          <h2 className="font-mono text-xs sm:text-sm tracking-[0.14em] uppercase font-semibold text-ink">
+          <h2 className="kick text-ink">
             Historial de Facturación
           </h2>
-          <span className="font-mono text-xs tracking-[0.14em] uppercase text-muted">
+          <span className="kick text-muted">
             {ventas} registro{ventas === 1 ? '' : 's'}
           </span>
         </div>
@@ -530,8 +525,8 @@ function InvoicesPanel({ orderTypeFilter, setOrderTypeFilter }) {
   )
 }
 
-function ScheduledPanel() {
-  const { orders, loading, updateOrderStatus, cancelOrder, deleteOrder } = useOrders()
+function ScheduledPanel({ ordersApi }) {
+  const { orders, loading, updateOrderStatus, cancelOrder, deleteOrder } = ordersApi
   const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, orderId: null })
   const [cancelTarget, setCancelTarget] = useState(null)
   const [cancelLoading, setCancelLoading] = useState(false)
@@ -613,7 +608,7 @@ function ScheduledPanel() {
         </div>
       ) : scheduledOrders.length === 0 ? (
         <div className="w-full bg-surface border border-line p-16 text-center">
-          <p className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-muted mb-1">
+          <p className="kick text-muted mb-1">
             NO HAY PEDIDOS PROGRAMADOS
           </p>
           <p className="text-xs text-muted font-sans">
@@ -624,7 +619,7 @@ function ScheduledPanel() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
           {scheduledOrders.map((pedido) => (
             <div key={pedido._id} className="flex flex-col w-full">
-              <div className="mb-2 inline-flex items-center gap-1.5 px-3 py-1 text-xs font-mono tracking-[0.14em] uppercase font-semibold bg-surfalt text-inkalt border border-line w-fit">
+              <div className="kick mb-2 inline-flex items-center gap-1.5 px-3 py-1 bg-surfalt text-inkalt border border-line w-fit">
                 <FAIcon icon="calendar-clock" size="xs" className="text-ac" />
                 PROGRAMADO: {new Date(pedido.scheduledFor).toLocaleString('es-SV', { dateStyle: 'medium', timeStyle: 'short' })}
               </div>
@@ -662,12 +657,17 @@ function ScheduledPanel() {
 
 function OrdersContent() {
   const [activeMenu] = useState('orders-list')
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const operationsTabs = useOperationsTabs('orders')
   const [section, setSection] = useState('orders')
   const [orderTypeFilter, setOrderTypeFilter] = useState('all')
 
-  const { orders: allOrders } = useOrders()
-  const { invoices: allInvoices } = useInvoices()
+  // Una sola instancia de cada hook para toda la pantalla: las pestañas la
+  // reciben por props. Antes cada pestaña llamaba a useOrders/useInvoices por
+  // su cuenta y cada entrada a la pantalla repetía las mismas consultas.
+  const ordersApi = useOrders()
+  const invoicesApi = useInvoices()
+  const { orders: allOrders } = ordersApi
+  const { invoices: allInvoices } = invoicesApi
 
   const orders = useMemo(() => {
     if (orderTypeFilter === 'all') return allOrders
@@ -702,64 +702,47 @@ function OrdersContent() {
   }, [section, orders, invoices])
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-bg w-full">
-      {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+    <PageShell
+      activeMenu={activeMenu}
+      title="Operaciones"
+      subtitle="Pedidos y Órdenes: monitorea el flujo de pedidos en cocina y consulta el historial de facturación"
+      tabs={operationsTabs}
+      tabsLabel="Secciones de operaciones"
+      bodyClassName="px-4 sm:px-6 lg:px-8 py-6 sm:py-7 pb-28"
+      actions={
+        <ReportButton
+          compact
+          label="Exportar"
+          title={reportTitle}
+          subtitle={orderTypeFilter === 'all' ? undefined : `Filtro: ${orderTypeFilter}`}
+          columns={reportColumns}
+          rows={reportRows}
+          buttonText={reportButtonText}
+          itemTag={section === 'invoices' ? 'factura' : 'pedido'}
+          summary={reportSummary}
+        />
+      }
+    >
+      {/* Subpestañas PEDIDOS | ÓRDENES (FACTURACIÓN) | PEDIDOS PROGRAMADOS */}
+      <SectionTabs section={section} setSection={setSection} />
+
+      {/* Contenido según pestaña activa */}
+      {section === 'orders' ? (
+        <OrdersPanel
+          ordersApi={ordersApi}
+          orderTypeFilter={orderTypeFilter}
+          setOrderTypeFilter={setOrderTypeFilter}
+        />
+      ) : section === 'invoices' ? (
+        <InvoicesPanel
+          invoicesApi={invoicesApi}
+          orderTypeFilter={orderTypeFilter}
+          setOrderTypeFilter={setOrderTypeFilter}
+        />
+      ) : (
+        <ScheduledPanel ordersApi={ordersApi} />
       )}
-      <Sidebar activeMenu={activeMenu} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
-      {/* min-h-0 y overflow-hidden para garantizar que el scroll interno funcione perfecto */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden w-full">
-        <TopBar onMenuClick={() => setSidebarOpen(true)} />
-
-        {/* Contenedor principal que abarca el 100% de la pantalla sin límites rígidos de ancho */}
-        <main className="flex-1 overflow-y-auto min-h-0 overscroll-contain w-full">
-          <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 py-6 pb-28">
-            {/* Encabezado con título a la izquierda y botón de exportar a la derecha */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 w-full">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-display font-semibold text-ink mb-1">
-                  Pedidos y Órdenes
-                </h1>
-                <p className="text-sm text-muted font-sans">
-                  Monitorea el flujo de pedidos en cocina y consulta el historial de facturación
-                </p>
-              </div>
-
-              <div>
-                <ReportButton
-                  title={reportTitle}
-                  subtitle={orderTypeFilter === 'all' ? undefined : `Filtro: ${orderTypeFilter}`}
-                  columns={reportColumns}
-                  rows={reportRows}
-                  buttonText={reportButtonText}
-                  itemTag={section === 'invoices' ? 'factura' : 'pedido'}
-                  summary={reportSummary}
-                />
-              </div>
-            </div>
-
-            {/* Subpestañas PEDIDOS | ÓRDENES (FACTURACIÓN) | PEDIDOS PROGRAMADOS */}
-            <SectionTabs section={section} setSection={setSection} />
-
-            {/* Contenido según pestaña activa */}
-            {section === 'orders' ? (
-              <OrdersPanel
-                orderTypeFilter={orderTypeFilter}
-                setOrderTypeFilter={setOrderTypeFilter}
-              />
-            ) : section === 'invoices' ? (
-              <InvoicesPanel
-                orderTypeFilter={orderTypeFilter}
-                setOrderTypeFilter={setOrderTypeFilter}
-              />
-            ) : (
-              <ScheduledPanel />
-            )}
-          </div>
-        </main>
-      </div>
-    </div>
+    </PageShell>
   )
 }
 

@@ -28,7 +28,7 @@ export default function InvoiceTable({ invoices, loading, onDeleteRequest }) {
     <div className="overflow-x-auto">
       <table className="w-full text-left border-collapse min-w-[800px]">
         <thead>
-          <tr className="border-b border-line text-[11px] font-mono font-semibold text-muted uppercase tracking-[0.14em]">
+          <tr className="kick border-b border-line text-muted">
             <th className="py-3 px-4 pl-6">Pedido</th>
             <th className="py-3 px-4">Tipo</th>
             <th className="py-3 px-4">Detalle</th>
@@ -42,7 +42,7 @@ export default function InvoiceTable({ invoices, loading, onDeleteRequest }) {
         <tbody className="divide-y divide-line/60 text-xs sm:text-sm text-inkalt">
           {invoices.map((invoice) => (
             <tr key={invoice._id} className="hover:bg-surfalt/50 transition-colors">
-              <td className="py-3.5 px-4 pl-6 font-mono font-bold text-ink">
+              <td className="py-3.5 px-4 pl-6 num font-bold text-ink">
                 #{(invoice.order || invoice._id).toString().slice(-4).toUpperCase()}
               </td>
               <td className="py-3.5 px-4">
@@ -70,10 +70,10 @@ export default function InvoiceTable({ invoices, loading, onDeleteRequest }) {
               <td className="py-3.5 px-4 text-muted">
                 {PAYMENT_LABELS[invoice.paymentMethod] || 'No especificado'}
               </td>
-              <td className="py-3.5 px-4 font-mono font-bold text-ink">
+              <td className="py-3.5 px-4 num font-bold text-ink">
                 ${Number(invoice.total || 0).toFixed(2)}
               </td>
-              <td className="py-3.5 px-4 text-muted text-xs font-mono">
+              <td className="py-3.5 px-4 text-muted text-xs num">
                 {invoice.issuedAt ? new Date(invoice.issuedAt).toLocaleString('es-SV', { dateStyle: 'short', timeStyle: 'short' }) : '—'}
               </td>
               <td className="py-3.5 px-4 pr-6 text-right">

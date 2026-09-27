@@ -196,13 +196,15 @@ function DishesContent() {
       }
       modals={
         <>
-          <AddDishModal
-            isOpen={isModalOpen}
-            onClose={() => { setIsModalOpen(false); setEditingDish(null); }}
-            onSave={handleSaveDish}
-            onEditExisting={openEdit}
-            dishToEdit={editingDish}
-          />
+          {isModalOpen && (
+            <AddDishModal
+              isOpen={isModalOpen}
+              onClose={() => { setIsModalOpen(false); setEditingDish(null); }}
+              onSave={handleSaveDish}
+              onEditExisting={openEdit}
+              dishToEdit={editingDish}
+            />
+          )}
 
           <ConfirmModal
             isOpen={confirmDelete.isOpen}

@@ -8,6 +8,7 @@ import { useState, useRef, useEffect } from 'react';
 import AuthField from './AuthField';
 import AuthError from './AuthError';
 import DigitInput from './DigitInput';
+import { PASSWORD_RULES } from '../../utils/passwordRules';
 import FAIcon from '../commons/FAIcon';
 import useRecoveryPassword from '../../hooks/auth/useRecoveryPassword';
 
@@ -21,11 +22,8 @@ const STEPS = [
 // Requisitos de la contraseña. Se muestran como lista que se va marcando,
 // en lugar de una barra de "fuerza": así el usuario ve exactamente qué le
 // falta para que el formulario la acepte, no una valoración difusa.
-const RULES = [
-  { id: 'len', label: '8 caracteres', test: (pw) => pw.length >= 8 },
-  { id: 'upper', label: 'Una mayúscula', test: (pw) => /[A-Z]/.test(pw) },
-  { id: 'digit', label: 'Un número', test: (pw) => /[0-9]/.test(pw) },
-];
+// Mismas reglas que valida el servidor (ver utils/passwordRules.js).
+const RULES = PASSWORD_RULES;
 
 const formatTime = (seconds) => {
   const mins = Math.floor(seconds / 60);

@@ -1,6 +1,7 @@
 // src/components/commons/ImageCropModal.jsx
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import FAIcon from './FAIcon';
+import { ModalShell, ModalHeader, ModalBody, ModalFooter, MODAL_BTN_SECONDARY, MODAL_BTN_PRIMARY } from './FormModal';
 
 // Tamaño del marco circular que se ve en pantalla y resolución final exportada.
 // La imagen se recorta en cuadrado (el redondeo a círculo lo hace el CSS del
@@ -149,73 +150,65 @@ const ImageCropModal = ({ file, onCancel, onConfirm }) => {
   const drawSize = getDrawSize();
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-sm bg-surface rounded-none border border-line overflow-hidden">
-        <div className="px-4 sm:px-5 py-4 border-b border-line">
-          <h3 className="font-display font-bold text-ink text-base">Ajustar foto de perfil</h3>
-          <p className="text-xs text-muted mt-0.5">Arrastra la imagen y usa el control para acercarla</p>
-        </div>
+    <ModalShell maxWidth="max-w-sm" zIndex="z-[100]">
+      <ModalHeader
+        icon="crop"
+        title="Ajustar foto"
+        subtitle="Arrastra la imagen y usa el control para acercarla"
+        onClose={onCancel}
+      />
 
-        <div className="p-4 sm:p-5 flex flex-col items-center gap-4">
-          <div
-            className="relative rounded-full overflow-hidden bg-surfalt border-2 border-acline shadow-inner touch-none select-none"
-            style={{ width: FRAME_SIZE, height: FRAME_SIZE, cursor: isDragging ? 'grabbing' : 'grab' }}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerLeave={handlePointerUp}
-          >
-            {imageUrl && (
-              <img
-                ref={imgRef}
-                src={imageUrl}
-                alt="Foto a recortar"
-                draggable={false}
-                className="absolute top-0 left-0 max-w-none pointer-events-none"
-                style={{
-                  width: drawSize.width,
-                  height: drawSize.height,
-                  transform: `translate(${position.x}px, ${position.y}px)`,
-                }}
-              />
-            )}
-          </div>
-
-          <div className="w-full flex items-center gap-3">
-            <FAIcon icon="magnifying-glass-minus" size="sm" className="text-muted" />
-            <input
-              type="range"
-              min={MIN_ZOOM}
-              max={MAX_ZOOM}
-              step={0.01}
-              value={zoom}
-              onChange={(e) => handleZoomChange(Number(e.target.value))}
-              className="flex-1 accent-red-500"
-              aria-label="Acercar o alejar la foto"
+      <ModalBody className="flex flex-col items-center gap-4 space-y-0">
+        <div
+          className="relative rounded-full overflow-hidden bg-surfalt border-2 border-acline shadow-inner touch-none select-none"
+          style={{ width: FRAME_SIZE, height: FRAME_SIZE, cursor: isDragging ? 'grabbing' : 'grab' }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerUp}
+        >
+          {imageUrl && (
+            <img
+              ref={imgRef}
+              src={imageUrl}
+              alt="Foto a recortar"
+              draggable={false}
+              className="absolute top-0 left-0 max-w-none pointer-events-none"
+              style={{
+                width: drawSize.width,
+                height: drawSize.height,
+                transform: `translate(${position.x}px, ${position.y}px)`,
+              }}
             />
-            <FAIcon icon="magnifying-glass-plus" size="sm" className="text-muted" />
-          </div>
+          )}
         </div>
 
-        <div className="flex gap-2 px-4 sm:px-5 py-4 border-t border-line">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="flex-1 px-4 py-2.5 rounded-none font-display font-semibold text-sm text-inkalt bg-surfalt hover:bg-line transition-colors"
-          >
-            Cancelar
-          </button>
-          <button
-            type="button"
-            onClick={handleConfirm}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-none font-display font-semibold text-sm text-white bg-ac hover:bg-ac transition-colors"
-          >
-            <FAIcon icon="check" size="sm" />
-            Aplicar
-          </button>
+        <div className="w-full flex items-center gap-3">
+          <FAIcon icon="magnifying-glass-minus" size="sm" className="text-muted" />
+          <input
+            type="range"
+            min={MIN_ZOOM}
+            max={MAX_ZOOM}
+            step={0.01}
+            value={zoom}
+            onChange={(e) => handleZoomChange(Number(e.target.value))}
+            className="flex-1 accent-red-500"
+            aria-label="Acercar o alejar la foto"
+          />
+          <FAIcon icon="magnifying-glass-plus" size="sm" className="text-muted" />
         </div>
-      </div>
-    </div>
+      </ModalBody>
+
+      <ModalFooter>
+        <button type="button" onClick={onCancel} className={MODAL_BTN_SECONDARY}>
+          Cancelar
+        </button>
+        <button type="button" onClick={handleConfirm} className={MODAL_BTN_PRIMARY}>
+          <FAIcon icon="check" size="xs" />
+          Aplicar
+        </button>
+      </ModalFooter>
+    </ModalShell>
   );
 };
 

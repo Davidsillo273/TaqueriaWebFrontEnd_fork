@@ -1,6 +1,7 @@
 // src/components/reports/PurchaseInvoiceModal.jsx
 import React, { useState, useEffect } from 'react';
 import FAIcon from '../commons/FAIcon';
+import { ModalHeader, ModalBody, ModalFooter, FormSection, OptionalBadge, FORM_INPUT, MODAL_BTN_SECONDARY, MODAL_BTN_PRIMARY } from '../commons/FormModal';
 import { PURCHASE_CATEGORIES } from '../../hooks/usePurchaseInvoices';
 
 // El IVA salvadoreño. Se usa solo para SUGERIR el monto mientras el usuario
@@ -26,11 +27,12 @@ const EMPTY_FORM = {
   notes: '',
 };
 
-const inputClass =
-  'w-full px-3.5 py-2 bg-surface border border-line rounded-none focus:outline-none focus:border-ac text-xs text-ink placeholder:text-muted/70 transition-colors';
+// Mismos campos que la ficha del empleado (ver FormModal); sin el mt-1 de
+// FORM_INPUT porque aquí el rótulo ya trae su margen.
+const inputClass = FORM_INPUT.replace('mt-1 ', '');
 
 const labelClass =
-  'block text-[11px] font-mono tracking-wider font-semibold text-ink uppercase mb-1.5';
+  'block text-[11px] font-semibold text-muted tracking-wide uppercase mb-1';
 
 const PurchaseInvoiceModal = ({ isOpen, onClose, onSubmit }) => {
   const [form, setForm] = useState(EMPTY_FORM);
@@ -95,57 +97,23 @@ const PurchaseInvoiceModal = ({ isOpen, onClose, onSubmit }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-xs animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
       {/* Contenedor del Modal con borde superior rojo institucional de acento */}
-      <div className="bg-surface rounded-none border border-line border-t-4 border-t-ac max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl">
-        {/* Cabecera institucional con acento rojo y avatar de icono */}
-        <div className="bg-surface border-b border-line px-5 sm:px-6 py-4 flex items-center justify-between gap-4 shrink-0">
-          <div className="flex items-center gap-3.5 min-w-0">
-            <div className="w-11 h-11 bg-acsoft text-ac border border-acline/60 flex items-center justify-center font-display font-bold text-base shrink-0 shadow-xs">
-              <FAIcon icon="receipt" className="text-ac text-lg" />
-            </div>
-            <div className="min-w-0">
-              <p className="kick text-[10px] font-bold text-ac tracking-wider mb-0.5">
-                REGISTRO CONTABLE
-              </p>
-              <h3 className="text-lg sm:text-xl font-display font-bold text-ink leading-tight truncate">
-                Registrar factura de compra
-              </h3>
-              <p className="text-xs text-muted truncate">
-                Facturas que el negocio recibe de sus proveedores
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar modal"
-            className="w-8 h-8 flex items-center justify-center border border-line text-muted hover:text-ac hover:border-acline hover:bg-acsoft/20 transition-colors shrink-0 cursor-pointer"
-          >
-            <FAIcon icon="times" size="sm" />
-          </button>
-        </div>
-
-        {/* Barra informativa */}
-        <div className="px-5 sm:px-6 py-2 bg-surfalt/40 border-b border-line flex items-center justify-between gap-3 text-xs text-muted shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-ac" />
-            <span>
-              Los campos con (<span className="text-ac font-bold">*</span>) son requeridos para la
-              declaración de IVA.
-            </span>
-          </div>
-          <span className="font-mono text-[11px] text-muted hidden sm:inline">IVA Tasa 13%</span>
-        </div>
+      <div className="bg-surface rounded-2xl border border-line w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+        <ModalHeader
+          icon="receipt"
+          title="Registrar factura de compra"
+          badge="Registro contable"
+          subtitle="Facturas que el negocio recibe de sus proveedores"
+          onClose={onClose}
+        />
 
         {/* Formulario scrolleable */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <ModalBody>
           {/* Sección 1: Datos del Proveedor y Factura */}
-          <div className="border-l-2 border-l-ac bg-surfalt/20 p-4 border border-line space-y-3.5">
-            <p className="kick text-[10px] font-bold text-ink tracking-wider">
-              DATOS DEL PROVEEDOR Y COMPROBANTE
-            </p>
+          <FormSection icon="building" title="Proveedor y comprobante">
+          <div className="space-y-3.5">
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
@@ -204,12 +172,11 @@ const PurchaseInvoiceModal = ({ isOpen, onClose, onSubmit }) => {
               </div>
             </div>
           </div>
+          </FormSection>
 
           {/* Sección 2: Desglose de Montos y Categoría */}
-          <div className="border-l-2 border-l-ac bg-surfalt/20 p-4 border border-line space-y-3.5">
-            <p className="kick text-[10px] font-bold text-ink tracking-wider">
-              DESGLOSE DE MONTOS Y CLASIFICACIÓN
-            </p>
+          <FormSection icon="calculator" title="Montos y clasificación">
+          <div className="space-y-3.5">
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
@@ -217,7 +184,7 @@ const PurchaseInvoiceModal = ({ isOpen, onClose, onSubmit }) => {
                   Subtotal (sin IVA) <span className="text-ac font-bold">*</span>
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-xs font-mono">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-xs num">
                     $
                   </span>
                   <input
@@ -228,7 +195,7 @@ const PurchaseInvoiceModal = ({ isOpen, onClose, onSubmit }) => {
                     value={form.subtotal}
                     onChange={(e) => handleChange('subtotal', e.target.value)}
                     placeholder="150.00"
-                    className={`${inputClass} pl-7 font-mono`}
+                    className={`${inputClass} pl-7 num`}
                   />
                 </div>
               </div>
@@ -238,7 +205,7 @@ const PurchaseInvoiceModal = ({ isOpen, onClose, onSubmit }) => {
                   IVA de la factura
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-xs font-mono">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-xs num">
                     $
                   </span>
                   <input
@@ -249,7 +216,7 @@ const PurchaseInvoiceModal = ({ isOpen, onClose, onSubmit }) => {
                     value={form.tax}
                     onChange={(e) => handleChange('tax', e.target.value)}
                     placeholder="19.50"
-                    className={`${inputClass} pl-7 font-mono`}
+                    className={`${inputClass} pl-7 num`}
                   />
                 </div>
                 <p className="mt-1 text-[10.5px] text-muted leading-tight">
@@ -311,9 +278,11 @@ const PurchaseInvoiceModal = ({ isOpen, onClose, onSubmit }) => {
               </div>
             </div>
           </div>
+          </FormSection>
 
           {/* Sección 3: Observaciones */}
-          <div className="border-l-2 border-l-ac bg-surfalt/20 p-4 border border-line space-y-2">
+          <FormSection icon="pen" title="Observaciones" badge={<OptionalBadge />}>
+          <div className="space-y-2">
             <label className={labelClass} htmlFor="notes">
               Notas u observaciones
             </label>
@@ -326,56 +295,58 @@ const PurchaseInvoiceModal = ({ isOpen, onClose, onSubmit }) => {
               className={`${inputClass} resize-none`}
             />
           </div>
+          </FormSection>
 
           {/* Tarjeta de cálculo y total en vivo */}
-          <div className="p-4 bg-surfalt/60 border border-line flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div className="p-4 bg-white dark:bg-surface rounded-xl border border-line shadow-2xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 border border-line bg-surface flex items-center justify-center text-muted">
-                <FAIcon icon="file-invoice-dollar" size="sm" />
+              <div className="w-7 h-7 rounded-lg bg-ac text-white flex items-center justify-center shadow-2xs">
+                <FAIcon icon="file-invoice-dollar" size="xs" />
               </div>
               <div>
-                <p className="kick text-[10px] font-bold text-muted tracking-wider">
-                  TOTAL CALCULADO DE LA FACTURA
+                <p className="kick text-ink">
+                  Total calculado de la factura
                 </p>
                 <p className="text-[11px] text-muted">
-                  Subtotal: <span className="font-mono text-ink">{money(subtotalNum)}</span> + IVA:{' '}
-                  <span className="font-mono text-ink">{money(taxNum)}</span>
+                  Subtotal: <span className="num text-ink">{money(subtotalNum)}</span> + IVA:{' '}
+                  <span className="num text-ink">{money(taxNum)}</span>
                 </p>
               </div>
             </div>
             <div className="text-right">
-              <span className="text-2xl sm:text-3xl font-light text-ink tracking-tight font-display">
+              <span className="num text-2xl sm:text-3xl text-ink font-light">
                 {money(totalPreview)}
               </span>
             </div>
           </div>
 
           {formError && (
-            <div className="px-4 py-3 bg-acsoft/30 border border-ac text-xs text-ac flex items-center gap-2">
+            <div className="px-4 py-3 bg-acsoft/30 border border-ac rounded-xl text-xs text-ac flex items-center gap-2">
               <FAIcon icon="triangle-exclamation" size="sm" />
               <span>{formError}</span>
             </div>
           )}
 
-          {/* Botones de acción al pie */}
-          <div className="flex items-center justify-end gap-3 pt-2">
+          </ModalBody>
+
+          <ModalFooter note={<>Los campos con <span className="text-ac">*</span> son requeridos para la declaración de IVA · IVA <span className="num">13%</span></>}>
             <button
               type="button"
               onClick={onClose}
               disabled={saving}
-              className="px-4 py-2 border border-line bg-surface hover:bg-surfalt text-xs font-semibold text-ink transition-colors disabled:opacity-50 cursor-pointer"
+              className={MODAL_BTN_SECONDARY}
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="px-5 py-2 bg-ac hover:opacity-90 text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer shadow-xs"
+              className={MODAL_BTN_PRIMARY}
             >
               {saving && <FAIcon icon="spinner" className="animate-spin" size="xs" />}
               <span>{saving ? 'Guardando...' : 'Registrar factura'}</span>
             </button>
-          </div>
+          </ModalFooter>
         </form>
       </div>
     </div>

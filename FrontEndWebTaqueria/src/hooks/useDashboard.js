@@ -69,7 +69,7 @@ export default function useDashboard() {
 
   const { orders, loading: loadingOrders } = useOrders();
   const { employees, loading: loadingEmployees, error: employeesError } = useEmployees(canSeeEmployees);
-  const { tables, loading: loadingTables, error: tablesError } = useTables();
+  const { tables, loading: loadingTables, error: tablesError, updateTable, bulkUpdateStatus } = useTables();
   const { insumos, loading: loadingInventory, error: inventoryError } = useInventory(canSeeInventory);
   const { clients, isLoading: loadingClients, error: clientsError } = useClients(canSeeClients);
   const { analytics, loading: loadingInvoices, error: invoicesError } = useInvoices();
@@ -200,5 +200,10 @@ export default function useDashboard() {
     clientesHoyList,
     employees,
     insumos,
+    // Las mutaciones de mesas salen de la misma instancia de useTables, para
+    // que el Dashboard no abra una segunda y repita la consulta de /tables.
+    tables,
+    updateTable,
+    bulkUpdateStatus,
   };
 }

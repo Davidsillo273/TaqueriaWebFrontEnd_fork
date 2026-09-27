@@ -1,23 +1,37 @@
 // src/components/chat/AssistantChatWidget.jsx
-// Botón flotante + panel de chat con el asistente de IA general de SYSCOR.
+// Chef Panchita dentro del sistema: panel de chat con el asistente de IA
+// general de SYSCOR, con el mismo aspecto que Panchita en el login.
 // Reemplaza al viejo SaucerChatWidget (solo registraba platillos): ahora
 // tiene herramientas en todo el sistema, puede adjuntar imágenes, se le
 // puede dar contexto de qué pantalla se está hablando, y puede pedir
 // formularios cortos dentro del chat cuando falta un dato (ver
 // ChatDynamicForm). Se monta una sola vez, a nivel de App, y decide solo si
 // mostrarse según la sesión activa.
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import FAIcon from '../commons/FAIcon';
 import Select from '../commons/Select';
 import ChatDynamicForm from './ChatDynamicForm';
+import PanchitaIcon from './PanchitaIcon';
 import useAssistantChat from '../../hooks/useAssistantChat';
 import { useAuth } from '../../hooks/auth/useAuth';
 import { useAssistant } from '../../hooks/useAssistant';
 import { PERMISSIONS } from '../../constants/permissions';
 
-const WELCOME_MESSAGE = '¡Hola! Soy el asistente de SYSCOR. Puedo consultar información, hacer cálculos y ejecutar acciones en cualquier parte del sistema. ¿En qué te ayudo?';
+const WELCOME_MESSAGE = '¡Hola! Soy Chef Panchita, tu asistente en SYSCOR. Puedo consultar información, hacer cálculos y ejecutar acciones en cualquier parte del sistema. ¿En qué te ayudo hoy?';
 
 const CONTEXT_OPTIONS = PERMISSIONS.filter((p) => p.type === 'screen');
+
+// Respuesta de Panchita, con el mismo formato que en el login: retrato
+// realista a la izquierda y texto sin burbuja. Si una acción falló, el texto
+// va en rojo para que no pase desapercibido.
+const ModelMessage = ({ text, failed = false }) => (
+  <div className="flex gap-2.5 max-w-[95%]">
+    <PanchitaIcon variant="answered" className="w-7 h-12 self-start" />
+    <p className={`text-[12.5px] leading-relaxed pt-0.5 whitespace-pre-wrap ${failed ? 'text-ac' : 'text-inkalt'}`}>
+      {text}
+    </p>
+  </div>
+);
 
 const AssistantChatWidget = () => {
   const { user, isAuthenticated } = useAuth();
@@ -70,46 +84,49 @@ const AssistantChatWidget = () => {
 
   return (
     <>
-      {/* El botón flotante se quitó: el chat ahora se abre con Ctrl+K (o
-          Cmd+K en Mac) desde cualquier pantalla, o con el ícono de robot en
-          el TopBar (que además muestra cuando el asistente está trabajando).
-          Ver context/assistantContext.jsx y components/dashboard/TopBar.jsx. */}
+      {/* Mismo panel que Chef Panchita en el login: lateral a toda la altura
+          en escritorio y a pantalla completa en móvil, con el resto de la
+          pantalla oscurecido detrás. Se abre con Ctrl+K (Cmd+K en Mac) o con
+          el ícono de Panchita del TopBar. */}
       {isOpen && (
-        <div
-          className="fixed inset-0 z-[65] bg-black/40 sm:hidden"
+        <button
+          type="button"
+          aria-label="Cerrar asistente"
           onClick={close}
-          aria-hidden="true"
+          className="fixed inset-0 z-[65] bg-black/25 cursor-default"
         />
       )}
 
       {isOpen && (
-        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[70] w-[calc(100vw-2rem)] sm:w-[92vw] max-w-md h-[32rem] max-h-[75vh] bg-surfalt rounded-none border border-line flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between p-4 bg-ac text-white">
-            <div className="flex items-center gap-2 min-w-0">
-              <FAIcon icon="robot" size="sm" />
-              <span className="font-display font-bold text-sm truncate">Asistente SYSCOR</span>
-            </div>
-            <div className="flex items-center gap-1 shrink-0">
+        <div className="fixed z-[70] inset-0 lg:inset-y-0 lg:left-auto lg:right-0 lg:w-[400px] flex flex-col bg-surface border-l border-line">
+          {/* Encabezado */}
+          <div className="flex items-center gap-2.5 px-4 py-3 border-b border-line">
+            <PanchitaIcon variant="icon" className="w-6 h-6" />
+            <p className="text-sm font-display text-ink truncate">Chef Panchita (Asistente inteligente)</p>
+            <span className="kick text-muted border border-line px-1.5 py-0.5 shrink-0">Sistema</span>
+            <div className="ml-auto flex items-center gap-2.5 shrink-0">
               <button
                 type="button"
                 onClick={reset}
                 title="Nueva conversación"
-                className="text-white/80 hover:text-white p-1.5 rounded-none hover:bg-surface/10 transition-all"
+                aria-label="Nueva conversación"
+                className="text-muted hover:text-ink transition-colors"
               >
                 <FAIcon icon="rotate-left" size="sm" />
               </button>
               <button
                 type="button"
                 onClick={close}
-                className="text-white/80 hover:text-white p-1.5 rounded-none hover:bg-surface/10 transition-all"
+                aria-label="Cerrar asistente"
+                className="text-muted hover:text-ink transition-colors"
               >
-                <FAIcon icon="times" size="lg" />
+                <FAIcon icon="times" size="sm" />
               </button>
             </div>
           </div>
 
-          {/* Selector de contexto: le dice al asistente de qué pantalla habla el admin */}
-          <div className="px-3 pt-2.5 pb-1.5 border-b border-line bg-surface/40">
+          {/* Contexto: le dice a Panchita de qué pantalla se está hablando */}
+          <div className="px-4 py-2.5 border-b border-line">
             <Select size="sm" value={context} onChange={(e) => setContext(e.target.value)}>
               <option value="">Sin contexto específico</option>
               {CONTEXT_OPTIONS.map((c) => (
@@ -118,98 +135,100 @@ const AssistantChatWidget = () => {
             </Select>
           </div>
 
-          <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-2">
-            <div className="flex justify-start">
-              <div className="max-w-[85%] bg-surface rounded-none rounded-bl-sm px-3 py-2 text-sm text-inkalt border border-line">
-                {WELCOME_MESSAGE}
-              </div>
-            </div>
+          {/* Conversación */}
+          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3">
+            <ModelMessage text={WELCOME_MESSAGE} />
 
             {messages.map((m, idx) => {
               if (m.role === 'model' && m.formRequest) {
                 return (
-                  <div key={idx} className="flex justify-start">
-                    <ChatDynamicForm formRequest={m.formRequest} onSubmit={handleFormSubmit} disabled={loading} />
+                  <div key={idx} className="flex gap-2.5 max-w-[95%]">
+                    <PanchitaIcon variant="answered" className="w-7 h-12 self-start" />
+                    <div className="min-w-0 flex-1">
+                      <ChatDynamicForm formRequest={m.formRequest} onSubmit={handleFormSubmit} disabled={loading} />
+                    </div>
                   </div>
                 );
               }
-              return (
-                <div key={idx} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div
-                    className={`max-w-[85%] px-3 py-2 text-sm rounded-none whitespace-pre-wrap ${
-                      m.role === 'user'
-                        ? 'bg-ac text-white rounded-br-sm'
-                        : m.actionSuccess === false
-                        ? 'bg-acsoft text-ac border border-acline rounded-bl-sm'
-                        : 'bg-surface text-inkalt border border-line rounded-bl-sm'
-                    }`}
-                  >
-                    {m.text}
+              if (m.role === 'user') {
+                return (
+                  <div key={idx} className="self-end max-w-[85%] bg-acsoft border border-acline px-3 py-2">
+                    <p className="text-[12.5px] leading-relaxed text-ink whitespace-pre-wrap">{m.text}</p>
                     {m.imageCount > 0 && (
-                      <span className="block mt-1 text-[11px] opacity-80">
+                      <span className="block mt-1 text-[11px] text-muted">
                         <FAIcon icon="paperclip" size="xs" className="mr-1" />
-                        {m.imageCount} imagen{m.imageCount > 1 ? 'es' : ''} adjunta{m.imageCount > 1 ? 's' : ''}
+                        <span className="num">{m.imageCount}</span> imagen{m.imageCount > 1 ? 'es' : ''} adjunta{m.imageCount > 1 ? 's' : ''}
                       </span>
                     )}
                   </div>
-                </div>
-              );
+                );
+              }
+              return <ModelMessage key={idx} text={m.text} failed={m.actionSuccess === false} />;
             })}
 
             {loading && (
-              <div className="flex justify-start">
-                <div className="bg-surface rounded-none rounded-bl-sm px-3 py-2 border border-line">
-                  <span className="flex gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce [animation-delay:-0.3s]" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce [animation-delay:-0.15s]" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce" />
-                  </span>
-                </div>
+              <div className="flex gap-2.5">
+                <PanchitaIcon variant="avatar" className="w-7 h-12 self-start" />
+                <p className="text-[12.5px] text-muted pt-0.5">Escribiendo…</p>
               </div>
             )}
           </div>
 
-          {pendingFiles.length > 0 && (
-            <div className="px-3 pb-1 flex flex-wrap gap-1.5">
-              {pendingFiles.map((f, idx) => (
-                <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 bg-surface border border-line rounded-none text-[11px] text-inkalt">
-                  <FAIcon icon="image" size="xs" />
-                  {f.name.length > 16 ? `${f.name.slice(0, 16)}...` : f.name}
-                  <button type="button" onClick={() => setPendingFiles((prev) => prev.filter((_, i) => i !== idx))} className="text-muted hover:text-ac">
-                    <FAIcon icon="times" size="xs" />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
+          {/* Entrada */}
+          <div className="px-4 py-3 border-t border-line">
+            {pendingFiles.length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-1.5">
+                {pendingFiles.map((f, idx) => (
+                  <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 border border-line text-[11px] text-inkalt">
+                    <FAIcon icon="image" size="xs" />
+                    {f.name.length > 16 ? `${f.name.slice(0, 16)}...` : f.name}
+                    <button
+                      type="button"
+                      onClick={() => setPendingFiles((prev) => prev.filter((_, i) => i !== idx))}
+                      aria-label="Quitar imagen"
+                      className="text-muted hover:text-ac"
+                    >
+                      <FAIcon icon="times" size="xs" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
 
-          <form onSubmit={handleSend} className="p-3 border-t border-line flex items-center gap-2">
-            <input ref={fileInputRef} type="file" accept="image/*" multiple hidden onChange={handleFilePick} />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={loading}
-              title="Adjuntar imagen"
-              className="w-9 h-9 shrink-0 flex items-center justify-center bg-surface border border-line text-muted rounded-none hover:bg-surfalt transition-all disabled:opacity-50"
-            >
-              <FAIcon icon="paperclip" size="sm" />
-            </button>
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Pregúntame o pídeme algo..."
-              disabled={loading}
-              className="flex-1 min-w-0 px-3 py-2 bg-surface border border-line rounded-none text-sm text-inkalt placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-acline disabled:opacity-60"
-            />
-            <button
-              type="submit"
-              disabled={loading || (!input.trim() && pendingFiles.length === 0)}
-              className="w-9 h-9 shrink-0 flex items-center justify-center bg-ac text-white rounded-none hover:bg-ac transition-all disabled:opacity-50"
-            >
-              <FAIcon icon="paper-plane" size="sm" />
-            </button>
-          </form>
+            <form onSubmit={handleSend} className="flex items-center gap-2 border border-linealt bg-bg px-3 py-2">
+              <input ref={fileInputRef} type="file" accept="image/*" multiple hidden onChange={handleFilePick} />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loading}
+                title="Adjuntar imagen"
+                aria-label="Adjuntar imagen"
+                className="text-muted hover:text-ac transition-colors disabled:opacity-40"
+              >
+                <FAIcon icon="paperclip" size="sm" />
+              </button>
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Pregúntale o pídele algo a Panchita…"
+                disabled={loading}
+                aria-label="Mensaje para Chef Panchita"
+                className="flex-1 min-w-0 bg-transparent text-[12.5px] text-ink placeholder:text-muted focus:outline-none disabled:opacity-60"
+              />
+              <button
+                type="submit"
+                disabled={loading || (!input.trim() && pendingFiles.length === 0)}
+                aria-label="Enviar"
+                className="text-muted hover:text-ac transition-colors disabled:opacity-40"
+              >
+                <FAIcon icon="paper-plane" size="sm" />
+              </button>
+            </form>
+            <p className="text-[11px] text-muted mt-2 leading-relaxed">
+              Panchita puede consultar y modificar datos del sistema. Revisa lo que te confirma antes de seguir.
+            </p>
+          </div>
         </div>
       )}
     </>

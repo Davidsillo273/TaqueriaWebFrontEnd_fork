@@ -3,6 +3,11 @@ import React, { useState, useEffect } from 'react';
 import FAIcon from '../commons/FAIcon';
 import Select from '../commons/Select';
 import ConfirmModal from '../commons/ConfirmModal';
+import {
+  sanitizeName, validateName, PHONE_PREFIX, formatPhone, validatePhone, formatIsss, validateIsss,
+  AFP_INSTITUTIONS, BANKS, findBank, formatBankAccount, bankAccountHint, validateBankAccount,
+  checkLegalSchedule,
+} from '../../utils/employeeFields';
 import { EMPLOYEE_TYPE_OPTIONS as TYPE_OPTIONS } from '../../constants/employeeTypes';
 
 const DAYS = [
@@ -15,14 +20,7 @@ const DAYS = [
   { value: 'domingo', label: 'Dom' },
 ];
 
-const AFP_OPTIONS = [
-  { value: '', label: 'Seleccionar institución...' },
-  { value: 'confia', label: 'AFP Confía' },
-  { value: 'crecer', label: 'AFP Crecer' },
-  { value: 'ipsfa', label: 'IPSFA' },
-  { value: 'inpep', label: 'INPEP' },
-  { value: 'otra', label: 'Otra / Ninguna' },
-];
+const AFP_OPTIONS = [{ value: '', label: 'Seleccionar institución...' }, ...AFP_INSTITUTIONS];
 
 // Relaciona las etiquetas de `missingFields` con el campo del formulario
 // que las resuelve, para resaltarlo en amarillo mientras siga vacío.
@@ -34,7 +32,6 @@ const MISSING_FIELD_KEYS = {
   'Salario': 'salary',
   'Número de ISSS': 'isssNumber',
   'Institución de AFP': 'afpInstitution',
-  'Número de AFP': 'afpNumber',
   'Banco': 'bankName',
   'Cuenta bancaria': 'bankAccount',
 };
@@ -56,11 +53,15 @@ const SectionHeader = ({ icon, title }) => (
     <span className="w-7 h-7 rounded-lg bg-ac text-white flex items-center justify-center shadow-2xs">
       <FAIcon icon={icon} size="xs" />
     </span>
-    <h4 className="text-xs font-display font-bold text-ink uppercase tracking-wider">{title}</h4>
+    <h4 className="kick text-ink">{title}</h4>
   </div>
 );
 
 const sectionClass = 'bg-white dark:bg-surface rounded-xl border border-line p-4 shadow-2xs';
+
+// Mensaje de error debajo de un campo.
+const FieldError = ({ children }) =>
+  children ? <p className="text-ac text-xs mt-1 font-medium">{children}</p> : null;
 
 const EmployeeDetailModal = ({
   isOpen,
@@ -84,22 +85,24 @@ const EmployeeDetailModal = ({
     scheduleEnd: '',
     isssNumber: '',
     afpInstitution: '',
-    afpNumber: '',
     bankName: '',
     bankAccount: '',
   });
 
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState({});
   const [sendingInvite, setSendingInvite] = useState(false);
   const [confirmToggleOpen, setConfirmToggleOpen] = useState(false);
   const [togglingStatus, setTogglingStatus] = useState(false);
 
   useEffect(() => {
     if (employee) {
+      setErrors({});
       setForm({
         name: employee.personalInfo?.name || '',
         lastname: employee.personalInfo?.lastname || '',
-        phone: employee.personalInfo?.phone || '',
+        // Teléfonos viejos (con +503 o espacios) se muestran ya con el formato nuevo.
+        phone: formatPhone(employee.personalInfo?.phone || ''),
         address: employee.personalInfo?.address || '',
         type: employee.personalInfo?.type || 'other',
         salary: employee.workInfo?.salary ?? '',
@@ -112,18 +115,17 @@ const EmployeeDetailModal = ({
           employee.personalInfo?.isssNumber ||
           employee.isssNumber ||
           '',
-        afpInstitution:
-          employee.workInfo?.afpInstitution ||
-          employee.legalInfo?.afpInstitution ||
-          employee.personalInfo?.afpInstitution ||
-          employee.afpInstitution ||
-          '',
-        afpNumber:
-          employee.workInfo?.afpNumber ||
-          employee.legalInfo?.afpNumber ||
-          employee.personalInfo?.afpNumber ||
-          employee.afpNumber ||
-          '',
+        // Solo existen Crecer y Confía: un valor viejo (IPSFA, INPEP...) se
+        // deja sin elegir para que se vuelva a seleccionar.
+        afpInstitution: (() => {
+          const saved =
+            employee.workInfo?.afpInstitution ||
+            employee.legalInfo?.afpInstitution ||
+            employee.personalInfo?.afpInstitution ||
+            employee.afpInstitution ||
+            '';
+          return AFP_INSTITUTIONS.some((a) => a.value === saved) ? saved : '';
+        })(),
         bankName:
           employee.workInfo?.bankName ||
           employee.bankInfo?.bankName ||
@@ -156,7 +158,26 @@ const EmployeeDetailModal = ({
     }));
   };
 
+  // Mismas reglas que al invitar al empleado (ver utils/employeeFields.js).
+  const validateForm = () => {
+    const next = {
+      name: validateName(form.name, 'El nombre'),
+      lastname: validateName(form.lastname, 'El apellido'),
+      phone: validatePhone(form.phone),
+      isssNumber: validateIsss(form.isssNumber),
+      bankAccount: validateBankAccount(form.bankName, form.bankAccount),
+      scheduleEnd: checkLegalSchedule(form).error,
+    };
+    const clean = Object.fromEntries(Object.entries(next).filter(([, v]) => v));
+    setErrors(clean);
+    return Object.keys(clean).length === 0;
+  };
+
   const handleSave = async () => {
+    if (!validateForm()) {
+      addToast?.('Revisa los datos marcados antes de guardar.', 'error');
+      return;
+    }
     setSaving(true);
     const ok = await onSave(employee._id, form);
     setSaving(false);
@@ -235,13 +256,13 @@ const EmployeeDetailModal = ({
                 </button>
               )}
 
-              <div className="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center font-display font-bold text-xs bg-ac text-white select-none shadow-2xs">
+              <div className="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center font-display font-medium text-xs bg-ac text-white select-none shadow-2xs">
                 {initials}
               </div>
 
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-base sm:text-lg font-display font-bold text-ink leading-tight truncate">
+                  <h3 className="text-base sm:text-lg font-display font-medium text-ink leading-tight truncate">
                     {readOnly ? 'Información del colaborador' : 'Ficha del empleado'}
                   </h3>
                   <span
@@ -285,7 +306,7 @@ const EmployeeDetailModal = ({
                     <FAIcon icon="triangle-exclamation" size="xs" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-[13px] font-display font-bold text-ink">Información pendiente detectada</p>
+                    <p className="text-[13px] font-display font-medium text-ink">Información pendiente detectada</p>
                     <p className="text-[11.5px] text-muted mt-0.5">
                       Completa los siguientes datos del expediente:
                     </p>
@@ -317,8 +338,9 @@ const EmployeeDetailModal = ({
                     className={inputClass('name')}
                     value={form.name}
                     placeholder="ej. María"
-                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, name: sanitizeName(e.target.value) }))}
                   />
+                  <FieldError>{errors.name}</FieldError>
                 </div>
                 <div>
                   <FieldLabel pending={isPending('lastname')}>APELLIDO</FieldLabel>
@@ -327,18 +349,28 @@ const EmployeeDetailModal = ({
                     className={inputClass('lastname')}
                     value={form.lastname}
                     placeholder="ej. González"
-                    onChange={(e) => setForm((f) => ({ ...f, lastname: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, lastname: sanitizeName(e.target.value) }))}
                   />
+                  <FieldError>{errors.lastname}</FieldError>
                 </div>
                 <div>
                   <FieldLabel pending={isPending('phone')}>TELÉFONO</FieldLabel>
-                  <input
-                    disabled={readOnly}
-                    className={inputClass('phone')}
-                    value={form.phone}
-                    placeholder="ej. 7001-0002"
-                    onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                  />
+                  {/* +503 fijo: solo los 8 dígitos, el guion lo pone el sistema */}
+                  <div className="flex items-stretch">
+                    <span className="num mt-1 px-3 flex items-center rounded-l-lg border border-r-0 border-line bg-surfalt text-[13px] text-muted">
+                      {PHONE_PREFIX}
+                    </span>
+                    <input
+                      disabled={readOnly}
+                      inputMode="numeric"
+                      maxLength={9}
+                      className={`${inputClass('phone')} num rounded-l-none`}
+                      value={form.phone}
+                      placeholder="7001-0002"
+                      onChange={(e) => setForm((f) => ({ ...f, phone: formatPhone(e.target.value) }))}
+                    />
+                  </div>
+                  <FieldError>{errors.phone}</FieldError>
                 </div>
                 <div>
                   <FieldLabel pending={isPending('type')}>PUESTO</FieldLabel>
@@ -433,6 +465,15 @@ const EmployeeDetailModal = ({
                     />
                   </div>
                 </div>
+
+                {/* Horario legal: se revisa en vivo contra el Código de Trabajo */}
+                {(() => {
+                  const schedule = checkLegalSchedule(form);
+                  const scheduleError = schedule.error || errors.scheduleEnd;
+                  if (scheduleError) return <p className="text-ac text-xs font-medium">{scheduleError}</p>;
+                  if (schedule.summary) return <p className="text-ok text-xs">{schedule.summary}</p>;
+                  return null;
+                })()}
               </div>
             </div>
 
@@ -447,9 +488,12 @@ const EmployeeDetailModal = ({
                     disabled={readOnly}
                     className={inputClass('isssNumber')}
                     value={form.isssNumber}
-                    placeholder="ej. 123456789"
-                    onChange={(e) => setForm((f) => ({ ...f, isssNumber: e.target.value }))}
+                    placeholder="9 dígitos"
+                    inputMode="numeric"
+                    maxLength={9}
+                    onChange={(e) => setForm((f) => ({ ...f, isssNumber: formatIsss(e.target.value) }))}
                   />
+                  <FieldError>{errors.isssNumber}</FieldError>
                 </div>
 
                 <div>
@@ -470,25 +514,31 @@ const EmployeeDetailModal = ({
                 </div>
 
                 <div>
-                  <FieldLabel pending={isPending('afpNumber')}>NÚMERO DE AFP (NUP)</FieldLabel>
-                  <input
-                    disabled={readOnly}
-                    className={inputClass('afpNumber')}
-                    value={form.afpNumber}
-                    placeholder="ej. 123456789012"
-                    onChange={(e) => setForm((f) => ({ ...f, afpNumber: e.target.value }))}
-                  />
-                </div>
-
-                <div>
                   <FieldLabel pending={isPending('bankName')}>BANCO PARA PAGO DE NÓMINA</FieldLabel>
-                  <input
-                    disabled={readOnly}
-                    className={inputClass('bankName')}
-                    value={form.bankName}
-                    placeholder="ej. Banco Agrícola, BAC, Cuscatlán..."
-                    onChange={(e) => setForm((f) => ({ ...f, bankName: e.target.value }))}
-                  />
+                  <div className={`mt-1 ${isPending('bankName') ? 'ring-1 ring-amber-300 dark:ring-amber-500/40' : ''}`}>
+                    <Select
+                      disabled={readOnly}
+                      value={form.bankName}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          bankName: e.target.value,
+                          // la cuenta se recorta al largo que admite el banco nuevo
+                          bankAccount: formatBankAccount(f.bankAccount, e.target.value),
+                        }))
+                      }
+                    >
+                      <option value="">Seleccionar banco...</option>
+                      {/* Un banco escrito a mano antes de que existiera la lista
+                          se conserva como opción, para no perder el dato. */}
+                      {form.bankName && !findBank(form.bankName) && (
+                        <option value={form.bankName}>{form.bankName} (registrado antes)</option>
+                      )}
+                      {BANKS.map((b) => (
+                        <option key={b.value} value={b.value}>{b.value}</option>
+                      ))}
+                    </Select>
+                  </div>
                 </div>
 
                 <div className="sm:col-span-2">
@@ -497,9 +547,13 @@ const EmployeeDetailModal = ({
                     disabled={readOnly}
                     className={inputClass('bankAccount')}
                     value={form.bankAccount}
-                    placeholder="ej. 0123456789012"
-                    onChange={(e) => setForm((f) => ({ ...f, bankAccount: e.target.value }))}
+                    placeholder={form.bankName ? 'Solo dígitos' : 'Elige primero el banco'}
+                    inputMode="numeric"
+                    onChange={(e) => setForm((f) => ({ ...f, bankAccount: formatBankAccount(e.target.value, f.bankName) }))}
                   />
+                  {errors.bankAccount
+                    ? <FieldError>{errors.bankAccount}</FieldError>
+                    : !readOnly && <p className="text-[11px] text-muted mt-1">{bankAccountHint(form.bankName)}</p>}
                 </div>
               </div>
             </div>
@@ -514,7 +568,7 @@ const EmployeeDetailModal = ({
                     type="button"
                     onClick={handleSendReset}
                     disabled={sendingInvite}
-                    className="px-3 py-2 text-xs font-display font-semibold bg-white dark:bg-surface border border-line text-inkalt hover:border-ac hover:text-ac disabled:opacity-50 inline-flex items-center gap-2 rounded-lg transition-colors cursor-pointer shadow-2xs"
+                    className="px-3 py-2 text-xs font-display font-medium bg-white dark:bg-surface border border-line text-inkalt hover:border-ac hover:text-ac disabled:opacity-50 inline-flex items-center gap-2 rounded-lg transition-colors cursor-pointer shadow-2xs"
                   >
                     <FAIcon icon="key" size="xs" />
                     <span>
@@ -546,7 +600,7 @@ const EmployeeDetailModal = ({
                 <button
                   type="button"
                   onClick={onBack}
-                  className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-display font-semibold text-inkalt hover:text-ac bg-surface border border-line hover:border-ac/40 rounded-lg transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-display font-medium text-inkalt hover:text-ac bg-surface border border-line hover:border-ac/40 rounded-lg transition-colors cursor-pointer"
                 >
                   <FAIcon icon="arrow-left" size="xs" />
                   <span>Volver a expedientes</span>
@@ -562,7 +616,7 @@ const EmployeeDetailModal = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-xs font-display font-semibold text-inkalt hover:text-ink bg-surface hover:bg-surfalt border border-line rounded-lg transition-colors cursor-pointer"
+                className="px-4 py-2 text-xs font-display font-medium text-inkalt hover:text-ink bg-surface hover:bg-surfalt border border-line rounded-lg transition-colors cursor-pointer"
               >
                 Cerrar
               </button>
@@ -572,7 +626,7 @@ const EmployeeDetailModal = ({
                   type="button"
                   onClick={handleSave}
                   disabled={saving}
-                  className="px-4 py-2 text-xs font-display font-semibold text-white bg-ac hover:bg-ac/90 disabled:opacity-60 rounded-lg transition-all inline-flex items-center gap-2 cursor-pointer shadow-xs active:scale-95"
+                  className="px-4 py-2 text-xs font-display font-medium text-white bg-ac hover:bg-ac/90 disabled:opacity-60 rounded-lg transition-all inline-flex items-center gap-2 cursor-pointer shadow-xs active:scale-95"
                 >
                   <FAIcon icon={saving ? 'spinner' : 'check'} size="xs" className={saving ? 'animate-spin' : ''} />
                   <span>{saving ? 'Guardando...' : 'Guardar cambios'}</span>

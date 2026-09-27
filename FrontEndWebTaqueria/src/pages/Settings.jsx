@@ -1,8 +1,9 @@
 // src/pages/Settings.jsx
 import React, { useState, useEffect } from 'react';
-import Sidebar from '../components/dashboard/Sidebar';
-import TopBar from '../components/dashboard/TopBar';
+import PageShell from '../components/commons/PageShell';
 import FAIcon from '../components/commons/FAIcon';
+import { PasswordInput, PasswordChecklist, PasswordMatch } from '../components/commons/PasswordFields';
+import { passwordMeetsRules } from '../utils/passwordRules';
 import ImageCropModal from '../components/commons/ImageCropModal';
 import { ToastProvider, useToast } from '../components/commons/ToastProvider';
 import { useAuth } from '../hooks/auth/useAuth';
@@ -94,7 +95,7 @@ const inputClass =
   'w-full px-4 py-2.5 bg-surface border border-line rounded-none focus:outline-none focus:border-ac text-sm text-ink placeholder:text-muted/70 transition-colors disabled:bg-surfalt/60 disabled:text-muted cursor-text';
 
 const labelClass =
-  'block text-xs font-mono tracking-wider font-semibold text-ink uppercase mb-2';
+  'kick block text-ink mb-2';
 
 const buttonClass =
   'inline-flex items-center gap-2 px-6 py-2.5 bg-ac hover:opacity-90 text-white font-bold text-sm rounded-none transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs';
@@ -156,8 +157,20 @@ function SettingsContent() {
     confirmPassword: '',
   });
 
+  // Solo se habilita el botón cuando el servidor la va a aceptar: contraseña
+  // actual escrita, nueva que cumple todas las reglas y confirmación igual.
+  const canChangePassword =
+    !!passwordForm.currentPassword &&
+    passwordMeetsRules(passwordForm.newPassword) &&
+    passwordForm.newPassword === passwordForm.confirmPassword;
+
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
+
+    if (!passwordMeetsRules(passwordForm.newPassword)) {
+      addToast('La nueva contraseña no cumple todos los requisitos', 'error');
+      return;
+    }
 
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       addToast('La confirmación no coincide con la nueva contraseña', 'error');
@@ -209,45 +222,25 @@ function SettingsContent() {
     `${user?.name?.[0] || ''}${user?.lastname?.[0] || ''}`.toUpperCase() || 'U';
 
   return (
-    <>
-      {/* Encabezado */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-display font-bold text-ink mb-1">Ajustes</h1>
-          <p className="text-sm text-muted">
-            Configura tu cuenta y el funcionamiento del sistema
-          </p>
-        </div>
-      </div>
-
-      {/* Pestañas de navegación con diseño idéntico a Empleados */}
-      <div className="flex items-center gap-6 sm:gap-8 border-b border-line mb-8 text-xs sm:text-[13px] font-mono tracking-wider font-semibold overflow-x-auto">
-        {visibleTabs.map((tab) => {
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`pb-3 transition-colors cursor-pointer uppercase whitespace-nowrap ${
-                isActive
-                  ? 'text-ink border-b-2 border-ac -mb-[1px] font-bold'
-                  : 'text-muted hover:text-ink'
-              }`}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
-
+    <PageShell
+      activeMenu="settings"
+      title="Ajustes"
+      subtitle="Configura tu cuenta y el funcionamiento del sistema"
+      tabs={visibleTabs.map((tab) => ({
+        key: tab.id,
+        label: tab.label,
+        active: activeTab === tab.id,
+        onClick: () => setActiveTab(tab.id),
+      }))}
+      tabsLabel="Secciones de ajustes"
+    >
       {/* --- Pestaña: Perfil y cuenta --- */}
       {activeTab === 'profile' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
           {/* Tarjeta Mi perfil */}
           <div className="border border-line bg-surface p-6 sm:p-7 border-l-2 border-l-ac space-y-6">
             <div>
-              <p className="kick text-xs font-bold text-ac tracking-wider mb-1.5">
+              <p className="kick text-ac mb-1.5">
                 DATOS PERSONALES · SESIÓN ACTIVA
               </p>
               <h2 className="text-lg sm:text-xl font-bold text-ink">Mi perfil</h2>
@@ -385,12 +378,12 @@ function SettingsContent() {
           {/* Tarjeta Contraseña */}
           <div className="border border-line bg-surface p-6 sm:p-7 border-l-2 border-l-ac space-y-6">
             <div>
-              <p className="kick text-xs font-bold text-ac tracking-wider mb-1.5">
+              <p className="kick text-ac mb-1.5">
                 SEGURIDAD · CREDENCIALES
               </p>
               <h2 className="text-lg sm:text-xl font-bold text-ink">Contraseña</h2>
               <p className="text-sm text-muted mt-1 leading-relaxed">
-                Debe tener al menos 8 caracteres, mayúscula, minúscula, número y símbolo
+                Mientras escribes la nueva contraseña verás qué requisitos ya cumple y qué tan segura es.
               </p>
             </div>
 
@@ -399,9 +392,9 @@ function SettingsContent() {
                 <label className={labelClass} htmlFor="current-password">
                   Contraseña actual <span className="text-ac font-bold">*</span>
                 </label>
-                <input
+                <PasswordInput
                   id="current-password"
-                  type="password"
+                  autoComplete="current-password"
                   value={passwordForm.currentPassword}
                   onChange={(e) =>
                     setPasswordForm((p) => ({ ...p, currentPassword: e.target.value }))
@@ -415,9 +408,9 @@ function SettingsContent() {
                 <label className={labelClass} htmlFor="new-password">
                   Nueva contraseña <span className="text-ac font-bold">*</span>
                 </label>
-                <input
+                <PasswordInput
                   id="new-password"
-                  type="password"
+                  autoComplete="new-password"
                   value={passwordForm.newPassword}
                   onChange={(e) =>
                     setPasswordForm((p) => ({ ...p, newPassword: e.target.value }))
@@ -425,15 +418,18 @@ function SettingsContent() {
                   className={inputClass}
                   required
                 />
+                <div className="mt-3 p-3.5 bg-surfalt/40 border border-line">
+                  <PasswordChecklist password={passwordForm.newPassword} />
+                </div>
               </div>
 
               <div>
                 <label className={labelClass} htmlFor="confirm-password">
                   Confirmar nueva contraseña <span className="text-ac font-bold">*</span>
                 </label>
-                <input
+                <PasswordInput
                   id="confirm-password"
-                  type="password"
+                  autoComplete="new-password"
                   value={passwordForm.confirmPassword}
                   onChange={(e) =>
                     setPasswordForm((p) => ({ ...p, confirmPassword: e.target.value }))
@@ -441,10 +437,19 @@ function SettingsContent() {
                   className={inputClass}
                   required
                 />
+                <PasswordMatch
+                  password={passwordForm.newPassword}
+                  confirm={passwordForm.confirmPassword}
+                />
               </div>
 
               <div className="pt-2">
-                <button type="submit" disabled={savingPassword} className={buttonClass}>
+                <button
+                  type="submit"
+                  disabled={savingPassword || !canChangePassword}
+                  className={buttonClass}
+                  title={canChangePassword ? undefined : 'Completa los requisitos y confirma la nueva contraseña'}
+                >
                   <FAIcon icon="key" size="sm" />
                   <span>{savingPassword ? 'Actualizando...' : 'Cambiar contraseña'}</span>
                 </button>
@@ -458,7 +463,7 @@ function SettingsContent() {
       {activeTab === 'appearance' && (
         <div className="max-w-2xl border border-line bg-surface p-6 sm:p-7 border-l-2 border-l-ac space-y-6">
           <div>
-            <p className="kick text-xs font-bold text-ac tracking-wider mb-1.5">
+            <p className="kick text-ac mb-1.5">
               PREFERENCIAS VISUALES
             </p>
             <h2 className="text-lg sm:text-xl font-bold text-ink">Apariencia</h2>
@@ -483,7 +488,7 @@ function SettingsContent() {
                   <FAIcon icon="sun" className="text-warn text-lg" />
                 </div>
                 {theme === 'light' && (
-                  <span className="text-xs font-mono font-bold text-ac flex items-center gap-1.5">
+                  <span className="text-xs num font-bold text-ac flex items-center gap-1.5">
                     <FAIcon icon="circle-check" size="xs" /> ACTIVO
                   </span>
                 )}
@@ -508,7 +513,7 @@ function SettingsContent() {
                   <FAIcon icon="moon" className="text-[#e08472] text-lg" />
                 </div>
                 {theme === 'dark' && (
-                  <span className="text-xs font-mono font-bold text-ac flex items-center gap-1.5">
+                  <span className="text-xs num font-bold text-ac flex items-center gap-1.5">
                     <FAIcon icon="circle-check" size="xs" /> ACTIVO
                   </span>
                 )}
@@ -526,7 +531,7 @@ function SettingsContent() {
       {activeTab === 'operation' && canSeeSystemSettings && (
         <div className="max-w-2xl border border-line bg-surface p-6 sm:p-7 border-l-2 border-l-ac space-y-6">
           <div>
-            <p className="kick text-xs font-bold text-ac tracking-wider mb-1.5">
+            <p className="kick text-ac mb-1.5">
               GESTIÓN GLOBAL DEL SISTEMA
             </p>
             <h2 className="text-lg sm:text-xl font-bold text-ink">Operación e inventario</h2>
@@ -553,7 +558,7 @@ function SettingsContent() {
                 {LOW_STOCK_SECTIONS.map((section) => (
                   <div key={section.id}>
                     <label
-                      className="block text-xs font-mono font-medium text-inkalt mb-1.5"
+                      className="block text-xs num font-medium text-inkalt mb-1.5"
                       htmlFor={`low-stock-${section.id}`}
                     >
                       {section.label}
@@ -632,7 +637,7 @@ function SettingsContent() {
       {activeTab === 'notifications' && canSeeSystemSettings && (
         <div className="max-w-2xl border border-line bg-surface p-6 sm:p-7 border-l-2 border-l-ac space-y-6">
           <div>
-            <p className="kick text-xs font-bold text-ac tracking-wider mb-1.5">
+            <p className="kick text-ac mb-1.5">
               CANAL DE AVISOS
             </p>
             <h2 className="text-lg sm:text-xl font-bold text-ink">Preferencias de notificaciones</h2>
@@ -685,36 +690,14 @@ function SettingsContent() {
           setRawImageFile(null);
         }}
       />
-    </>
+    </PageShell>
   );
 }
 
 export default function Settings() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
   return (
     <ToastProvider>
-      <div className="flex flex-col h-screen overflow-hidden bg-surfalt">
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-        <Sidebar activeMenu="settings" isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
-        <div className="flex-1 flex flex-col min-w-0 min-h-0">
-          <TopBar onMenuClick={() => setSidebarOpen(true)} />
-
-          <main className="flex-1 overflow-y-auto min-h-0">
-            <div className="p-4 sm:p-6 lg:p-8">
-              <div className="bg-surface border border-line p-5 sm:p-7 lg:p-9">
-                <SettingsContent />
-              </div>
-            </div>
-          </main>
-        </div>
-      </div>
+      <SettingsContent />
     </ToastProvider>
   );
 }

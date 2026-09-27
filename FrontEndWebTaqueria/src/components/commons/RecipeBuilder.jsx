@@ -48,13 +48,13 @@ const RecipeBuilder = ({ rows, setRows, categories = [], showRemovable = false, 
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3 sm:mb-2">
         <div>
-          <p className="font-display font-semibold text-ink text-sm">{title}</p>
+          <p className="font-display font-medium text-ink text-sm">{title}</p>
           {helperText && <p className="text-xs text-muted mt-0.5 sm:mt-0 leading-relaxed">{helperText}</p>}
         </div>
         <button
           type="button"
           onClick={addRow}
-          className="shrink-0 self-start sm:self-auto text-xs font-display font-semibold text-ac hover:text-ac flex items-center gap-1.5 sm:gap-1 border border-acline sm:border-0 px-3 py-1.5 sm:p-0"
+          className="shrink-0 self-start sm:self-auto text-xs font-display font-medium text-ac hover:text-ac flex items-center gap-1.5 sm:gap-1 border border-acline sm:border-0 px-3 py-1.5 sm:p-0"
         >
           <FAIcon icon="plus" size="xs" /> Agregar ingrediente
         </button>
@@ -68,7 +68,7 @@ const RecipeBuilder = ({ rows, setRows, categories = [], showRemovable = false, 
             : [];
 
           return (
-            <div key={row.key} className="p-3.5 sm:p-3 bg-surface rounded-none border border-line space-y-3 sm:space-y-2">
+            <div key={row.key} className="p-3.5 sm:p-3 bg-surface rounded-lg border border-line space-y-3 sm:space-y-2">
               <div className="flex items-center gap-2">
                 <div className="flex-1 relative">
                   <input
@@ -82,7 +82,7 @@ const RecipeBuilder = ({ rows, setRows, categories = [], showRemovable = false, 
                     className={inputClasses}
                   />
                   {search && matches.length > 0 && (
-                    <div className="absolute z-10 mt-1 w-full bg-surface rounded-none border border-line max-h-32 overflow-y-auto">
+                    <div className="absolute z-10 mt-1 w-full bg-surface rounded-lg border border-line max-h-32 overflow-y-auto">
                       {matches.map((insumo) => (
                         <button
                           type="button"
@@ -108,7 +108,7 @@ const RecipeBuilder = ({ rows, setRows, categories = [], showRemovable = false, 
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="sm:hidden block text-[10px] font-display font-semibold text-muted uppercase tracking-wider mb-1">
+                  <label className="sm:hidden block text-[11px] font-semibold text-muted tracking-wide uppercase mb-1">
                     Cantidad
                   </label>
                   <input
@@ -122,7 +122,7 @@ const RecipeBuilder = ({ rows, setRows, categories = [], showRemovable = false, 
                   />
                 </div>
                 <div>
-                  <label className="sm:hidden block text-[10px] font-display font-semibold text-muted uppercase tracking-wider mb-1">
+                  <label className="sm:hidden block text-[11px] font-semibold text-muted tracking-wide uppercase mb-1">
                     Unidad
                   </label>
                   <Select

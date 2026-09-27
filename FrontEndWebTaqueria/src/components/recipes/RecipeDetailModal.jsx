@@ -1,6 +1,7 @@
 // src/components/recipes/RecipeDetailModal.jsx
 import { Link } from 'react-router-dom';
 import FAIcon from '../commons/FAIcon';
+import { ModalHeader, FormSection, ReadField, CountBadge, MODAL_BTN_SECONDARY, MODAL_BTN_PRIMARY } from '../commons/FormModal';
 import { UNIT_LABELS } from '../../constants/units';
 
 export default function RecipeDetailModal({
@@ -19,29 +20,15 @@ export default function RecipeDetailModal({
   const image = recipe.image;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-xs">
-      <div className="bg-surface border border-line w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden shadow-lg animate-[fadeIn_0.15s_ease-out]">
-        {/* Cabecera del modal */}
-        <div className="flex items-center justify-between gap-3 p-4 sm:p-5 border-b-2 border-ac bg-surface">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className="kick text-ac font-bold">Ficha Técnica</span>
-              <span className="text-muted text-xs">•</span>
-              <span className="kick text-muted">{bookLabel}</span>
-            </div>
-            <h2 className="text-lg sm:text-xl font-display font-bold text-ink truncate">
-              {name}
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center text-muted hover:text-ac border border-transparent hover:border-line hover:bg-surfalt transition-colors shrink-0 cursor-pointer"
-            aria-label="Cerrar"
-          >
-            <FAIcon icon="times" size="base" />
-          </button>
-        </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="bg-surface rounded-2xl border border-line w-full max-w-xl max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+        <ModalHeader
+          icon="book-open"
+          title={name}
+          badge="Ficha técnica"
+          subtitle={bookLabel}
+          onClose={onClose}
+        />
 
         {/* Imagen opcional */}
         {image && (
@@ -51,42 +38,35 @@ export default function RecipeDetailModal({
         )}
 
         {/* Contenido con scroll */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-5">
-          {/* Metadata chips */}
-          <div className="flex flex-wrap items-center gap-2 pb-3 border-b border-line">
-            <span className="kick text-xs px-2.5 py-1 bg-surfalt border border-line text-ink font-semibold">
-              Categoría: {category}
-            </span>
-            {price && (
-              <span className="num text-xs px-2.5 py-1 bg-surfalt border border-line text-ink font-semibold">
-                Precio venta: {price}
-              </span>
-            )}
-            <span className="kick text-xs px-2.5 py-1 bg-oksoft border border-ok/30 text-ok font-semibold">
-              {ingredients.filter((i) => i.tracked).length} de {ingredients.length} insumos controlados
-            </span>
-          </div>
+        <div className="p-4 sm:p-5 overflow-y-auto flex-1 min-h-0 space-y-4 bg-surfalt/30">
+          {/* Datos generales */}
+          <FormSection icon="circle-info" title="Datos generales">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3.5 gap-y-3">
+              <ReadField label="Categoría" value={category} />
+              {price && <ReadField label="Precio de venta" value={price} mono />}
+            </div>
+          </FormSection>
 
           {/* Tabla de ingredientes */}
-          <div>
-            <h3 className="font-display font-bold text-sm text-ink mb-3 flex items-center gap-2">
-              <FAIcon icon="list" size="sm" className="text-ac" />
-              Lista de Insumos y Dosificación
-            </h3>
+          <FormSection
+            icon="list"
+            title="Insumos y dosificación"
+            badge={<CountBadge>{ingredients.filter((i) => i.tracked).length} de {ingredients.length} controlados</CountBadge>}
+          >
 
             {ingredients.length === 0 ? (
-              <p className="text-sm text-muted italic py-4 text-center border border-dashed border-line">
+              <p className="text-sm text-muted italic py-4 text-center border border-dashed border-line rounded-lg">
                 No hay ingredientes asignados a esta receta.
               </p>
             ) : (
-              <div className="border border-line overflow-x-auto">
+              <div className="border border-line rounded-lg overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="bg-surfalt border-b border-line">
-                      <th className="kick text-muted py-2 px-3 font-bold">Insumo</th>
-                      <th className="kick text-muted py-2 px-3 font-bold text-right">Cantidad</th>
-                      <th className="kick text-muted py-2 px-3 font-bold text-center">Inventario</th>
-                      <th className="kick text-muted py-2 px-3 font-bold text-center">Quitable</th>
+                      <th className="kick text-muted py-2 px-3">Insumo</th>
+                      <th className="kick text-muted py-2 px-3 text-right">Cantidad</th>
+                      <th className="kick text-muted py-2 px-3 text-center">Inventario</th>
+                      <th className="kick text-muted py-2 px-3 text-center">Quitable</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line">
@@ -128,15 +108,15 @@ export default function RecipeDetailModal({
                 </table>
               </div>
             )}
-          </div>
+          </FormSection>
         </div>
 
         {/* Pie del modal con acciones */}
-        <div className="p-4 sm:p-5 border-t border-line bg-surfalt/30 flex items-center justify-between gap-3 shrink-0">
+        <div className="px-5 py-3.5 border-t border-line bg-surface flex items-center justify-between gap-3 shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 border border-line bg-surface text-xs font-display font-semibold text-inkalt hover:bg-surfalt transition-colors cursor-pointer"
+            className={MODAL_BTN_SECONDARY}
           >
             Cerrar ficha
           </button>
@@ -144,7 +124,7 @@ export default function RecipeDetailModal({
           {editRoute && (
             <Link
               to={editRoute.path}
-              className="inline-flex items-center gap-2 px-4 py-2 border border-ac bg-ac text-white text-xs font-display font-semibold hover:bg-ac/90 transition-colors"
+              className={MODAL_BTN_PRIMARY}
             >
               <FAIcon icon="pen" size="xs" />
               Editar receta

@@ -1,8 +1,8 @@
 // src/pages/InviteStaff.jsx
-import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
-import Sidebar from '../components/dashboard/Sidebar'
-import TopBar from '../components/dashboard/TopBar'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import PageShell from '../components/commons/PageShell'
+import { useAdminTabs } from '../hooks/useSectionTabs'
 import FAIcon from '../components/commons/FAIcon'
 import Select from '../components/commons/Select'
 import LoadingSpinner from '../components/commons/LoadingSpinner'
@@ -14,7 +14,15 @@ import { calculatePayrollDeductions } from '../utils/payroll'
 import { EMPLOYEE_TYPE_OPTIONS } from '../constants/employeeTypes'
 import useDuiScan from '../hooks/useDuiScan'
 import DuiScanStep from '../components/employee/DuiScanStep'
-import AdminTabs from '../components/commons/AdminTabs'
+import { ModalShell, ModalHeader, ModalBody, ModalFooter, MODAL_BTN_SECONDARY, MODAL_BTN_PRIMARY } from '../components/commons/FormModal'
+import { loadInviteDraft, saveInviteDraft, clearInviteDraft, draftSavedTime } from '../hooks/useInviteDraft'
+import useLeaveGuard from '../hooks/useLeaveGuard'
+import useEmailAvailability from '../hooks/useEmailAvailability'
+import {
+  sanitizeName, validateName, formatDui, validateDui, PHONE_PREFIX, formatPhone, validatePhone,
+  formatIsss, validateIsss, AFP_INSTITUTIONS, BANKS, formatBankAccount, bankAccountHint,
+  validateBankAccount, checkLegalSchedule,
+} from '../utils/employeeFields'
 
 const API_URL = import.meta.env.VITE_API_URL || '/api'
 
@@ -78,7 +86,7 @@ const ROLE_CONFIG = {
       {
         title: 'Identificadores y banco',
         subtitle: 'Afiliaciones de seguridad social y cuenta de planilla (opcional)',
-        fields: ['isssNumber', 'afpInstitution', 'afpNumber', 'bankName', 'bankAccount'],
+        fields: ['isssNumber', 'afpInstitution', 'bankName', 'bankAccount'],
       },
       {
         title: 'Horario de trabajo',
@@ -115,7 +123,6 @@ const INITIAL_FORM_DATA = {
   maritalStatus: '',
   isssNumber: '',
   afpInstitution: '',
-  afpNumber: '',
   bankName: '',
   bankAccount: '',
 }
@@ -127,12 +134,7 @@ const ADDITIONAL_PAY_DURATIONS = [
   { value: '3m', label: '3 meses' },
 ]
 
-const AFP_INSTITUTIONS = [
-  { value: 'confia', label: 'AFP Confía' },
-  { value: 'crecer', label: 'AFP Crecer' },
-  { value: 'ipsfa', label: 'IPSFA' },
-  { value: 'inpep', label: 'INPEP' },
-]
+// Las instituciones de AFP y los bancos están en utils/employeeFields.js
 
 const GENDER_OPTIONS = [
   { value: 'masculino', label: 'Masculino' },
@@ -151,11 +153,62 @@ const inputClasses =
   'w-full px-3 py-1.5 bg-surfalt/40 border border-line rounded-none focus:outline-none focus:border-ac transition-colors text-ink placeholder:text-muted text-xs'
 
 
+// Etiquetas para los avisos del correo (el rol viene en inglés).
+const ACCOUNT_ROLE_LABELS = { admin: 'administrador', employee: 'empleado' }
+
+// Estado de la búsqueda del correo, debajo del campo.
+function EmailStatus({ check, role }) {
+  if (check.status === 'idle') return null
+
+  if (check.status === 'checking') {
+    return (
+      <p className="text-xs text-muted mt-1 flex items-center gap-1.5">
+        <FAIcon icon="spinner" size="xs" className="animate-spin" />
+        Buscando si el correo ya está registrado…
+      </p>
+    )
+  }
+
+  if (check.status === 'error') {
+    return (
+      <p className="text-xs text-muted mt-1">
+        No se pudo comprobar el correo ahora; se verificará al enviar la invitación.
+      </p>
+    )
+  }
+
+  if (check.exists) {
+    return (
+      <p className="text-xs text-ac mt-1 flex items-start gap-1.5">
+        <FAIcon icon="times-circle" size="xs" className="mt-0.5 shrink-0" />
+        <span>
+          Ya existe un {ACCOUNT_ROLE_LABELS[role]} con este correo
+          {check.name ? ` (${check.name})` : ''}. No se puede invitar de nuevo.
+        </span>
+      </p>
+    )
+  }
+
+  return (
+    <p className="text-xs text-ok mt-1 flex items-center gap-1.5">
+      <FAIcon icon="circle-check" size="xs" />
+      Correo disponible: no hay ningún {ACCOUNT_ROLE_LABELS[role]} registrado con él.
+    </p>
+  )
+}
+
 function InviteStaffContent() {
-  const [step, setStep] = useState(1) // 1: elegir rol, 2: formulario, 3: éxito
-  const [subStep, setSubStep] = useState(0)
-  const [role, setRole] = useState(null)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const navigate = useNavigate()
+  // Si quedó una invitación a medias hace menos de 30 minutos, se retoma
+  // donde se dejó (ver hooks/useInviteDraft.js). Se lee una sola vez.
+  const [restoredDraft] = useState(() => loadInviteDraft())
+  // Se oculta el aviso de "invitación retomada" si se descarta o se envía.
+  const [showDraftNotice, setShowDraftNotice] = useState(!!restoredDraft)
+
+  const [step, setStep] = useState(restoredDraft ? 2 : 1) // 1: elegir rol, 2: formulario, 3: éxito
+  const [subStep, setSubStep] = useState(restoredDraft?.subStep ?? 0)
+  const [role, setRole] = useState(restoredDraft?.role ?? null)
+  const adminTabs = useAdminTabs('invitations')
 
   const { loading, error, sendInvitation, reset } = useInvitation()
   const { addToast } = useToast()
@@ -164,9 +217,9 @@ function InviteStaffContent() {
     onExtracted: (d) => {
       setFormData((prev) => ({
         ...prev,
-        ...(d.duiNumber ? { duiNit: d.duiNumber } : {}),
-        ...(d.names ? { name: d.names } : {}),
-        ...(d.lastNames ? { lastname: d.lastNames } : {}),
+        ...(d.duiNumber ? { duiNit: formatDui(d.duiNumber) } : {}),
+        ...(d.names ? { name: sanitizeName(d.names) } : {}),
+        ...(d.lastNames ? { lastname: sanitizeName(d.lastNames) } : {}),
         ...(d.birthDate ? { birthDate: d.birthDate } : {}),
         ...(d.gender ? { gender: d.gender } : {}),
         ...(d.maritalStatus ? { maritalStatus: d.maritalStatus } : {}),
@@ -178,13 +231,77 @@ function InviteStaffContent() {
   })
 
 
-  const [formData, setFormData] = useState(INITIAL_FORM_DATA)
+  const [formData, setFormData] = useState(
+    restoredDraft ? { ...INITIAL_FORM_DATA, ...restoredDraft.formData } : INITIAL_FORM_DATA
+  )
   const [validationErrors, setValidationErrors] = useState({})
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false)
+  // Destino al que se intentó ir a mitad del alta (abre el aviso de salida)
+  const [leaveTarget, setLeaveTarget] = useState(null)
+
+  // Las fotos del DUI del borrador ya están subidas: solo se reponen.
+  useEffect(() => {
+    if (restoredDraft?.dui) duiScan.restore(restoredDraft.dui)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Hay trabajo a medias en cuanto se eligió rol y se escribió algo.
+  const hasProgress = step === 2 && !!role && (!!formData.email.trim() || subStep > 0)
+
+  // Cada cambio renueva el borrador: los 30 minutos corren desde lo último
+  // que se tocó.
+  useEffect(() => {
+    if (!hasProgress) return
+    saveInviteDraft({
+      role,
+      subStep,
+      formData,
+      dui: { documents: duiScan.documents, extracted: duiScan.extracted },
+    })
+  }, [hasProgress, role, subStep, formData, duiScan.documents, duiScan.extracted])
+
+  useLeaveGuard(hasProgress, setLeaveTarget)
+
+  // Correo: se busca si ya existe una cuenta mientras se escribe.
+  // Solo se busca entre las cuentas del tipo que se invita (empleados o
+  // administradores), igual que la validación del envío en el backend.
+  const emailCheck = useEmailAvailability(step === 2 ? formData.email : '', role)
+  const emailTakenForRole = emailCheck.status === 'done' && emailCheck.exists
+
+  const leaveKeepingDraft = () => {
+    const target = leaveTarget
+    setLeaveTarget(null)
+    navigate(target)
+  }
+
+  const leaveCancellingInvite = () => {
+    const target = leaveTarget
+    clearInviteDraft()
+    setLeaveTarget(null)
+    navigate(target)
+  }
+
+  // Cada campo se limpia mientras se escribe: el nombre no admite números,
+  // el DUI y el teléfono solo dígitos (el guion lo pone el sistema), el ISSS
+  // hasta 9 dígitos y la cuenta solo dígitos hasta el largo de su banco.
+  const FORMATTERS = {
+    name: sanitizeName,
+    lastname: sanitizeName,
+    duiNit: formatDui,
+    phone: formatPhone,
+    isssNumber: formatIsss,
+  }
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
-    setFormData((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }))
+    setFormData((prev) => {
+      if (type === 'checkbox') return { ...prev, [name]: checked }
+      if (name === 'bankAccount') return { ...prev, bankAccount: formatBankAccount(value, prev.bankName) }
+      // Al cambiar de banco, la cuenta se recorta al largo que admite el nuevo.
+      if (name === 'bankName') return { ...prev, bankName: value, bankAccount: formatBankAccount(prev.bankAccount, value) }
+      const format = FORMATTERS[name]
+      return { ...prev, [name]: format ? format(value) : value }
+    })
     if (validationErrors[name]) setValidationErrors((prev) => ({ ...prev, [name]: null }))
   }
 
@@ -208,10 +325,17 @@ function InviteStaffContent() {
       if (!formData.email.trim()) errors.email = 'El correo electrónico es requerido'
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errors.email = 'Correo electrónico inválido'
     }
-    if (fields.includes('name') && !formData.name.trim()) errors.name = 'El nombre es requerido'
-    if (fields.includes('lastname') && !formData.lastname.trim()) errors.lastname = 'El apellido es requerido'
-    if (fields.includes('phone') && !formData.phone.trim()) errors.phone = 'El teléfono es requerido'
-    if (fields.includes('duiNit') && !formData.duiNit.trim()) errors.duiNit = 'El DUI/NIT es requerido'
+    const check = (field, message) => { if (fields.includes(field) && message) errors[field] = message }
+    check('name', validateName(formData.name, 'El nombre'))
+    check('lastname', validateName(formData.lastname, 'El apellido'))
+    check('phone', validatePhone(formData.phone))
+    check('duiNit', validateDui(formData.duiNit))
+    check('isssNumber', validateIsss(formData.isssNumber))
+    check('bankAccount', validateBankAccount(formData.bankName, formData.bankAccount))
+    if (fields.includes('scheduleEnd')) {
+      const { error: scheduleError } = checkLegalSchedule(formData)
+      if (scheduleError) errors.scheduleEnd = scheduleError
+    }
     if (fields.includes('address') && !formData.address.trim()) errors.address = 'La dirección es requerida'
     if (fields.includes('type') && !formData.type) errors.type = 'El puesto es requerido'
     if (fields.includes('salary')) {
@@ -235,6 +359,14 @@ function InviteStaffContent() {
   const handleNext = async () => {
     const currentFields = currentStepsConfig[subStep].fields
     if (!validateFields(currentFields)) return
+
+    if (currentFields.includes('email') && emailTakenForRole) {
+      setValidationErrors((prev) => ({
+        ...prev,
+        email: `Ya existe un ${ACCOUNT_ROLE_LABELS[role]} con este correo. No se puede invitar de nuevo.`,
+      }))
+      return
+    }
 
     if (!isLastSubStep) {
       setSubStep((prev) => prev + 1)
@@ -266,7 +398,6 @@ function InviteStaffContent() {
         maritalStatus: formData.maritalStatus || null,
         isssNumber: formData.isssNumber.trim() || null,
         afpInstitution: formData.afpInstitution || null,
-        afpNumber: formData.afpNumber.trim() || null,
         bankName: formData.bankName.trim() || null,
         bankAccount: formData.bankAccount.trim() || null,
         documents: { ...(duiScan.documents || {}) },
@@ -275,6 +406,8 @@ function InviteStaffContent() {
 
     const result = await sendInvitation(role, data)
     if (result.success) {
+      clearInviteDraft()
+      setShowDraftNotice(false)
       setStep(3)
       addToast('Invitación enviada correctamente', 'success')
     } else {
@@ -291,6 +424,8 @@ function InviteStaffContent() {
     setStep(1)
     reset()
     duiScan.reset()
+    clearInviteDraft()
+    setShowDraftNotice(false)
   }
 
   const handleSelectRole = (selectedRole) => {
@@ -302,6 +437,8 @@ function InviteStaffContent() {
   }
 
   const handleInviteAnother = () => {
+    clearInviteDraft()
+    setShowDraftNotice(false)
     setFormData(INITIAL_FORM_DATA)
     setValidationErrors({})
     setRole(null)
@@ -320,7 +457,7 @@ function InviteStaffContent() {
   const renderRoleSelection = () => (
     <div>
       <div className="mb-8">
-        <p className="kick text-[10.5px] font-bold text-ac tracking-wider mb-2">
+        <p className="kick text-ac mb-2">
           NUEVA INCORPORACIÓN · INVITAR AL SISTEMA
         </p>
         <h2 className="text-xl sm:text-2xl font-light text-ink tracking-tight mb-2">
@@ -344,7 +481,7 @@ function InviteStaffContent() {
                 <div className="w-10 h-10 bg-surfalt border border-line flex items-center justify-center text-ink group-hover:border-ac group-hover:bg-acsoft group-hover:text-ac transition-colors">
                   <FAIcon icon={config.icon} className="text-lg" />
                 </div>
-                <span className="text-[10px] font-mono tracking-wider font-semibold uppercase px-2 py-0.5 border border-line text-muted">
+                <span className="kick px-2 py-0.5 border border-line text-muted">
                   {key === 'admin' ? 'Acceso Total' : 'Operativo'}
                 </span>
               </div>
@@ -382,7 +519,7 @@ function InviteStaffContent() {
       {/* Tarjetas informativas de buenas prácticas */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-6 border-t border-line">
         <div className="border-t border-line pt-2.5">
-          <p className="kick text-[10px] font-bold text-muted tracking-wider mb-1.5">
+          <p className="kick text-muted mb-1.5">
             ESCANEO INTELIGENTE
           </p>
           <p className="text-xs text-ink font-bold">Validación de DUI OCR</p>
@@ -392,7 +529,7 @@ function InviteStaffContent() {
         </div>
 
         <div className="border-t border-line pt-2.5">
-          <p className="kick text-[10px] font-bold text-muted tracking-wider mb-1.5">
+          <p className="kick text-muted mb-1.5">
             EXPEDIENTE LABORAL
           </p>
           <p className="text-xs text-ink font-bold">Cálculos automáticos de ley</p>
@@ -402,7 +539,7 @@ function InviteStaffContent() {
         </div>
 
         <div className="border-t border-line pt-2.5">
-          <p className="kick text-[10px] font-bold text-muted tracking-wider mb-1.5">
+          <p className="kick text-muted mb-1.5">
             ACCESO SEGURO
           </p>
           <p className="text-xs text-ink font-bold">Credenciales por correo</p>
@@ -419,10 +556,10 @@ function InviteStaffContent() {
     return (
       <div className="mb-6 pb-4 border-b border-line">
         <div className="flex items-center justify-between text-[11px] mb-2">
-          <span className="font-mono tracking-wider font-semibold text-ac uppercase">
+          <span className="kick text-ac">
             Paso {subStep + 1} de {currentStepsConfig.length} · {currentStepsConfig[subStep]?.title}
           </span>
-          <span className="text-muted font-mono font-medium">
+          <span className="text-muted num font-medium">
             {Math.round(((subStep + 1) / currentStepsConfig.length) * 100)}%
           </span>
         </div>
@@ -445,7 +582,7 @@ function InviteStaffContent() {
       case 'email':
         return (
           <div key={fieldName} className="mb-4">
-            <label className="block text-[10.5px] kick font-bold text-muted tracking-wider uppercase mb-1.5">
+            <label className="block kick text-muted mb-1.5">
               Correo electrónico <span className="text-ac">*</span>
             </label>
             <input
@@ -456,13 +593,17 @@ function InviteStaffContent() {
               onChange={handleChange}
               className={inputClasses}
             />
-            {validationErrors.email && <p className="text-ac text-xs mt-1 font-medium">{validationErrors.email}</p>}
+            {validationErrors.email ? (
+              <p className="text-ac text-xs mt-1 font-medium">{validationErrors.email}</p>
+            ) : (
+              <EmailStatus check={emailCheck} role={role} />
+            )}
           </div>
         )
       case 'name':
         return (
           <div key={fieldName} className="mb-4">
-            <label className="block text-[10.5px] kick font-bold text-muted tracking-wider uppercase mb-1.5">
+            <label className="block kick text-muted mb-1.5">
               Nombres <span className="text-ac">*</span>
             </label>
             <input
@@ -479,7 +620,7 @@ function InviteStaffContent() {
       case 'lastname':
         return (
           <div key={fieldName} className="mb-4">
-            <label className="block text-[10.5px] kick font-bold text-muted tracking-wider uppercase mb-1.5">
+            <label className="block kick text-muted mb-1.5">
               Apellidos <span className="text-ac">*</span>
             </label>
             <input
@@ -496,41 +637,54 @@ function InviteStaffContent() {
       case 'phone':
         return (
           <div key={fieldName} className="mb-4">
-            <label className="block text-[10.5px] kick font-bold text-muted tracking-wider uppercase mb-1.5">
+            <label className="block kick text-muted mb-1.5">
               Teléfono <span className="text-ac">*</span>
             </label>
-            <input
-              type="tel"
-              name="phone"
-              placeholder="Ej. 7123-4567"
-              value={formData.phone}
-              onChange={handleChange}
-              className={inputClasses}
-            />
+            {/* El código de país va fijo: solo se escriben los 8 dígitos y
+                el guion lo pone el sistema. */}
+            <div className="flex">
+              <span className="num px-3 py-1.5 text-xs text-muted bg-surfalt border border-r-0 border-line flex items-center">
+                {PHONE_PREFIX}
+              </span>
+              <input
+                type="tel"
+                inputMode="numeric"
+                name="phone"
+                placeholder="7123-4567"
+                value={formData.phone}
+                onChange={handleChange}
+                maxLength={9}
+                className={`${inputClasses} num`}
+              />
+            </div>
             {validationErrors.phone && <p className="text-ac text-xs mt-1 font-medium">{validationErrors.phone}</p>}
           </div>
         )
       case 'duiNit':
         return (
           <div key={fieldName} className="mb-4">
-            <label className="block text-[10.5px] kick font-bold text-muted tracking-wider uppercase mb-1.5">
-              DUI / NIT <span className="text-ac">*</span>
+            <label className="block kick text-muted mb-1.5">
+              DUI <span className="text-ac">*</span>
             </label>
             <input
               type="text"
+              inputMode="numeric"
               name="duiNit"
-              placeholder="Ej. 01234567-8"
+              placeholder="01234567-8"
               value={formData.duiNit}
               onChange={handleChange}
-              className={inputClasses}
+              maxLength={10}
+              className={`${inputClasses} num`}
             />
-            {validationErrors.duiNit && <p className="text-ac text-xs mt-1 font-medium">{validationErrors.duiNit}</p>}
+            {validationErrors.duiNit
+              ? <p className="text-ac text-xs mt-1 font-medium">{validationErrors.duiNit}</p>
+              : <p className="text-[11px] text-muted mt-1">9 dígitos; el guion se agrega solo.</p>}
           </div>
         )
       case 'address':
         return (
           <div key={fieldName} className="mb-4">
-            <label className="block text-[10.5px] kick font-bold text-muted tracking-wider uppercase mb-1.5">
+            <label className="block kick text-muted mb-1.5">
               Dirección de residencia <span className="text-ac">*</span>
             </label>
             <input
@@ -547,7 +701,7 @@ function InviteStaffContent() {
       case 'type':
         return (
           <div key={fieldName} className="mb-4">
-            <label className="block text-[10.5px] kick font-bold text-muted tracking-wider uppercase mb-1.5">
+            <label className="block kick text-muted mb-1.5">
               Puesto en el restaurante <span className="text-ac">*</span>
             </label>
             <Select
@@ -567,7 +721,7 @@ function InviteStaffContent() {
         const breakdown = calculatePayrollDeductions(formData.salary)
         return (
           <div key={fieldName} className="mb-4 sm:col-span-2">
-            <label className="block text-[10.5px] kick font-bold text-muted tracking-wider uppercase mb-1.5">
+            <label className="block kick text-muted mb-1.5">
               Salario Base Mensual <span className="text-ac">*</span>
             </label>
             <input
@@ -582,7 +736,7 @@ function InviteStaffContent() {
 
             {breakdown.grossSalary > 0 && (
               <div className="mt-3 bg-surfalt/40 border border-line p-4 sm:max-w-md">
-                <p className="text-[10px] kick font-bold text-muted tracking-wider uppercase mb-2">
+                <p className="kick text-muted mb-2">
                   Retenciones de ley calculadas automáticamente
                 </p>
                 <div className="space-y-1.5 text-xs text-inkalt">
@@ -615,7 +769,7 @@ function InviteStaffContent() {
       case 'additionalPay':
         return (
           <div key={fieldName} className="mb-4">
-            <label className="block text-[10.5px] kick font-bold text-muted tracking-wider uppercase mb-1.5">
+            <label className="block kick text-muted mb-1.5">
               Bono o pago adicional <span className="text-muted normal-case font-normal">(opcional)</span>
             </label>
             <input
@@ -633,7 +787,7 @@ function InviteStaffContent() {
 
             {formData.additionalPay && Number(formData.additionalPay) > 0 && (
               <div className="mt-3">
-                <label className="block text-[10.5px] kick font-bold text-muted tracking-wider uppercase mb-1.5">
+                <label className="block kick text-muted mb-1.5">
                   Vigencia del bono <span className="text-ac">*</span>
                 </label>
                 <Select
@@ -672,7 +826,7 @@ function InviteStaffContent() {
       case 'workDays':
         return (
           <div key={fieldName} className="mb-4 sm:col-span-2">
-            <label className="block text-[10.5px] kick font-bold text-muted tracking-wider uppercase mb-1.5">
+            <label className="block kick text-muted mb-1.5">
               Días de trabajo semanales
             </label>
             <div className="flex flex-wrap gap-2">
@@ -696,21 +850,29 @@ function InviteStaffContent() {
       case 'scheduleStart':
         return (
           <div key={fieldName} className="mb-4">
-            <label className="block text-[10.5px] kick font-bold text-muted tracking-wider uppercase mb-1.5">
+            <label className="block kick text-muted mb-1.5">
               Hora de entrada
             </label>
             <input type="time" name="scheduleStart" value={formData.scheduleStart} onChange={handleChange} className={inputClasses} />
           </div>
         )
-      case 'scheduleEnd':
+      case 'scheduleEnd': {
+        const schedule = checkLegalSchedule(formData)
+        const scheduleError = validationErrors.scheduleEnd || schedule.error
         return (
           <div key={fieldName} className="mb-4">
-            <label className="block text-[10.5px] kick font-bold text-muted tracking-wider uppercase mb-1.5">
+            <label className="block kick text-muted mb-1.5">
               Hora de salida
             </label>
             <input type="time" name="scheduleEnd" value={formData.scheduleEnd} onChange={handleChange} className={inputClasses} />
+            {scheduleError ? (
+              <p className="text-ac text-xs mt-1 font-medium">{scheduleError}</p>
+            ) : schedule.summary ? (
+              <p className="text-ok text-xs mt-1">{schedule.summary}</p>
+            ) : null}
           </div>
         )
+      }
       case 'duiScan':
         return (
           <div key={fieldName} className="mb-4 sm:col-span-2">
@@ -723,7 +885,7 @@ function InviteStaffContent() {
       case 'birthDate':
         return (
           <div key={fieldName} className="mb-4">
-            <label className="block text-[10.5px] kick font-bold text-muted tracking-wider uppercase mb-1.5">
+            <label className="block kick text-muted mb-1.5">
               Fecha de nacimiento
             </label>
             <input
@@ -738,7 +900,7 @@ function InviteStaffContent() {
       case 'gender':
         return (
           <div key={fieldName} className="mb-4">
-            <label className="block text-[10.5px] kick font-bold text-muted tracking-wider uppercase mb-1.5">
+            <label className="block kick text-muted mb-1.5">
               Sexo
             </label>
             <Select name="gender" value={formData.gender} onChange={handleChange}>
@@ -752,7 +914,7 @@ function InviteStaffContent() {
       case 'maritalStatus':
         return (
           <div key={fieldName} className="mb-4">
-            <label className="block text-[10.5px] kick font-bold text-muted tracking-wider uppercase mb-1.5">
+            <label className="block kick text-muted mb-1.5">
               Estado familiar
             </label>
             <Select name="maritalStatus" value={formData.maritalStatus} onChange={handleChange}>
@@ -766,23 +928,28 @@ function InviteStaffContent() {
       case 'isssNumber':
         return (
           <div key={fieldName} className="mb-4">
-            <label className="block text-[10.5px] kick font-bold text-muted tracking-wider uppercase mb-1.5">
+            <label className="block kick text-muted mb-1.5">
               Número de afiliación ISSS
             </label>
             <input
               type="text"
+              inputMode="numeric"
               name="isssNumber"
-              placeholder="Ej. 123456789"
+              placeholder="123456789"
               value={formData.isssNumber}
               onChange={handleChange}
-              className={inputClasses}
+              maxLength={9}
+              className={`${inputClasses} num`}
             />
+            {validationErrors.isssNumber
+              ? <p className="text-ac text-xs mt-1 font-medium">{validationErrors.isssNumber}</p>
+              : <p className="text-[11px] text-muted mt-1">Exactamente 9 dígitos.</p>}
           </div>
         )
       case 'afpInstitution':
         return (
           <div key={fieldName} className="mb-4">
-            <label className="block text-[10.5px] kick font-bold text-muted tracking-wider uppercase mb-1.5">
+            <label className="block kick text-muted mb-1.5">
               Institución administradora de pensión (AFP)
             </label>
             <Select name="afpInstitution" value={formData.afpInstitution} onChange={handleChange}>
@@ -791,66 +958,50 @@ function InviteStaffContent() {
                 <option key={a.value} value={a.value}>{a.label}</option>
               ))}
             </Select>
-          </div>
-        )
-      case 'afpNumber':
-        return (
-          <div key={fieldName} className="mb-4">
-            <label className="block text-[10.5px] kick font-bold text-muted tracking-wider uppercase mb-1.5">
-              Número Único Previsional (NUP / AFP)
-            </label>
-            <input
-              type="text"
-              name="afpNumber"
-              placeholder="Ej. 000123456789"
-              value={formData.afpNumber}
-              onChange={handleChange}
-              className={inputClasses}
-            />
+            <p className="text-[11px] text-muted mt-1">El número de afiliación va vinculado al DUI.</p>
           </div>
         )
       case 'bankName':
         return (
           <div key={fieldName} className="mb-4">
-            <label className="block text-[10.5px] kick font-bold text-muted tracking-wider uppercase mb-1.5">
+            <label className="block kick text-muted mb-1.5">
               Banco para pago de planilla
             </label>
-            <input
-              type="text"
-              name="bankName"
-              placeholder="Ej. Banco Agrícola"
-              value={formData.bankName}
-              onChange={handleChange}
-              className={inputClasses}
-            />
+            <Select name="bankName" value={formData.bankName} onChange={handleChange}>
+              <option value="">Sin especificar</option>
+              {BANKS.map((b) => (
+                <option key={b.value} value={b.value}>{b.value}</option>
+              ))}
+            </Select>
           </div>
         )
       case 'bankAccount':
         return (
           <div key={fieldName} className="mb-4">
-            <label className="block text-[10.5px] kick font-bold text-muted tracking-wider uppercase mb-1.5">
+            <label className="block kick text-muted mb-1.5">
               Número de cuenta bancaria
             </label>
             <input
               type="text"
+              inputMode="numeric"
               name="bankAccount"
-              placeholder="Ej. 1234567890"
+              placeholder={formData.bankName ? 'Solo dígitos' : 'Elige primero el banco'}
               value={formData.bankAccount}
               onChange={handleChange}
-              className={inputClasses}
+              disabled={!formData.bankName}
+              className={`${inputClasses} num disabled:opacity-60`}
             />
-            <p className="text-[11px] text-muted mt-1">
-              Cuenta a donde se transferirán los desembolsos de nómina.
-            </p>
+            {validationErrors.bankAccount
+              ? <p className="text-ac text-xs mt-1 font-medium">{validationErrors.bankAccount}</p>
+              : <p className="text-[11px] text-muted mt-1">{bankAccountHint(formData.bankName)}</p>}
           </div>
         )
-
       case 'permissions':
         return (
           <div key={fieldName} className="sm:col-span-2 space-y-4">
             {Object.entries(PERMISSION_GROUPS).map(([groupName, perms]) => (
               <div key={groupName}>
-                <h4 className="text-[10px] kick font-bold text-muted tracking-wider uppercase mb-2">{groupName}</h4>
+                <h4 className="kick text-muted mb-2">{groupName}</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {perms.map((p) => {
                     const checked = formData.permissions.includes(p.id)
@@ -988,43 +1139,76 @@ function InviteStaffContent() {
   )
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-surfalt">
-      {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
-      )}
-      <Sidebar activeMenu="invite-staff" isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+    <>
+      <PageShell
+        activeMenu="invite-staff"
+        title="Administración"
+        subtitle={
+          <>
+            {step === 1 && 'Envío de invitaciones y alta guiada de colaboradores y administradores.'}
+            {step === 2 && `Alta de nuevo ${ROLE_CONFIG[role]?.label.toLowerCase() || 'usuario'} · Paso ${subStep + 1} de ${currentStepsConfig.length}`}
+            {step === 3 && 'Invitación enviada exitosamente.'}
+          </>
+        }
+        tabs={adminTabs}
+        tabsLabel="Secciones de administración"
+      >
 
-      <div className="flex-1 flex flex-col min-w-0 min-h-0">
-        <TopBar onMenuClick={() => setSidebarOpen(true)} />
-
-        <main className="flex-1 overflow-y-auto min-h-0">
-          <div className="p-4 sm:p-6 lg:p-8">
-            <div className="bg-surface border border-line p-5 sm:p-7 lg:p-8">
-              {/* Encabezado */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5">
-                <div>
-                  <h1 className="text-2xl sm:text-3xl font-display font-bold text-ink mb-1">
-                    Personal
-                  </h1>
-                  <p className="text-sm text-muted">
-                    {step === 1 && 'Envío de invitaciones y alta guiada de colaboradores y administradores.'}
-                    {step === 2 && `Alta de nuevo ${ROLE_CONFIG[role]?.label.toLowerCase() || 'usuario'} · Paso ${subStep + 1} de ${currentStepsConfig.length}`}
-                    {step === 3 && 'Invitación enviada exitosamente.'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Pestañas de navegación de Administración */}
-              <AdminTabs activeTab="invitations" />
-
-              {/* Contenido principal según el paso */}
-              {step === 1 && renderRoleSelection()}
-              {step === 2 && renderForm()}
-              {step === 3 && renderSuccess()}
-            </div>
+        {/* Invitación retomada desde el borrador */}
+        {step === 2 && showDraftNotice && restoredDraft && (
+          <div className="mb-5 flex flex-wrap items-center gap-3 px-4 py-3 rounded-xl border border-amber-300 dark:border-amber-500/40 bg-white dark:bg-surface shadow-2xs">
+            <span className="w-7 h-7 rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 flex items-center justify-center shrink-0">
+              <FAIcon icon="clock" size="xs" />
+            </span>
+            <p className="text-[13px] text-inkalt flex-1 min-w-[200px]">
+              Retomaste la invitación que dejaste pendiente a las{' '}
+              <span className="num text-ink">{draftSavedTime(restoredDraft.savedAt)}</span>.
+              Si vuelves a salir sin terminarla, se conserva 30 minutos desde tu último cambio.
+            </p>
+            <button type="button" onClick={() => setConfirmCancelOpen(true)} className={MODAL_BTN_SECONDARY}>
+              Descartar
+            </button>
           </div>
-        </main>
-      </div>
+        )}
+
+        {/* Contenido principal según el paso */}
+        {step === 1 && renderRoleSelection()}
+        {step === 2 && renderForm()}
+        {step === 3 && renderSuccess()}
+      </PageShell>
+
+      {/* Aviso al intentar salir a mitad del alta */}
+      {leaveTarget && (
+        <ModalShell maxWidth="max-w-md">
+          <ModalHeader
+            icon="clock"
+            tone="warn"
+            title="Invitación sin terminar"
+            subtitle={`Alta de ${ROLE_CONFIG[role]?.label.toLowerCase() || 'usuario'} en curso`}
+            onClose={() => setLeaveTarget(null)}
+          />
+          <ModalBody>
+            <div className="bg-white dark:bg-surface rounded-xl border border-line p-4 shadow-2xs space-y-2">
+              <p className="text-[13px] text-inkalt leading-relaxed">
+                Si sales ahora, la invitación quedará <span className="text-ink font-medium">pendiente durante 30 minutos</span>.
+                Si vuelves a Invitaciones antes de eso, seguirás donde la dejaste; después se borrará.
+              </p>
+              <p className="text-xs text-muted">También puedes cancelarla y descartar lo que llevas.</p>
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <button type="button" onClick={() => setLeaveTarget(null)} className={MODAL_BTN_SECONDARY}>
+              Seguir aquí
+            </button>
+            <button type="button" onClick={leaveCancellingInvite} className={MODAL_BTN_SECONDARY}>
+              Cancelar invitación
+            </button>
+            <button type="button" onClick={leaveKeepingDraft} className={MODAL_BTN_PRIMARY}>
+              Dejar pendiente
+            </button>
+          </ModalFooter>
+        </ModalShell>
+      )}
 
       <ConfirmModal
         isOpen={confirmCancelOpen}
@@ -1037,7 +1221,7 @@ function InviteStaffContent() {
         icon="triangle-exclamation"
         variant="danger"
       />
-    </div>
+    </>
   )
 }
 

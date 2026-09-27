@@ -184,17 +184,19 @@ function PromotionsContent() {
       }
       modals={
         <>
-          <AddPromotionModal
-            isOpen={isModalOpen}
-            onClose={() => {
-              setIsModalOpen(false);
-              setEditingPromotion(null);
-            }}
-            onSave={handleSave}
-            editingPromotion={editingPromotion}
-            previewPricing={previewPricing}
-            suggestPromotions={suggestPromotions}
-          />
+          {isModalOpen && (
+            <AddPromotionModal
+              isOpen={isModalOpen}
+              onClose={() => {
+                setIsModalOpen(false);
+                setEditingPromotion(null);
+              }}
+              onSave={handleSave}
+              editingPromotion={editingPromotion}
+              previewPricing={previewPricing}
+              suggestPromotions={suggestPromotions}
+            />
+          )}
 
           <ConfirmModal
             isOpen={confirmDelete.isOpen}

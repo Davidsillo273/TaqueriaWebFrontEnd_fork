@@ -187,6 +187,13 @@ export default function useDuiScan({ onExtracted } = {}) {
     cancelPhoneCapture();
   }, [cancelPhoneCapture]);
 
+  // Retoma un escaneo ya hecho (ej. desde el borrador de una invitación que
+  // quedó pendiente): las fotos ya están en Cloudinary, no hay que subirlas.
+  const restore = useCallback(({ documents: docs = null, extracted: data = null } = {}) => {
+    setDocuments(docs);
+    setExtracted(data);
+  }, []);
+
   return {
     scanning,
     error,
@@ -201,5 +208,6 @@ export default function useDuiScan({ onExtracted } = {}) {
     captureSession,
     waitingForPhone,
     reset,
+    restore,
   };
 }

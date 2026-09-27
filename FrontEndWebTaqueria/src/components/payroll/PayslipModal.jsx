@@ -26,7 +26,7 @@ const Line = ({ label, value, negative = false, bold = false, hint }) => (
       <p className={`text-sm ${bold ? 'font-display font-bold text-ink' : 'text-inkalt'}`}>{label}</p>
       {hint && <p className="text-[11px] text-muted">{hint}</p>}
     </div>
-    <p className={`shrink-0 text-sm tabular-nums ${bold ? 'font-display font-bold' : ''} ${negative ? 'text-ac' : 'text-ink'}`}>
+    <p className={`num shrink-0 text-sm ${bold ? 'font-display font-medium' : ''} ${negative ? 'text-ac' : 'text-ink'}`}>
       {negative ? `- ${money(value)}` : money(value)}
     </p>
   </div>
@@ -124,7 +124,7 @@ const PayslipModal = ({ isOpen, onClose, employeeId, employeeName, period, fetch
           <button
             type="button"
             onClick={handleExportPdf}
-            className="px-4 py-2 text-xs sm:text-sm font-display font-semibold text-white bg-ac hover:bg-ac/90 rounded-lg transition-all inline-flex items-center gap-2 cursor-pointer shadow-xs active:scale-95"
+            className="px-4 py-2 text-xs sm:text-sm font-display font-medium text-white bg-ac hover:bg-ac/90 rounded-lg transition-all inline-flex items-center gap-2 cursor-pointer shadow-xs active:scale-95"
           >
             <FAIcon icon="file-pdf" size="xs" />
             <span>Descargar boleta</span>
@@ -190,10 +190,10 @@ const PayslipModal = ({ isOpen, onClose, employeeId, employeeName, period, fetch
           {/* Neto a pagar */}
           <div className="rounded-xl bg-ac text-white px-5 py-4 flex items-center justify-between shadow-xs">
             <div>
-              <p className="text-[11px] font-semibold tracking-wide uppercase text-white/80">Neto a pagar</p>
+              <p className="kick text-white/80">Neto a pagar</p>
               <p className="text-xs text-white/70 mt-0.5">Salario base menos deducciones de ley</p>
             </div>
-            <span className="text-2xl font-display font-bold tabular-nums">{money(payslip.netSalary)}</span>
+            <span className="num text-2xl font-light">{money(payslip.netSalary)}</span>
           </div>
 
           {/* Si no se le retuvo renta, conviene explicar por qué: es la

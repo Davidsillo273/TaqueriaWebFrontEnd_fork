@@ -284,7 +284,7 @@ const AddPromotionModal = ({
             type="button"
             onClick={handleSuggest}
             disabled={suggesting}
-            className="shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-ink text-white text-xs font-display font-semibold whitespace-nowrap disabled:opacity-60 hover:bg-ink/90 transition-colors cursor-pointer"
+            className="shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-ink text-white text-xs font-display font-medium whitespace-nowrap disabled:opacity-60 hover:bg-ink/90 transition-colors cursor-pointer"
           >
             <FAIcon icon={suggesting ? 'spinner' : 'wand-magic-sparkles'} size="xs" className={suggesting ? 'animate-spin' : ''} />
             {suggesting ? 'Pensando...' : 'Sugerir'}
@@ -301,7 +301,7 @@ const AddPromotionModal = ({
                 className="group/sug w-full text-left rounded-lg p-3 border border-line bg-white dark:bg-surface hover:border-ac hover:bg-ac/5 transition-colors cursor-pointer"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-display font-semibold text-sm text-ink group-hover/sug:text-ac transition-colors">{suggestion.name}</span>
+                  <span className="font-display font-medium text-sm text-ink group-hover/sug:text-ac transition-colors">{suggestion.name}</span>
                   <span className="text-sm font-bold text-ac shrink-0">${Number(suggestion.price).toFixed(2)}</span>
                 </div>
                 <p className="text-xs text-muted mt-1">{suggestion.description}</p>
@@ -394,7 +394,7 @@ const AddPromotionModal = ({
           <button
             type="button"
             onClick={handleAddItem}
-            className="shrink-0 inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-ac text-white text-xs font-display font-semibold whitespace-nowrap hover:bg-ac/90 transition-colors cursor-pointer shadow-2xs"
+            className="shrink-0 inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-ac text-white text-xs font-display font-medium whitespace-nowrap hover:bg-ac/90 transition-colors cursor-pointer shadow-2xs"
           >
             <FAIcon icon="plus" size="xs" />
             Agregar
@@ -424,7 +424,7 @@ const AddPromotionModal = ({
                       className="w-14 px-2 py-1.5 rounded-lg bg-white dark:bg-surface border border-line focus:border-ac focus:outline-none text-sm text-center text-ink"
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-display font-semibold text-ink truncate">{item.name}</p>
+                      <p className="text-sm font-display font-medium text-ink truncate">{item.name}</p>
                       <p className="text-[11px] text-muted">
                         <span className="text-ac font-semibold">{TYPE_LABELS[item.itemType]}</span> · ${Number(product?.price || 0).toFixed(2)} c/u
                       </p>
@@ -474,13 +474,13 @@ const AddPromotionModal = ({
           <div className="mt-3 rounded-lg border border-line bg-white dark:bg-surface p-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
             <div>
               <p className={FORM_LABEL}>Por separado</p>
-              <p className="font-display font-semibold text-inkalt">${pricing.originalPrice.toFixed(2)}</p>
+              <p className="font-display font-medium text-inkalt">${pricing.originalPrice.toFixed(2)}</p>
             </div>
             {pricing.price !== null && (
               <>
                 <div>
                   <p className={FORM_LABEL}>En promoción</p>
-                  <p className="font-display font-bold text-ac">${pricing.price.toFixed(2)}</p>
+                  <p className="font-display font-medium text-ac">${pricing.price.toFixed(2)}</p>
                 </div>
                 <div className="self-center">
                   {pricing.savings > 0 ? (

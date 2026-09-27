@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import FAIcon from '../commons/FAIcon';
+import { ModalHeader, ModalBody, ModalFooter, MODAL_BTN_SECONDARY, MODAL_BTN_PRIMARY, FormSection, ImagePickerField, OptionalBadge, FORM_INPUT, FORM_LABEL } from '../commons/FormModal';
 import Select from '../commons/Select';
 import ImageCropModal from '../commons/ImageCropModal';
 import RecipeBuilder from '../commons/RecipeBuilder';
@@ -258,36 +259,31 @@ const AddExtraModal = ({ isOpen, onClose, onAdd, onEditExisting, editingExtra = 
   if (!isOpen) return null;
 
   // Estilos clay para inputs
-  const inputClasses =
-    'w-full px-4 py-2.5 bg-surfalt border border-line rounded-none focus:outline-none focus:ring-2 focus:ring-acline focus:border-acline transition-all text-inkalt placeholder:text-muted text-sm';
+  // Mismos campos que la ficha del empleado (ver FormModal).
+  const inputClasses = FORM_INPUT;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-surfalt rounded-none w-full max-w-md max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-line">
-        {/* Cabecera roja con relieve */}
-        <div className="flex items-center justify-between p-4 sm:p-5 bg-ac text-white">
-          <h2 className="text-base sm:text-lg font-display font-bold">
-            {editingExtra ? 'Editar extra' : 'Nuevo extra'}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-white/80 hover:text-white p-1.5 rounded-none hover:bg-surface/10 transition-all"
-          >
-            <FAIcon icon="times" size="lg" />
-          </button>
-        </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="bg-surface rounded-2xl border border-line w-full max-w-md max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+        <ModalHeader
+          icon="star"
+          title={editingExtra ? 'Editar extra' : 'Nuevo extra'}
+          badge={editingExtra ? 'Edición' : undefined}
+          subtitle={editingExtra?.name || 'Complemento que se suma a un pedido'}
+          onClose={onClose}
+        />
 
         {missingIngredients.length > 0 ? (
-          <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4">
-            <div className="bg-warnsoft/80 border border-warn text-warn px-4 py-3 rounded-none text-sm flex items-start gap-2">
+          <>
+          <ModalBody>
+            <div className="bg-warnsoft/80 border border-warn text-warn px-4 py-3 rounded-xl text-sm flex items-start gap-2">
               <FAIcon icon="triangle-exclamation" size="sm" className="mt-0.5" />
               <span>El stock actual no alcanza para estos ingredientes. Puedes reabastecer aquí mismo o confirmar de todas formas.</span>
             </div>
 
             <div className="space-y-3">
               {missingIngredients.map((item) => (
-                <div key={item.ingredientId} className="bg-surface rounded-none p-3 border border-line">
-                  <p className="font-display font-semibold text-ink text-sm">{item.name}</p>
+                <div key={item.ingredientId} className="bg-surface rounded-xl p-3 border border-line">
+                  <p className="font-display font-medium text-ink text-sm">{item.name}</p>
                   <p className="text-xs text-muted mb-2">
                     {item.reason || `Disponible: ${item.available ?? 0} ${item.unit || ''} · Necesario: ${item.needed ?? 0} ${item.unit || ''}`}
                   </p>
@@ -303,7 +299,7 @@ const AddExtraModal = ({ isOpen, onClose, onAdd, onEditExisting, editingExtra = 
                     <button
                       type="button"
                       onClick={() => handleAddStock(item.ingredientId)}
-                      className="px-4 py-2.5 bg-ac text-white rounded-none text-xs font-display font-semibold hover:bg-ac transition-all shrink-0"
+                      className={`${MODAL_BTN_PRIMARY} shrink-0`}
                     >
                       Agregar
                     </button>
@@ -312,219 +308,196 @@ const AddExtraModal = ({ isOpen, onClose, onAdd, onEditExisting, editingExtra = 
               ))}
             </div>
 
-            <div className="flex gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => { setMissingIngredients([]); setPendingFormData(null); }}
-                className="flex-1 px-4 py-3 bg-line text-inkalt rounded-none hover:bg-linealt font-display font-semibold text-sm transition-all"
-              >
-                Volver
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmAnyway}
-                className="flex-1 px-4 py-3 bg-ac text-white rounded-none hover:bg-ac font-display font-semibold text-sm transition-all"
-              >
-                Confirmar de todas formas
-              </button>
-            </div>
-          </div>
-        ) : (
-        <form onSubmit={handleSubmit(onSubmit)} className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
-          {/* Nombre */}
-          <div>
-            <label className="block text-xs font-display font-semibold text-muted uppercase tracking-wider mb-1.5">
-              Nombre del extra
-            </label>
-            <input
-              type="text"
-              {...register('name', {
-                required: 'El nombre es obligatorio',
-                minLength: { value: 2, message: 'Mínimo 2 caracteres' },
-              })}
-              placeholder="Ej: Queso Cheddar"
-              className={inputClasses}
-            />
-            {errors.name && <span className="text-ac text-xs mt-1 block font-medium">{errors.name.message}</span>}
-          </div>
-
-          {/* Precio */}
-          <div>
-            <label className="block text-xs font-display font-semibold text-muted uppercase tracking-wider mb-1.5">
-              Precio ($)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              {...register('price', {
-                required: 'El precio es obligatorio',
-                min: { value: 0.01, message: 'Debe ser mayor a 0' },
-                valueAsNumber: true,
-              })}
-              placeholder="Ej: 1.50"
-              className={inputClasses}
-            />
-            {errors.price && <span className="text-ac text-xs mt-1 block font-medium">{errors.price.message}</span>}
-          </div>
-
-          {/* Categoría */}
-          <div>
-            <label className="block text-xs font-display font-semibold text-muted uppercase tracking-wider mb-1.5">
-              Categoría
-            </label>
-            <input
-              type="text"
-              list="extra-category-suggestions"
-              {...register('category')}
-              placeholder="Ej: Verduras, Lácteos, Salsas, Especial..."
-              className={inputClasses}
-            />
-            <datalist id="extra-category-suggestions">
-              <option value="Verduras" />
-              <option value="Lácteos" />
-              <option value="Salsas" />
-              <option value="Especial" />
-              <option value="Otros" />
-            </datalist>
-          </div>
-
-          {/* A qué se le puede agregar */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-display font-semibold text-muted uppercase tracking-wider">
-                Se puede agregar a
-              </label>
-              <div className="flex gap-3 text-xs font-display font-semibold">
-                <button type="button" onClick={() => setAppliesTo(EXTRA_TARGETS)} className="text-ac hover:underline">
-                  Todos
-                </button>
-                <button type="button" onClick={() => setAppliesTo([])} className="text-muted hover:underline">
-                  Ninguno
-                </button>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {EXTRA_TARGETS.map((target) => {
-                const selected = appliesTo.includes(target);
-                return (
-                  <button
-                    key={target}
-                    type="button"
-                    aria-pressed={selected}
-                    onClick={() =>
-                      setAppliesTo((list) => (selected ? list.filter((t) => t !== target) : [...list, target]))
-                    }
-                    className={`px-3 py-1.5 text-xs font-medium border transition-colors ${
-                      selected ? 'bg-ac text-white border-ac' : 'bg-surface text-inkalt border-line hover:border-ac'
-                    }`}
-                  >
-                    {target}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-xs text-muted mt-1.5">
-              {appliesTo.length === 0
-                ? 'Sin tipos marcados, este extra no se ofrece en la app de clientes.'
-                : 'En la app solo se ofrece en los platillos (o combos con platillos) de estos tipos.'}
-            </p>
-          </div>
-
-          {/* Estado */}
-          <div>
-            <label className="block text-xs font-display font-semibold text-muted uppercase tracking-wider mb-1.5">
-              Estado
-            </label>
-            <Select {...register('status')}>
-              <option value="DISPONIBLE">Disponible</option>
-              <option value="AGOTADO">Agotado</option>
-            </Select>
-          </div>
-
-          {/* ¿Depende de insumos de inventario? */}
-          <div className="border-t border-line pt-4">
-            <label className="flex items-center gap-2 text-sm text-inkalt font-medium">
-              <input type="checkbox" {...register('isCompound')} className="accent-red-500" />
-              ¿Este extra depende de insumos de inventario? (se produce a partir de otros insumos)
-            </label>
-
-            {isCompound && (
-              <div className="mt-3 space-y-3">
-                <button
-                  type="button"
-                  onClick={handleSuggestRecipe}
-                  disabled={suggestingRecipe}
-                  className="text-xs font-display font-semibold text-ac hover:text-ac flex items-center gap-1.5 disabled:opacity-50"
-                >
-                  <FAIcon icon="wand-magic-sparkles" size="xs" />
-                  {suggestingRecipe ? 'Consultando IA...' : 'Sugerir receta con IA'}
-                </button>
-
-                <RecipeBuilder
-                  rows={ingredientRows}
-                  setRows={setIngredientRows}
-                  categories={INGREDIENT_CATEGORIES_DISHES}
-                  paginate
-                  title="Ingredientes"
-                  helperText="Se descuentan del stock de cada ingrediente al confirmarse un pedido que incluya este extra."
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Imagen */}
-          <div>
-            <label className="block text-xs font-display font-semibold text-muted uppercase tracking-wider mb-1.5">
-              Imagen (opcional)
-            </label>
-            {editingExtra?.image && !imageFile && (
-              <div className="mb-3 flex items-center gap-2 bg-surface p-2 rounded-none border border-line">
-                <img src={editingExtra.image} alt="Actual" className="w-10 h-10 object-cover rounded-none shadow-inner" />
-                <span className="text-xs text-muted truncate">Conservar imagen actual</span>
-              </div>
-            )}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                const selected = e.target.files?.[0] || null;
-                if (selected) setRawImageFile(selected);
-                e.target.value = '';
-              }}
-              className="w-full text-sm text-muted file:mr-4 file:py-2 file:px-4 file:rounded-none file:border-0 file:text-xs file:font-semibold file:bg-ac file:text-white hover:file:bg-ac file:transition-colors file: cursor-pointer"
-            />
-            {imageFile && (
-              <div className="flex items-center gap-3 mt-2">
-                <img src={URL.createObjectURL(imageFile)} alt="Vista previa" className="w-12 h-12 rounded-none object-cover ring-2 ring-red-400" />
-                <button type="button" onClick={() => setRawImageFile(imageFile)} className="text-xs text-muted hover:text-ac">Ajustar</button>
-                <button type="button" onClick={() => setImageFile(null)} className="text-xs text-muted hover:text-ac">Quitar</button>
-              </div>
-            )}
-            {!editingExtra?.image && !imageFile && (
-              <p className="text-[11px] text-muted mt-1">Si no seleccionas una imagen se usará un diseño por defecto</p>
-            )}
-          </div>
-
-          {/* Botones */}
-          <div className="flex gap-3 pt-4 border-t border-line">
+          </ModalBody>
+          <ModalFooter>
             <button
               type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-3 bg-line text-inkalt rounded-none hover:bg-linealt font-display font-semibold text-sm transition-all
-              "
+              onClick={() => { setMissingIngredients([]); setPendingFormData(null); }}
+              className={MODAL_BTN_SECONDARY}
             >
+              Volver
+            </button>
+            <button type="button" onClick={handleConfirmAnyway} className={MODAL_BTN_PRIMARY}>
+              Confirmar de todas formas
+            </button>
+          </ModalFooter>
+          </>
+        ) : (
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
+          <ModalBody>
+          <FormSection icon="list" title='Información general'>
+            <div className="space-y-3.5">
+              {/* Nombre */}
+              <div>
+                <label className={`block ${FORM_LABEL}`}>
+                  Nombre del extra
+                </label>
+                <input
+                  type="text"
+                  {...register('name', {
+                    required: 'El nombre es obligatorio',
+                    minLength: { value: 2, message: 'Mínimo 2 caracteres' },
+                  })}
+                  placeholder="Ej: Queso Cheddar"
+                  className={inputClasses}
+                />
+                {errors.name && <span className="text-ac text-xs mt-1 block font-medium">{errors.name.message}</span>}
+              </div>
+
+              {/* Precio */}
+              <div>
+                <label className={`block ${FORM_LABEL}`}>
+                  Precio ($)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  {...register('price', {
+                    required: 'El precio es obligatorio',
+                    min: { value: 0.01, message: 'Debe ser mayor a 0' },
+                    valueAsNumber: true,
+                  })}
+                  placeholder="Ej: 1.50"
+                  className={inputClasses}
+                />
+                {errors.price && <span className="text-ac text-xs mt-1 block font-medium">{errors.price.message}</span>}
+              </div>
+
+              {/* Categoría */}
+              <div>
+                <label className={`block ${FORM_LABEL}`}>
+                  Categoría
+                </label>
+                <input
+                  type="text"
+                  list="extra-category-suggestions"
+                  {...register('category')}
+                  placeholder="Ej: Verduras, Lácteos, Salsas, Especial..."
+                  className={inputClasses}
+                />
+                <datalist id="extra-category-suggestions">
+                  <option value="Verduras" />
+                  <option value="Lácteos" />
+                  <option value="Salsas" />
+                  <option value="Especial" />
+                  <option value="Otros" />
+                </datalist>
+              </div>
+
+              {/* A qué se le puede agregar */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className={`block ${FORM_LABEL}`}>
+                    Se puede agregar a
+                  </label>
+                  <div className="flex gap-3 text-xs font-display font-medium">
+                    <button type="button" onClick={() => setAppliesTo(EXTRA_TARGETS)} className="text-ac hover:underline">
+                      Todos
+                    </button>
+                    <button type="button" onClick={() => setAppliesTo([])} className="text-muted hover:underline">
+                      Ninguno
+                    </button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {EXTRA_TARGETS.map((target) => {
+                    const selected = appliesTo.includes(target);
+                    return (
+                      <button
+                        key={target}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() =>
+                          setAppliesTo((list) => (selected ? list.filter((t) => t !== target) : [...list, target]))
+                        }
+                        className={`px-3 py-1.5 text-xs font-medium border transition-colors ${
+                          selected ? 'bg-ac text-white border-ac' : 'bg-surface text-inkalt border-line hover:border-ac'
+                        }`}
+                      >
+                        {target}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted mt-1.5">
+                  {appliesTo.length === 0
+                    ? 'Sin tipos marcados, este extra no se ofrece en la app de clientes.'
+                    : 'En la app solo se ofrece en los platillos (o combos con platillos) de estos tipos.'}
+                </p>
+              </div>
+
+              {/* Estado */}
+              <div>
+                <label className={`block ${FORM_LABEL}`}>
+                  Estado
+                </label>
+                <Select {...register('status')}>
+                  <option value="DISPONIBLE">Disponible</option>
+                  <option value="AGOTADO">Agotado</option>
+                </Select>
+              </div>
+
+            </div>
+          </FormSection>
+
+          <FormSection icon="list-check" title='Receta'>
+            <div className="space-y-3.5">
+              {/* ¿Depende de insumos de inventario? */}
+              <div>
+                <label className="flex items-center gap-2 text-sm text-inkalt font-medium">
+                  <input type="checkbox" {...register('isCompound')} className="accent-red-500" />
+                  ¿Este extra depende de insumos de inventario? (se produce a partir de otros insumos)
+                </label>
+
+                {isCompound && (
+                  <div className="mt-3 space-y-3">
+                    <button
+                      type="button"
+                      onClick={handleSuggestRecipe}
+                      disabled={suggestingRecipe}
+                      className="text-xs font-display font-medium text-ac hover:text-ac flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      <FAIcon icon="wand-magic-sparkles" size="xs" />
+                      {suggestingRecipe ? 'Consultando IA...' : 'Sugerir receta con IA'}
+                    </button>
+
+                    <RecipeBuilder
+                      rows={ingredientRows}
+                      setRows={setIngredientRows}
+                      categories={INGREDIENT_CATEGORIES_DISHES}
+                      paginate
+                      title="Ingredientes"
+                      helperText="Se descuentan del stock de cada ingrediente al confirmarse un pedido que incluya este extra."
+                    />
+                  </div>
+                )}
+              </div>
+
+            </div>
+          </FormSection>
+
+          <FormSection icon="camera" title="Imagen" badge={<OptionalBadge />}>
+            <ImagePickerField
+              imageFile={imageFile}
+              currentImage={editingExtra?.image}
+              onPick={(file) => setRawImageFile(file)}
+              onAdjust={() => setRawImageFile(imageFile)}
+              onRemove={() => setImageFile(null)}
+            />
+          </FormSection>
+
+          </ModalBody>
+
+          <ModalFooter>
+            <button type="button" onClick={onClose} className={MODAL_BTN_SECONDARY}>
               Cancelar
             </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-3 bg-ac text-white rounded-none hover:bg-ac font-display font-semibold text-sm transition-all
-                active:
-              "
-            >
+            <button type="submit" className={MODAL_BTN_PRIMARY}>
+              <FAIcon icon="check" size="xs" />
               {editingExtra ? 'Actualizar extra' : 'Agregar extra'}
             </button>
-          </div>
+          </ModalFooter>
         </form>
         )}
       </div>

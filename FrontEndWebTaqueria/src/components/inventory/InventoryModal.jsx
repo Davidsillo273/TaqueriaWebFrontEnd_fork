@@ -5,6 +5,7 @@
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import FAIcon from '../commons/FAIcon';
+import { ModalHeader, ModalBody, ModalFooter, MODAL_BTN_SECONDARY, MODAL_BTN_PRIMARY, FormSection, ImagePickerField, OptionalBadge, FORM_INPUT, FORM_LABEL } from '../commons/FormModal';
 import Select from '../commons/Select';
 import ImageCropModal from '../commons/ImageCropModal';
 import DuplicateNameDialog from '../commons/DuplicateNameDialog';
@@ -14,7 +15,7 @@ import { UNITS_BY_GROUP, GROUP_LABELS, INVENTORY_CATEGORIES, ASSET_CATEGORIES, A
 
 const InventoryModal = ({ isOpen, onClose, insumoData, itemType = 'producto', onSave, onEditExisting }) => {
   const { addToast } = useToast();
-  const { checkName } = useInventory();
+  const { checkName } = useInventory(false); // solo mutaciones: la lista no hace falta aquí
   const isAsset = (insumoData?.itemType || itemType) === 'activo_fijo';
 
   const {
@@ -161,219 +162,195 @@ const InventoryModal = ({ isOpen, onClose, insumoData, itemType = 'producto', on
     await submitForm(data);
   };
 
-  const inputClasses =
-    'w-full px-4 py-2.5 bg-surfalt border border-line rounded-none focus:outline-none focus:ring-2 focus:ring-acline focus:border-acline transition-all text-inkalt placeholder:text-muted text-sm';
-  const labelClasses = 'block text-xs font-display font-semibold text-muted uppercase tracking-wider mb-1.5';
+  // Mismos campos que la ficha del empleado (ver FormModal).
+  const inputClasses = FORM_INPUT;
+  const labelClasses = `block ${FORM_LABEL}`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-surfalt rounded-none w-full max-w-lg max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-line">
-        {/* Cabecera roja con relieve */}
-        <div className="flex items-center justify-between p-4 sm:p-5 bg-ac text-white">
-          <h3 className="text-base sm:text-lg font-display font-bold">
-            {insumoData ? 'Editar' : 'Nuevo'} {isAsset ? 'Activo fijo' : 'Insumo'}
-          </h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-white/80 hover:text-white p-1.5 rounded-none hover:bg-surface/10 transition-all"
-          >
-            <FAIcon icon="times" size="lg" />
-          </button>
-        </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="bg-surface rounded-2xl border border-line w-full max-w-lg max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+        <ModalHeader
+          icon="box"
+          title={`${insumoData ? 'Editar' : 'Nuevo'} ${isAsset ? 'activo fijo' : 'insumo'}`}
+          badge={insumoData ? 'Edición' : undefined}
+          subtitle={isAsset ? 'Equipo y mobiliario del local' : 'Producto que se descuenta al vender'}
+          onClose={onClose}
+        />
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
-          {/* Nombre */}
-          <div>
-            <label className={labelClasses}>Nombre</label>
-            <input
-              type="text"
-              {...register('name', {
-                required: 'El nombre es obligatorio',
-                minLength: { value: 3, message: 'Mínimo 3 caracteres' },
-              })}
-              placeholder={isAsset ? 'Mesa de madera 4 personas' : 'Carne para Hamburguesa'}
-              className={inputClasses}
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
+          <ModalBody>
+          <FormSection icon="list" title={isAsset ? 'Datos del activo' : 'Información general'}>
+            <div className="space-y-3.5">
+              {/* Nombre */}
+              <div>
+                <label className={labelClasses}>Nombre</label>
+                <input
+                  type="text"
+                  {...register('name', {
+                    required: 'El nombre es obligatorio',
+                    minLength: { value: 3, message: 'Mínimo 3 caracteres' },
+                  })}
+                  placeholder={isAsset ? 'Mesa de madera 4 personas' : 'Carne para Hamburguesa'}
+                  className={inputClasses}
+                />
+                {errors.name && <span className="text-ac text-xs mt-1 block font-medium">{errors.name.message}</span>}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <div>
+                  <label className={labelClasses}>{isAsset ? 'Valor de adquisición ($)' : 'Precio ($)'}</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    {...register('price', {
+                      required: 'Este campo es obligatorio',
+                      min: { value: 0.01, message: 'Debe ser mayor a 0' },
+                      valueAsNumber: true,
+                    })}
+                    placeholder="0.00"
+                    className={inputClasses}
+                  />
+                  {errors.price && <span className="text-ac text-xs mt-1 block font-medium">{errors.price.message}</span>}
+                </div>
+
+                <div>
+                  <label className={labelClasses}>Cantidad</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    {...register('quantity', {
+                      required: 'La cantidad es obligatoria',
+                      min: { value: 0, message: 'No puede ser negativa' },
+                      valueAsNumber: true,
+                    })}
+                    placeholder="0"
+                    className={inputClasses}
+                  />
+                  {errors.quantity && <span className="text-ac text-xs mt-1 block font-medium">{errors.quantity.message}</span>}
+                </div>
+              </div>
+
+              {!isAsset && (
+                <div>
+                  <label className={labelClasses}>Unidad</label>
+                  <Select {...register('unit', { required: true })}>
+                    {Object.entries(UNITS_BY_GROUP).map(([group, units]) => (
+                      <optgroup key={group} label={GROUP_LABELS[group]}>
+                        {units.map((u) => <option key={u} value={u}>{u}</option>)}
+                      </optgroup>
+                    ))}
+                  </Select>
+                </div>
+              )}
+
+            </div>
+          </FormSection>
+
+          <FormSection icon="location-dot" title={isAsset ? 'Ubicación y estado' : 'Ubicación y control de stock'}>
+            <div className="space-y-3.5">
+              {/* Ubicación */}
+              <div>
+                <label className={labelClasses}>Ubicación</label>
+                <input
+                  type="text"
+                  {...register('ubication', {
+                    required: 'La ubicación es obligatoria',
+                    minLength: { value: 2, message: 'Mínimo 2 caracteres' },
+                  })}
+                  placeholder={isAsset ? 'Salón principal' : 'Estante A - Nevera 2'}
+                  className={inputClasses}
+                />
+                {errors.ubication && <span className="text-ac text-xs mt-1 block font-medium">{errors.ubication.message}</span>}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <div>
+                  <label className={labelClasses}>Categoría</label>
+                  <Select {...register('type')}>
+                    {(isAsset ? ASSET_CATEGORIES : INVENTORY_CATEGORIES).map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </Select>
+                </div>
+
+                {isAsset ? (
+                  <div>
+                    <label className={labelClasses}>Condición</label>
+                    <Select {...register('condition')}>
+                      {ASSET_CONDITIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </Select>
+                  </div>
+                ) : (
+                  <div>
+                    <label className={labelClasses}>Estado</label>
+                    <Select {...register('status')}>
+                      <option value="Disponible">Disponible</option>
+                      <option value="Agotado">Agotado</option>
+                      <option value="En Pedido">En Pedido</option>
+                    </Select>
+                  </div>
+                )}
+              </div>
+
+              {isAsset ? (
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                  <div>
+                    <label className={labelClasses}>Estado de uso</label>
+                    <Select {...register('status')}>
+                      <option value="Disponible">En uso</option>
+                      <option value="Agotado">Fuera de servicio</option>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className={labelClasses}>Fecha de adquisición (opcional)</label>
+                    <input type="date" {...register('acquisitionDate')} className={inputClasses} />
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className={labelClasses}>Alerta de stock</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    {...register('lowStockAlert', {
+                      required: 'El umbral de alerta de stock es obligatorio',
+                      min: { value: 0, message: 'No puede ser negativo' },
+                    })}
+                    placeholder="Ej. 5 (en la unidad de este insumo)"
+                    className={inputClasses}
+                  />
+                  {errors.lowStockAlert && <span className="text-ac text-xs mt-1 block font-medium">{errors.lowStockAlert.message}</span>}
+                  <p className="text-[11px] text-muted mt-1">Se avisa cuando la cantidad disponible caiga a este nivel o menos.</p>
+                </div>
+              )}
+
+            </div>
+          </FormSection>
+
+          <FormSection icon="camera" title="Imagen" badge={<OptionalBadge />}>
+            <ImagePickerField
+              imageFile={imageFile}
+              currentImage={insumoData?.image}
+              onPick={(file) => setRawImageFile(file)}
+              onAdjust={() => setRawImageFile(imageFile)}
+              onRemove={() => setImageFile(null)}
             />
-            {errors.name && <span className="text-ac text-xs mt-1 block font-medium">{errors.name.message}</span>}
-          </div>
+          </FormSection>
 
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
-            <div>
-              <label className={labelClasses}>{isAsset ? 'Valor de adquisición ($)' : 'Precio ($)'}</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                {...register('price', {
-                  required: 'Este campo es obligatorio',
-                  min: { value: 0.01, message: 'Debe ser mayor a 0' },
-                  valueAsNumber: true,
-                })}
-                placeholder="0.00"
-                className={inputClasses}
-              />
-              {errors.price && <span className="text-ac text-xs mt-1 block font-medium">{errors.price.message}</span>}
-            </div>
+          </ModalBody>
 
-            <div>
-              <label className={labelClasses}>Cantidad</label>
-              <input
-                type="number"
-                min="0"
-                step="any"
-                {...register('quantity', {
-                  required: 'La cantidad es obligatoria',
-                  min: { value: 0, message: 'No puede ser negativa' },
-                  valueAsNumber: true,
-                })}
-                placeholder="0"
-                className={inputClasses}
-              />
-              {errors.quantity && <span className="text-ac text-xs mt-1 block font-medium">{errors.quantity.message}</span>}
-            </div>
-          </div>
-
-          {!isAsset && (
-            <div>
-              <label className={labelClasses}>Unidad</label>
-              <Select {...register('unit', { required: true })}>
-                {Object.entries(UNITS_BY_GROUP).map(([group, units]) => (
-                  <optgroup key={group} label={GROUP_LABELS[group]}>
-                    {units.map((u) => <option key={u} value={u}>{u}</option>)}
-                  </optgroup>
-                ))}
-              </Select>
-            </div>
-          )}
-
-          {/* Ubicación */}
-          <div>
-            <label className={labelClasses}>Ubicación</label>
-            <input
-              type="text"
-              {...register('ubication', {
-                required: 'La ubicación es obligatoria',
-                minLength: { value: 2, message: 'Mínimo 2 caracteres' },
-              })}
-              placeholder={isAsset ? 'Salón principal' : 'Estante A - Nevera 2'}
-              className={inputClasses}
-            />
-            {errors.ubication && <span className="text-ac text-xs mt-1 block font-medium">{errors.ubication.message}</span>}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
-            <div>
-              <label className={labelClasses}>Categoría</label>
-              <Select {...register('type')}>
-                {(isAsset ? ASSET_CATEGORIES : INVENTORY_CATEGORIES).map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </Select>
-            </div>
-
-            {isAsset ? (
-              <div>
-                <label className={labelClasses}>Condición</label>
-                <Select {...register('condition')}>
-                  {ASSET_CONDITIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-                </Select>
-              </div>
-            ) : (
-              <div>
-                <label className={labelClasses}>Estado</label>
-                <Select {...register('status')}>
-                  <option value="Disponible">Disponible</option>
-                  <option value="Agotado">Agotado</option>
-                  <option value="En Pedido">En Pedido</option>
-                </Select>
-              </div>
-            )}
-          </div>
-
-          {isAsset ? (
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              <div>
-                <label className={labelClasses}>Estado de uso</label>
-                <Select {...register('status')}>
-                  <option value="Disponible">En uso</option>
-                  <option value="Agotado">Fuera de servicio</option>
-                </Select>
-              </div>
-              <div>
-                <label className={labelClasses}>Fecha de adquisición (opcional)</label>
-                <input type="date" {...register('acquisitionDate')} className={inputClasses} />
-              </div>
-            </div>
-          ) : (
-            <div>
-              <label className={labelClasses}>Alerta de stock</label>
-              <input
-                type="number"
-                min="0"
-                step="any"
-                {...register('lowStockAlert', {
-                  required: 'El umbral de alerta de stock es obligatorio',
-                  min: { value: 0, message: 'No puede ser negativo' },
-                })}
-                placeholder="Ej. 5 (en la unidad de este insumo)"
-                className={inputClasses}
-              />
-              {errors.lowStockAlert && <span className="text-ac text-xs mt-1 block font-medium">{errors.lowStockAlert.message}</span>}
-              <p className="text-[11px] text-muted mt-1">Se avisa cuando la cantidad disponible caiga a este nivel o menos.</p>
-            </div>
-          )}
-
-          {/* Imagen */}
-          <div className="border-t border-line pt-4">
-            <label className={labelClasses}>Imagen (opcional)</label>
-            {insumoData?.image && !imageFile && (
-              <div className="mb-3 flex items-center gap-2 bg-surface p-2 rounded-none border border-line">
-                <img src={insumoData.image} alt="Actual" className="w-10 h-10 object-cover rounded-none shadow-inner" />
-                <span className="text-xs text-muted truncate">Conservar imagen actual</span>
-              </div>
-            )}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                const selected = e.target.files?.[0] || null;
-                if (selected) setRawImageFile(selected);
-                e.target.value = '';
-              }}
-              className="w-full text-sm text-muted file:mr-4 file:py-2 file:px-4 file:rounded-none file:border-0 file:text-xs file:font-semibold file:bg-ac file:text-white hover:file:bg-ac file:transition-colors file: cursor-pointer"
-            />
-            {imageFile && (
-              <div className="flex items-center gap-3 mt-2">
-                <img src={URL.createObjectURL(imageFile)} alt="Vista previa" className="w-12 h-12 rounded-none object-cover ring-2 ring-red-400" />
-                <button type="button" onClick={() => setRawImageFile(imageFile)} className="text-xs text-muted hover:text-ac">Ajustar</button>
-                <button type="button" onClick={() => setImageFile(null)} className="text-xs text-muted hover:text-ac">Quitar</button>
-              </div>
-            )}
-            {!insumoData?.image && !imageFile && (
-              <p className="text-[11px] text-muted mt-1">Si no seleccionas una imagen se usará un diseño por defecto</p>
-            )}
-          </div>
-
-          {/* Botones */}
-          <div className="flex gap-3 pt-4 border-t border-line">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-3 bg-line text-inkalt rounded-none hover:bg-linealt font-display font-semibold text-sm transition-all
-              "
-            >
+          <ModalFooter>
+            <button type="button" onClick={onClose} className={MODAL_BTN_SECONDARY}>
               Cancelar
             </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-3 bg-ac text-white rounded-none hover:bg-ac font-display font-semibold text-sm transition-all
-                active:
-              "
-            >
+            <button type="submit" className={MODAL_BTN_PRIMARY}>
+              <FAIcon icon="check" size="xs" />
               Guardar
             </button>
-          </div>
+          </ModalFooter>
         </form>
       </div>
 

@@ -216,16 +216,18 @@ function ExtrasContent() {
       }
       modals={
         <>
-          <AddExtraModal
-            isOpen={isModalOpen}
-            onClose={() => {
-              setIsModalOpen(false);
-              setEditingExtra(null);
-            }}
-            onAdd={handleSave}
-            onEditExisting={openEdit}
-            editingExtra={editingExtra}
-          />
+          {isModalOpen && (
+            <AddExtraModal
+              isOpen={isModalOpen}
+              onClose={() => {
+                setIsModalOpen(false);
+                setEditingExtra(null);
+              }}
+              onAdd={handleSave}
+              onEditExisting={openEdit}
+              editingExtra={editingExtra}
+            />
+          )}
 
           <ConfirmModal
             isOpen={confirmDelete.isOpen}

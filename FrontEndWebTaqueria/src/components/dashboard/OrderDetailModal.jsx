@@ -1,6 +1,7 @@
 // src/components/dashboard/OrderDetailModal.jsx
 import React from 'react';
 import FAIcon from '../commons/FAIcon';
+import { ModalShell, ModalHeader, ModalBody, ModalFooter, FormSection, MODAL_BTN_PRIMARY } from '../commons/FormModal';
 
 const STATUS_CONFIG = {
   delivered: {
@@ -63,20 +64,28 @@ const InfoRow = ({ label, value, icon, iconColor = 'text-muted' }) => (
       </span>
     )}
     <div className="min-w-0 flex-1">
-      <p className="kick text-[10px] text-muted tracking-wider mb-0.5">{label}</p>
+      <p className="text-[11px] font-semibold text-muted tracking-wide uppercase mb-0.5">{label}</p>
       <p className="text-[13.5px] font-medium text-ink break-words">{value || '—'}</p>
     </div>
   </div>
 );
 
+// Cada bloque del detalle es una tarjeta de sección igual a las de la ficha
+// del empleado; el ícono sale del título para no repetirlo en cada llamada.
+const SECTION_ICONS = {
+  'ESTADO DEL PEDIDO': 'clock',
+  'INFORMACIÓN DE CONTACTO': 'user',
+  'TIPO DE ENTREGA': 'truck',
+  'INFORMACIÓN ADICIONAL': 'circle-info',
+  'DETALLE DEL PEDIDO': 'list',
+  'PRODUCTOS': 'utensils',
+  'INFORMACIÓN DE PAGO': 'receipt',
+};
+
 const Section = ({ title, children }) => (
-  <div className="bg-surface rounded-none border border-acline/60 p-4 mb-3.5 shadow-xs">
-    <h4 className="kick text-[10.5px] text-ac font-bold tracking-wider mb-1.5 flex items-center gap-1.5">
-      <span className="w-1.5 h-1.5 rounded-full bg-ac shrink-0" />
-      {title}
-    </h4>
-    <div className="divide-y divide-line">{children}</div>
-  </div>
+  <FormSection icon={SECTION_ICONS[title] || 'list'} title={title}>
+    <div className="divide-y divide-line -mt-1.5">{children}</div>
+  </FormSection>
 );
 
 const OrderDetailModal = ({ isOpen, onClose, order }) => {
@@ -107,30 +116,16 @@ const OrderDetailModal = ({ isOpen, onClose, order }) => {
   const isCard = order.paymentMethod?.includes('card');
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-surfalt rounded-none border border-acline/80 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-        
-        {/* Encabezado rojo delgado y compacto */}
-        <div className="bg-ac px-4 sm:px-5 py-2.5 flex items-center justify-between sticky top-0 z-10 shadow-sm">
-          <div className="flex items-center gap-2">
-            <h3 className="text-white font-display font-bold text-base sm:text-lg leading-none">
-              Pedido #{orderShortId}
-            </h3>
-            <span className="text-white/80 text-xs font-medium">
-              · {isOnline ? 'Pedido en línea' : 'Pedido en local'}
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-white/80 hover:text-white w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/15 transition-colors"
-          >
-            <FAIcon icon="times" size="xs" />
-          </button>
-        </div>
+    <ModalShell maxWidth="max-w-lg">
+      <ModalHeader
+        icon="receipt"
+        title={`Pedido #${orderShortId}`}
+        badge={isOnline ? 'En línea' : 'En local'}
+        subtitle={isOnline ? 'Pedido en línea' : 'Pedido en local'}
+        onClose={onClose}
+      />
 
-        {/* Contenido en tarjetas con bordes rojo terracota */}
-        <div className="p-4 sm:p-5">
+      <ModalBody>
           
           {/* 1. Estado del pedido */}
           <Section title="ESTADO DEL PEDIDO">
@@ -219,7 +214,7 @@ const OrderDetailModal = ({ isOpen, onClose, order }) => {
               ))
             )}
             <div className="flex items-center justify-between pt-2.5 mt-1 border-t border-acline/70">
-              <span className="kick text-ac font-bold text-xs">TOTAL</span>
+              <span className="kick text-ac">TOTAL</span>
               <span className="num text-lg font-bold text-ac">
                 ${(Number(order.total) || 0).toFixed(2)}
               </span>
@@ -237,7 +232,7 @@ const OrderDetailModal = ({ isOpen, onClose, order }) => {
                 />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="kick text-[10px] text-muted tracking-wider mb-0.5">MÉTODO DE PAGO</p>
+                <p className="text-[11px] font-semibold text-muted tracking-wide uppercase mb-0.5">MÉTODO DE PAGO</p>
                 <p className="text-[13.5px] font-medium text-ink">
                   {PAYMENT_METHOD_LABELS[order.paymentMethod] || order.paymentMethod || 'Efectivo'}
                 </p>
@@ -251,7 +246,7 @@ const OrderDetailModal = ({ isOpen, onClose, order }) => {
                   <FAIcon icon={isPaid ? 'circle-check' : 'clock'} size="sm" />
                 </span>
                 <div>
-                  <p className="kick text-[10px] text-muted tracking-wider mb-0.5">ESTADO DEL PAGO</p>
+                  <p className="text-[11px] font-semibold text-muted tracking-wide uppercase mb-0.5">ESTADO DEL PAGO</p>
                   <p className={`text-[13.5px] font-semibold ${isPaid ? 'text-ok' : 'text-warn'}`}>
                     {paymentStatus.label}
                   </p>
@@ -263,9 +258,14 @@ const OrderDetailModal = ({ isOpen, onClose, order }) => {
             </div>
           </Section>
 
-        </div>
-      </div>
-    </div>
+      </ModalBody>
+
+      <ModalFooter>
+        <button type="button" onClick={onClose} className={MODAL_BTN_PRIMARY}>
+          Cerrar
+        </button>
+      </ModalFooter>
+    </ModalShell>
   );
 };
 

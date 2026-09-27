@@ -1,6 +1,7 @@
 // src/components/dashboard/TablesUseModal.jsx
-import React, { useState } from 'react';
+import { useState } from 'react';
 import FAIcon from '../commons/FAIcon';
+import FormModal, { FormSection, PillGroup, CountBadge, MODAL_BTN_SECONDARY } from '../commons/FormModal';
 import Select from '../commons/Select';
 import ConfirmModal from '../commons/ConfirmModal';
 
@@ -37,13 +38,13 @@ const TableCard = ({ table, onUpdate, addToast }) => {
   };
 
   return (
-    <div className="bg-surface rounded-none border border-acline/60 p-3.5 flex flex-col gap-2.5">
+    <div className="bg-surface rounded-lg border border-line p-3.5 flex flex-col gap-2.5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <FAIcon icon="chair" size="sm" className="text-ac" />
-          <span className="font-display font-bold text-[14px] text-ink">Mesa {table.number}</span>
+          <span className="font-display font-medium text-[14px] text-ink">Mesa <span className="num">{table.number}</span></span>
         </div>
-        <span className={`px-2 py-0.5 text-[10px] font-display font-bold uppercase tracking-wider border ${STATUS_STYLES[status] || 'bg-surfalt text-inkalt border-line'}`}>
+        <span className={`kick px-2 py-0.5 rounded-full border ${STATUS_STYLES[status] || 'bg-surfalt text-inkalt border-line'}`}>
           {STATUS_OPTIONS.find((s) => s.value === status)?.label || status}
         </span>
       </div>
@@ -74,87 +75,57 @@ const TablesUseModal = ({ isOpen, onClose, tables, onUpdate, onBulkUpdate, addTo
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/40 backdrop-blur-sm">
-        <div className="bg-surfalt rounded-none border border-acline/60 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
-
-          {/* Header delgado */}
-          <div className="bg-ac px-4 sm:px-5 py-2.5 flex items-center justify-between sticky top-0 z-10 shadow-sm">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <h3 className="text-white font-display font-bold text-base sm:text-lg leading-tight">Mesas</h3>
-              <span className="text-white/70 text-xs font-medium">· {tables.length} mesas</span>
-            </div>
-            <button type="button" onClick={onClose}
-              className="text-white/70 hover:text-white w-7 h-7 flex items-center justify-center hover:bg-white/10 transition-colors ml-2 shrink-0">
-              <FAIcon icon="times" />
-            </button>
-          </div>
-
-          <div className="p-4 sm:p-5">
-            {/* Acción masiva compacta */}
-            {onBulkUpdate && (
-              <div className="flex items-center gap-1.5 bg-surface border border-acline/60 p-1.5 mb-3.5 shadow-xs">
-                <Select variant="ghost" value={bulkStatus} onChange={(e) => setBulkStatus(e.target.value)}>
-                  {STATUS_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-                </Select>
-                <button
-                  type="button"
-                  onClick={() => setConfirmBulk(true)}
-                  disabled={tables.length === 0}
-                  className="px-3 py-1.5 text-xs font-display font-semibold text-inkalt bg-surfalt border border-line hover:border-acline hover:text-ac transition-colors disabled:opacity-50 shrink-0 whitespace-nowrap"
-                >
-                  Aplicar a todas
-                </button>
-              </div>
-            )}
-
-            {/* Sección: Lista de mesas */}
-            <div className="bg-surface rounded-none border border-acline/60 p-4 shadow-xs">
-              <h4 className="kick text-[10.5px] text-ac font-bold tracking-wider mb-3 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-ac shrink-0" />
-                ESTADO DE LAS MESAS
-              </h4>
-
-              {/* Filtros */}
-              <div className="flex gap-1.5 flex-wrap mb-4">
-                {['ocupada', 'all', 'libre', 'reservada', 'limpieza'].map((f) => {
-                  const count = f === 'all' ? tables.length : tables.filter((t) => t.status === f).length;
-                  return (
-                    <button
-                      key={f}
-                      type="button"
-                      onClick={() => setFilter(f)}
-                      className={`px-2.5 py-1 text-[11px] font-display font-semibold border transition-colors ${
-                        filter === f
-                          ? 'bg-ac text-white border-ac'
-                          : 'bg-surfalt text-inkalt border-line hover:border-acline'
-                      }`}
-                    >
-                      {f === 'all' ? 'Todas' : STATUS_OPTIONS.find((s) => s.value === f)?.label}
-                      {count > 0 && <span className="ml-1 opacity-70">({count})</span>}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {shown.length === 0 ? (
-                <p className="text-sm text-muted text-center py-6">No hay mesas para este filtro</p>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                  {shown.map((t) => <TableCard key={t._id} table={t} onUpdate={onUpdate} addToast={addToast} />)}
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="flex justify-end pt-3.5">
-              <button type="button" onClick={onClose}
-                className="px-4 py-2 text-sm font-display font-semibold text-inkalt hover:text-ink transition-colors">
-                Cerrar
+      <FormModal
+        icon="chair"
+        title="Mesas"
+        badge={`${tables.length} mesas`}
+        subtitle="Estado del salón en tiempo real"
+        onClose={onClose}
+        cancelLabel="Cerrar"
+        maxWidth="max-w-2xl"
+      >
+        {/* Acción masiva */}
+        {onBulkUpdate && (
+          <FormSection icon="layer-group" title="Cambiar todas las mesas">
+            <div className="flex items-center gap-2">
+              <Select value={bulkStatus} onChange={(e) => setBulkStatus(e.target.value)} className="flex-1">
+                {STATUS_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+              </Select>
+              <button
+                type="button"
+                onClick={() => setConfirmBulk(true)}
+                disabled={tables.length === 0}
+                className={`${MODAL_BTN_SECONDARY} shrink-0 whitespace-nowrap`}
+              >
+                Aplicar a todas
               </button>
             </div>
+          </FormSection>
+        )}
+
+        {/* Lista de mesas */}
+        <FormSection icon="chair" title="Estado de las mesas" badge={<CountBadge>{shown.length} mostradas</CountBadge>}>
+          <div className="mb-4">
+            <PillGroup
+              value={filter}
+              onChange={setFilter}
+              options={['ocupada', 'all', 'libre', 'reservada', 'limpieza'].map((f) => {
+                const count = f === 'all' ? tables.length : tables.filter((t) => t.status === f).length;
+                const label = f === 'all' ? 'Todas' : STATUS_OPTIONS.find((s) => s.value === f)?.label;
+                return { value: f, label: count > 0 ? `${label} (${count})` : label };
+              })}
+            />
           </div>
-        </div>
-      </div>
+
+          {shown.length === 0 ? (
+            <p className="text-sm text-muted text-center py-6">No hay mesas para este filtro</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              {shown.map((t) => <TableCard key={t._id} table={t} onUpdate={onUpdate} addToast={addToast} />)}
+            </div>
+          )}
+        </FormSection>
+      </FormModal>
 
       <ConfirmModal
         isOpen={confirmBulk}

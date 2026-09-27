@@ -16,7 +16,7 @@ const SUBCATEGORY_SUGGESTIONS = ['Gaseosa', 'Natural', 'Alcohólica', 'Lite', 'C
 
 const AddDrinkModal = ({ isOpen, onClose, onSave, onEditExisting, editData = null }) => {
   const { addToast } = useToast();
-  const { quickCreateInsumo } = useInventory();
+  const { quickCreateInsumo } = useInventory(false); // solo mutaciones: la lista no hace falta aquí
   const { checkName } = useDrinks();
 
   const {

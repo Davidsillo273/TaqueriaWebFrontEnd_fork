@@ -4,7 +4,16 @@
 // combos, conjuntos, promociones), con el mismo lenguaje que la ficha del
 // empleado: cabecera con ícono en cuadro rojo, secciones en tarjetas blancas
 // y un pie fijo con Cancelar / Guardar siempre a la vista.
-import React from 'react';
+//
+// La referencia es la ficha del empleado (EmployeeDetailModal): títulos en
+// Archivo (font-display), el título de cada sección en versalitas
+// monoespaciadas (.kick), los rótulos de campo en Inter semibold en
+// mayúsculas, las cifras en IBM Plex Mono (.num) y los botones en Archivo.
+//
+// Además de FormModal (el contenedor completo) se exportan sus piezas
+// (ModalShell, ModalHeader, ModalBody, ModalFooter y los estilos de botón)
+// para los modales que tienen su propia lógica de pie o de formulario y aun
+// así deben verse exactamente igual.
 import FAIcon from './FAIcon';
 
 export const FORM_INPUT =
@@ -36,7 +45,7 @@ export const FormSection = ({ icon, title, badge, children, className = '' }) =>
         <span className="w-7 h-7 rounded-lg bg-ac text-white flex items-center justify-center shadow-2xs shrink-0">
           <FAIcon icon={icon} size="xs" />
         </span>
-        <h4 className="text-xs font-display font-bold text-ink uppercase tracking-wider truncate">{title}</h4>
+        <h4 className="kick text-ink truncate">{title}</h4>
       </div>
       {badge}
     </div>
@@ -127,7 +136,7 @@ export const ImagePickerField = ({ imageFile, currentImage, onPick, onAdjust, on
             : 'PNG o JPG, máximo 5 MB. Sin imagen se usa un diseño por defecto'}
         </p>
       </div>
-      <span className="shrink-0 hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-ac text-white text-xs font-display font-semibold shadow-2xs">
+      <span className="shrink-0 hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-ac text-white text-xs font-medium shadow-2xs">
         <FAIcon icon="image" size="xs" />
         Examinar
       </span>
@@ -163,7 +172,7 @@ export const ModalAvatar = ({ image, name = '' }) => {
   return image ? (
     <img src={image} alt={name} className="w-10 h-10 rounded-lg object-cover border border-line shrink-0 shadow-2xs" />
   ) : (
-    <div className="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center font-display font-bold text-xs bg-ac text-white select-none shadow-2xs">
+    <div className="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center font-display font-medium text-xs bg-ac text-white select-none shadow-2xs">
       {initials}
     </div>
   );
@@ -175,11 +184,91 @@ export const ReadField = ({ label, value, mono = false, className = '' }) => (
     <p className={FORM_LABEL}>{label}</p>
     <div
       className={`mt-1 px-3 py-2 rounded-lg bg-white dark:bg-surface border border-line text-[13.5px] text-ink break-words min-h-[38px] ${
-        mono ? 'font-mono text-[12.5px]' : ''
+        mono ? 'num text-[12.5px]' : ''
       }`}
     >
       {value === undefined || value === null || value === '' ? <span className="text-muted">—</span> : value}
     </div>
+  </div>
+);
+
+// Botones del pie: secundario (Cancelar / Cerrar) y principal (Guardar).
+export const MODAL_BTN_SECONDARY =
+  'px-4 py-2 text-xs font-display font-medium text-inkalt hover:text-ac bg-surface border border-line hover:border-ac/40 rounded-lg transition-colors inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60';
+export const MODAL_BTN_PRIMARY =
+  'px-4 py-2 text-xs font-display font-medium text-white bg-ac hover:bg-ac/90 disabled:opacity-60 rounded-lg transition-all inline-flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-95';
+
+// Fondo oscurecido + tarjeta redondeada.
+export const ModalShell = ({ children, maxWidth = 'max-w-xl', zIndex = 'z-50' }) => (
+  <div className={`fixed inset-0 ${zIndex} flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150`}>
+    <div className={`bg-surface rounded-2xl border border-line w-full ${maxWidth} max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden shadow-2xl`}>
+      {children}
+    </div>
+  </div>
+);
+
+// Cabecera: ícono en cuadro rojo (o avatar), título, etiqueta y subtítulo.
+// `leading` va antes del ícono (ej. un botón de volver) y `extra` junto al
+// botón de cerrar.
+export const ModalHeader = ({
+  icon,
+  title,
+  badge,
+  badgeTone = 'ac',
+  subtitle,
+  onClose,
+  avatar,
+  leading,
+  extra,
+  tone = 'ac',
+}) => (
+  <div className="px-5 pt-5 pb-4 border-b border-line bg-surface flex items-center justify-between shrink-0">
+    <div className="flex items-center gap-3 min-w-0">
+      {leading}
+      {avatar || (icon && (
+        <div className={`w-10 h-10 rounded-lg shrink-0 flex items-center justify-center text-white shadow-2xs ${tone === 'warn' ? 'bg-warn' : 'bg-ac'}`}>
+          <FAIcon icon={icon} />
+        </div>
+      ))}
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <h2 className="text-base sm:text-lg font-display font-medium text-ink leading-tight truncate">{title}</h2>
+          {badge && (
+            <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border shrink-0 ${BADGE_TONES[badgeTone] || BADGE_TONES.ac}`}>
+              {badge}
+            </span>
+          )}
+        </div>
+        {subtitle && <p className="text-xs text-muted truncate mt-0.5">{subtitle}</p>}
+      </div>
+    </div>
+
+    <div className="flex items-center gap-1 shrink-0 ml-2">
+      {extra}
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-8 h-8 rounded-lg text-muted hover:text-ac hover:bg-ac/10 flex items-center justify-center transition-colors cursor-pointer"
+          title="Cerrar ventana"
+        >
+          <FAIcon icon="times" size="sm" />
+        </button>
+      )}
+    </div>
+  </div>
+);
+
+// Cuerpo con scroll propio: la cabecera y el pie quedan fijos.
+export const ModalBody = ({ children, className = '' }) => (
+  <div className={`p-4 sm:p-5 overflow-y-auto flex-1 min-h-0 space-y-4 bg-surfalt/30 ${className}`}>{children}</div>
+);
+
+// Pie: nota a la izquierda y acciones a la derecha.
+export const ModalFooter = ({ note, children }) => (
+  <div className="px-5 py-3.5 border-t border-line bg-surface flex items-center justify-between gap-3 shrink-0">
+    {note ? <span className="text-xs text-muted hidden sm:inline min-w-0 truncate">{note}</span> : <span />}
+    <div className="flex items-center gap-2 ml-auto shrink-0">{children}</div>
   </div>
 );
 
@@ -208,74 +297,38 @@ const FormModal = ({
   const Body = onSubmit ? 'form' : 'div';
 
   return (
-    <div className={`fixed inset-0 ${zIndex} flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150`}>
-      <div className={`bg-surface rounded-2xl border border-line w-full ${maxWidth} max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden shadow-2xl`}>
-        {/* Cabecera */}
-        <div className="px-5 pt-5 pb-4 border-b border-line bg-surface flex items-center justify-between">
-          <div className="flex items-center gap-3 min-w-0">
-            {avatar || (
-              <div className="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center bg-ac text-white shadow-2xs">
-                <FAIcon icon={icon} />
-              </div>
-            )}
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-display font-bold text-ink leading-tight truncate">{title}</h2>
-                {badge && (
-                  <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border shrink-0 ${BADGE_TONES[badgeTone] || BADGE_TONES.ac}`}>
-                    {badge}
-                  </span>
-                )}
-              </div>
-              {subtitle && <p className="text-xs text-muted truncate mt-0.5">{subtitle}</p>}
-            </div>
-          </div>
+    <ModalShell maxWidth={maxWidth} zIndex={zIndex}>
+      <ModalHeader
+        icon={icon}
+        title={title}
+        badge={badge}
+        badgeTone={badgeTone}
+        subtitle={subtitle}
+        onClose={onClose}
+        avatar={avatar}
+      />
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg text-muted hover:text-ac hover:bg-ac/10 flex items-center justify-center transition-colors shrink-0 ml-2 cursor-pointer"
-            title="Cerrar ventana"
-          >
-            <FAIcon icon="times" size="sm" />
+      <Body onSubmit={onSubmit} className="flex flex-col flex-1 min-h-0">
+        <ModalBody>{children}</ModalBody>
+
+        <ModalFooter note={footerNote}>
+          {footerExtra}
+          <button type="button" onClick={onClose} className={MODAL_BTN_SECONDARY}>
+            {cancelLabel}
           </button>
-        </div>
-
-        <Body onSubmit={onSubmit} className="flex flex-col flex-1 min-h-0">
-          {/* Cuerpo */}
-          <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4 bg-surfalt/30">{children}</div>
-
-          {/* Pie */}
-          <div className="px-5 py-3.5 border-t border-line bg-surface flex items-center justify-between gap-3">
-            {footerNote ? <span className="text-xs text-muted hidden sm:inline min-w-0 truncate">{footerNote}</span> : <span />}
-            <div className="flex items-center gap-2 ml-auto shrink-0">
-              {footerExtra}
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-xs sm:text-sm font-display font-semibold text-inkalt hover:text-ink bg-surface hover:bg-surfalt border border-line rounded-lg transition-colors cursor-pointer"
-              >
-                {cancelLabel}
-              </button>
-              {onSubmit && (
-                <button
-                  type="submit"
-                  disabled={submitting || submitDisabled}
-                  className="px-4 py-2 text-xs sm:text-sm font-display font-semibold text-white bg-ac hover:bg-ac/90 disabled:opacity-60 rounded-lg transition-all inline-flex items-center gap-2 cursor-pointer shadow-xs active:scale-95"
-                >
-                  <FAIcon
-                    icon={submitting ? 'spinner' : submitIcon}
-                    size="xs"
-                    className={submitting ? 'animate-spin' : ''}
-                  />
-                  <span>{submitLabel}</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </Body>
-      </div>
-    </div>
+          {onSubmit && (
+            <button type="submit" disabled={submitting || submitDisabled} className={MODAL_BTN_PRIMARY}>
+              <FAIcon
+                icon={submitting ? 'spinner' : submitIcon}
+                size="xs"
+                className={submitting ? 'animate-spin' : ''}
+              />
+              <span>{submitLabel}</span>
+            </button>
+          )}
+        </ModalFooter>
+      </Body>
+    </ModalShell>
   );
 };
 

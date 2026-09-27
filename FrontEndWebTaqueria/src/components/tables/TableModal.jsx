@@ -1,7 +1,7 @@
 // src/components/tables/TableModal.jsx
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import FAIcon from '../commons/FAIcon';
+import FormModal, { FormSection, FORM_INPUT, FORM_LABEL, FORM_ERROR } from '../commons/FormModal';
 import Select from '../commons/Select';
 import { useToast } from '../commons/ToastProvider';
 
@@ -39,31 +39,21 @@ export default function TableModal({ isOpen, onClose, onSave, currentTable }) {
 
   if (!isOpen) return null;
 
-  // Estilos clay para inputs
-  const inputClasses =
-    'w-full px-4 py-2.5 bg-surfalt border border-line rounded-none focus:outline-none focus:ring-2 focus:ring-acline focus:border-acline transition-all text-inkalt placeholder:text-muted text-sm';
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-surfalt rounded-none w-full max-w-md max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-line">
-        {/* Cabecera roja con relieve */}
-        <div className="flex items-center justify-between p-4 sm:p-5 bg-ac text-white">
-          <h3 className="text-base sm:text-lg font-display font-bold">
-            {currentTable ? 'Editar Mesa' : 'Añadir Nueva Mesa'}
-          </h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-white/80 hover:text-white p-1.5 rounded-none hover:bg-surface/10 transition-all"
-          >
-            <FAIcon icon="times" size="lg" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
-          <div>
-            <label className="block text-xs font-display font-semibold text-muted uppercase tracking-wider mb-1.5">
-              Número de la Mesa
-            </label>
+    <FormModal
+      icon="chair"
+      title={currentTable ? 'Editar mesa' : 'Nueva mesa'}
+      badge={currentTable ? 'Edición' : undefined}
+      subtitle={currentTable ? `Mesa ${currentTable.number}` : 'Agrega una mesa al salón'}
+      onClose={onClose}
+      onSubmit={handleSubmit(onSubmit)}
+      submitLabel={currentTable ? 'Guardar cambios' : 'Crear mesa'}
+      maxWidth="max-w-md"
+    >
+      <FormSection icon="list" title="Información de la mesa">
+        <div className="space-y-4">
+          <label className="block">
+            <span className={FORM_LABEL}>Número de la mesa</span>
             <input
               type="number"
               {...register('number', {
@@ -72,45 +62,24 @@ export default function TableModal({ isOpen, onClose, onSave, currentTable }) {
                 valueAsNumber: true,
               })}
               placeholder="Ej: 8"
-              className={inputClasses}
+              className={`${FORM_INPUT} num`}
             />
-            {errors.number && (
-              <span className="text-ac text-xs mt-1 block font-medium">{errors.number.message}</span>
-            )}
-          </div>
+            {errors.number && <span className={FORM_ERROR}>{errors.number.message}</span>}
+          </label>
 
-          <div>
-            <label className="block text-xs font-display font-semibold text-muted uppercase tracking-wider mb-1.5">
-              Estado
-            </label>
-            <Select {...register('status')}>
-              <option value="libre">Disponible</option>
-              <option value="ocupada">Ocupada</option>
-              <option value="reservada">Reservada</option>
-              <option value="limpieza">En Limpieza</option>
-            </Select>
-          </div>
-
-          <div className="flex gap-3 pt-4 border-t border-line">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-3 bg-line text-inkalt rounded-none hover:bg-linealt font-display font-semibold text-sm transition-all
-              "
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-3 bg-ac text-white rounded-none hover:bg-ac font-display font-semibold text-sm transition-all
-                active:
-              "
-            >
-              Guardar
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+          <label className="block">
+            <span className={FORM_LABEL}>Estado</span>
+            <div className="mt-1">
+              <Select {...register('status')}>
+                <option value="libre">Disponible</option>
+                <option value="ocupada">Ocupada</option>
+                <option value="reservada">Reservada</option>
+                <option value="limpieza">En Limpieza</option>
+              </Select>
+            </div>
+          </label>
+        </div>
+      </FormSection>
+    </FormModal>
   );
 }

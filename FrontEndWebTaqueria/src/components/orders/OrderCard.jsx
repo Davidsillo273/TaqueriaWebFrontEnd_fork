@@ -41,10 +41,10 @@ export default function OrderCard({ pedido, onAdvance, onCancelRequest, onDelete
       <div>
         {/* Cabecera: Código a la izquierda (#D7E1), Detalle a la derecha (LOCAL · MESA 2) */}
         <div className="flex items-center justify-between gap-3">
-          <span className="font-mono text-sm sm:text-base font-normal text-ink">
+          <span className="num text-sm sm:text-base text-ink">
             {codigo}
           </span>
-          <span className="font-mono text-xs font-normal text-muted tracking-[0.14em] uppercase">
+          <span className="kick font-normal text-muted">
             {headerDetail}
           </span>
         </div>
@@ -66,7 +66,7 @@ export default function OrderCard({ pedido, onAdvance, onCancelRequest, onDelete
 
       {/* Línea inferior: separador horizontal, precio ($11.25) y botón [Pasar a cocina] */}
       <div className="pt-4 border-t border-line flex items-center justify-between">
-        <span className="text-base sm:text-lg font-normal text-ink">
+        <span className="num text-base sm:text-lg text-ink">
           ${Number(pedido.total || 0).toFixed(2)}
         </span>
 

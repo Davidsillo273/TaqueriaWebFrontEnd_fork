@@ -26,7 +26,7 @@ export default function TableCard({
             <h3 className="font-display font-bold text-base text-ink leading-tight">
               Mesa {numStr}
             </h3>
-            <span className="kick text-[9.5px] text-muted tracking-wider">
+            <span className="kick text-muted">
               Área de comedor
             </span>
           </div>
@@ -56,11 +56,11 @@ export default function TableCard({
       {/* Selector de estado en tarjeta */}
       <div className="my-2.5">
         <div className="flex items-center justify-between gap-2 mb-1.5">
-          <span className={`kick inline-flex items-center gap-1.5 px-2 py-0.5 border text-[10px] font-semibold ${cfg.badge}`}>
+          <span className={`kick inline-flex items-center gap-1.5 px-2 py-0.5 border ${cfg.badge}`}>
             <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
             {cfg.label}
           </span>
-          <span className="kick text-[9px] text-muted">Cambiar:</span>
+          <span className="kick text-muted">Cambiar:</span>
         </div>
 
         <Select
