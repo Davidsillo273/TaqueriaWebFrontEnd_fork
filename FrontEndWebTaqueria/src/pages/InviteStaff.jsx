@@ -411,7 +411,8 @@ function InviteStaffContent() {
       setStep(3)
       addToast('Invitación enviada correctamente', 'success')
     } else {
-      addToast(error || 'Error al enviar la invitación', 'error')
+      // `error` del hook todavía no se actualizó en este render: se usa el del resultado.
+      addToast(result.error || 'Error al enviar la invitación', 'error')
     }
   }
 
