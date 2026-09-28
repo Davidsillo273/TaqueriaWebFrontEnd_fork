@@ -64,7 +64,7 @@ const Slot = ({ step, label, hint, file, onPick, onClear }) => {
 
 // Pantalla centrada para los estados de cargando, error y listo.
 const Message = ({ icon, tone, title, children }) => (
-  <div className="min-h-screen bg-bg flex items-center justify-center p-6">
+  <div className="fixed inset-0 overflow-y-auto bg-bg flex items-center justify-center p-6">
     <div className="bg-surface border border-line p-6 max-w-sm w-full text-center">
       {icon && (
         <div className={`w-14 h-14 mx-auto mb-4 flex items-center justify-center border ${tone}`}>
@@ -169,8 +169,11 @@ export default function CaptureDui() {
     );
   }
 
+  // El index.css global bloquea el scroll de html/body (lo necesita el panel),
+  // así que esta pantalla hace scroll por su cuenta: si no, en el teléfono el
+  // botón de enviar quedaba debajo de las fotos, fuera de la vista.
   return (
-    <div className="min-h-screen bg-bg px-4 py-6">
+    <div className="fixed inset-0 overflow-y-auto overscroll-contain bg-bg px-4 pt-6">
       <div className="max-w-md mx-auto">
         <p className="kick text-muted">Taquería El Corral · SYSCOR</p>
         <h1 className="font-display text-ink text-xl mt-1">Fotos del DUI</h1>
@@ -185,23 +188,28 @@ export default function CaptureDui() {
 
         {error && <div className="mb-4 px-4 py-3 border border-acline bg-acsoft text-sm text-ac">{error}</div>}
 
-        <button
-          type="button"
-          onClick={handleSend}
-          disabled={!front || sending}
-          className="w-full py-3.5 border border-ac bg-ac text-white font-display disabled:opacity-40 inline-flex items-center justify-center gap-2"
-        >
-          {sending ? (
-            <>
-              <span className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-              Enviando…
-            </>
-          ) : (
-            'Enviar fotos'
-          )}
-        </button>
+        {/* Pegado abajo: siempre a la vista, aunque las fotos llenen la pantalla. */}
+        <div className="sticky bottom-0 -mx-4 px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] bg-bg border-t border-line">
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={!front || sending}
+            className="w-full py-3.5 border border-ac bg-ac text-white font-display disabled:opacity-40 inline-flex items-center justify-center gap-2"
+          >
+            {sending ? (
+              <>
+                <span className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                Enviando…
+              </>
+            ) : front ? (
+              'Enviar fotos'
+            ) : (
+              'Toma la foto del frente para enviar'
+            )}
+          </button>
 
-        <p className="text-[11px] text-muted text-center mt-3">Este enlace es temporal y solo sirve para enviar estas fotos.</p>
+          <p className="text-[11px] text-muted text-center mt-2">Este enlace es temporal y solo sirve para enviar estas fotos.</p>
+        </div>
       </div>
     </div>
   );
