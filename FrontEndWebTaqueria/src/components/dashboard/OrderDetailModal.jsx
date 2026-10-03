@@ -115,6 +115,9 @@ const OrderDetailModal = ({ isOpen, onClose, order }) => {
     icon: isPaid ? 'circle-check' : 'clock',
   };
   const isCard = order.paymentMethod?.includes('card');
+  // Los pedidos que toma el mesero en la app quedan sin método hasta que se
+  // cobra la cuenta de la mesa: el método está "por definir".
+  const methodPending = !order.paymentMethod;
 
   return (
     <ModalShell maxWidth="max-w-lg">
@@ -234,14 +237,14 @@ const OrderDetailModal = ({ isOpen, onClose, order }) => {
             <div className="flex items-start gap-3 py-2.5">
               <span className="w-4 text-center mt-0.5 shrink-0 text-info">
                 <FAIcon
-                  icon={isCard ? 'credit-card' : order.paymentMethod === 'online' ? 'globe' : 'money-bill-wave'}
+                  icon={methodPending ? 'hourglass' : isCard ? 'credit-card' : order.paymentMethod === 'online' ? 'globe' : 'money-bill-wave'}
                   size="sm"
                 />
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-[11px] font-semibold text-muted tracking-wide uppercase mb-0.5">MÉTODO DE PAGO</p>
                 <p className="text-[13.5px] font-medium text-ink">
-                  {PAYMENT_METHOD_LABELS[order.paymentMethod] || order.paymentMethod || 'Efectivo'}
+                  {methodPending ? 'Por definir' : PAYMENT_METHOD_LABELS[order.paymentMethod] || order.paymentMethod}
                 </p>
               </div>
             </div>

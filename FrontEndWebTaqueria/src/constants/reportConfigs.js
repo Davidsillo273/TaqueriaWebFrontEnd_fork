@@ -113,6 +113,14 @@ export const tablesReportColumns = [
   { header: 'Última actualización', value: (t) => date(t.updatedAt) },
 ];
 
+// Pedidos del local sin método: se define al cobrar la cuenta de la mesa.
+const PAYMENT_METHOD_LABELS = {
+  cash: 'Efectivo',
+  card: 'Tarjeta',
+  card_on_delivery: 'Tarjeta contraentrega',
+  online: 'Pagado en línea',
+};
+
 const ORDER_STATUS_LABELS = {
   pending: 'Pendiente',
   preparing: 'Preparando',
@@ -152,7 +160,7 @@ export const invoicesReportColumns = [
   { header: 'Cliente', value: (i) => i.customerName || '', width: 110 },
   { header: 'Mesero', value: (i) => i.waiterName || '', width: 100 },
   { header: 'Productos', value: (i) => (i.items || []).map((x) => `${x.quantity}x ${x.name}`).join(', '), width: 160 },
-  { header: 'Método de pago', value: (i) => i.paymentMethod || '' },
+  { header: 'Método de pago', value: (i) => PAYMENT_METHOD_LABELS[i.paymentMethod] || 'Por definir' },
   { header: 'Total', value: (i) => money(i.total), align: 'right' },
 ];
 

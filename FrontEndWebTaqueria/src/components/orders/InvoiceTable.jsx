@@ -5,6 +5,8 @@ import { orderCode } from '../../utils/orderCode'
 const PAYMENT_LABELS = {
   card: 'Tarjeta',
   cash: 'Efectivo',
+  card_on_delivery: 'Tarjeta contraentrega',
+  online: 'Pagado en línea',
 }
 
 export default function InvoiceTable({ invoices, loading, onDeleteRequest }) {
@@ -69,7 +71,7 @@ export default function InvoiceTable({ invoices, loading, onDeleteRequest }) {
                 {(invoice.items || []).map((i) => `${i.quantity ? `${i.quantity}x ` : ''}${i.name}`).join(', ') || 'Sin detalle'}
               </td>
               <td className="py-3.5 px-4 text-muted">
-                {PAYMENT_LABELS[invoice.paymentMethod] || 'No especificado'}
+                {PAYMENT_LABELS[invoice.paymentMethod] || 'Por definir'}
               </td>
               <td className="py-3.5 px-4 num font-bold text-ink">
                 ${Number(invoice.total || 0).toFixed(2)}
