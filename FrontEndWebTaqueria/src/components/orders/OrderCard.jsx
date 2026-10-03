@@ -39,6 +39,10 @@ export default function OrderCard({ pedido, onAdvance, onCancelRequest, onDelete
   const action = getAction(pedido)
   const holdLeft = useHoldCountdown(pedido)
   const enEspera = pedido.status === 'pending' && holdLeft > 0
+  // 2º tiempo de una mesa: el mesero lo "marcha" desde su app cuando la mesa
+  // termina el 1º. Hasta entonces cocina no lo empieza (el backend lo impide).
+  const esperaMesero = pedido.status === 'pending' && !!pedido.waiting
+  const bloqueado = enEspera || esperaMesero
   const holdLabel = `${Math.floor(holdLeft / 60000)}:${String(Math.floor((holdLeft % 60000) / 1000)).padStart(2, '0')}`
 
   const customerName = pedido.customer?.personalInfo
@@ -48,8 +52,13 @@ export default function OrderCard({ pedido, onAdvance, onCancelRequest, onDelete
   // Detalle derecho: "LOCAL · MESA 2" o "EN LÍNEA · SOFÍA MENA"
   // Un pedido en línea para comer en el local lleva mesa cuando el cliente
   // escanea el QR al llegar (ver reservationController en el backend).
+  // Ronda 2 = lo que la mesa pidió después; tiempo = sale antes o después.
+  const etapa = [
+    pedido.round > 1 ? `RONDA ${pedido.round}` : null,
+    pedido.course === 1 ? '1ER TIEMPO' : pedido.course === 2 ? '2º TIEMPO' : null,
+  ].filter(Boolean).join(' · ')
   const headerDetail = pedido.orderType === 'local'
-    ? `LOCAL · MESA ${pedido.table?.number || (pedido.tableNumber ? pedido.tableNumber : '—')}`
+    ? `LOCAL · MESA ${pedido.table?.number || (pedido.tableNumber ? pedido.tableNumber : '—')}${etapa ? ` · ${etapa}` : ''}`
     : pedido.fulfillment === 'dine_in'
       ? `COMER AQUÍ · ${pedido.table?.number ? `MESA ${pedido.table.number}` : 'POR LLEGAR'} · ${customerName.toUpperCase()}`
       : `EN LÍNEA · ${customerName.toUpperCase()}`
@@ -65,7 +74,13 @@ export default function OrderCard({ pedido, onAdvance, onCancelRequest, onDelete
     : 'Sin productos'
 
   return (
-    <div className={`bg-surface border border-line rounded-none p-5 sm:p-6 flex flex-col justify-between transition-colors hover:border-linealt group w-full ${enEspera ? 'opacity-60' : ''}`}>
+    <div className={`bg-surface border border-line rounded-none p-5 sm:p-6 flex flex-col justify-between transition-colors hover:border-linealt group w-full ${bloqueado ? 'opacity-60' : ''}`}>
+      {esperaMesero && (
+        <div className="kick mb-3 inline-flex items-center gap-1.5 px-2.5 py-1 border border-info/40 text-info bg-surfalt w-fit" title="Segundo tiempo: se prepara cuando el mesero lo marche desde su app.">
+          <FAIcon icon="pause" size="xs" />
+          2º TIEMPO · ESPERA AL MESERO
+        </div>
+      )}
       {enEspera && (
         <div className="kick mb-3 inline-flex items-center gap-1.5 px-2.5 py-1 border border-warn/40 text-warn bg-warnsoft w-fit" title="El cliente está agregando productos desde la app. Sigue con el siguiente; este vuelve solo a la cola.">
           <FAIcon icon="pause" size="xs" />
@@ -123,11 +138,11 @@ export default function OrderCard({ pedido, onAdvance, onCancelRequest, onDelete
               <button
                 type="button"
                 onClick={() => onAdvance(pedido._id, pedido.status)}
-                disabled={enEspera}
-                title={enEspera ? 'El cliente está agregando productos a este pedido' : undefined}
+                disabled={bloqueado}
+                title={enEspera ? 'El cliente está agregando productos a este pedido' : esperaMesero ? 'Se prepara cuando el mesero lo marche' : undefined}
                 className="border border-ac text-ac hover:bg-ac hover:text-white px-5 py-2 text-xs sm:text-[13px] font-normal rounded-none transition-colors duration-150 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-ac"
               >
-                {enEspera ? 'En espera' : action.label}
+                {bloqueado ? 'En espera' : action.label}
               </button>
             </>
           )}
