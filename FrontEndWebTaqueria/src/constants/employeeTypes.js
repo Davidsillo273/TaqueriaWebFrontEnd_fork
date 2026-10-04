@@ -1,6 +1,6 @@
 // Puestos de trabajo de un empleado (personalInfo.type). Espejo exacto del
 // enum del backend (src/models/users/employeeModel.js) y de sus traducciones
-// (payrollController.js, notificationUtils.js): los mismos 7 valores, en el
+// (payrollController.js, notificationUtils.js): los mismos 4 valores, en el
 // mismo orden, para que un puesto nunca se traduzca distinto según la
 // pantalla que lo muestre — que fue justo el bug que causó el filtro
 // duplicado del Dashboard (algunos empleados con texto crudo sin traducir).
@@ -8,10 +8,7 @@ export const EMPLOYEE_TYPE_LABELS = {
   kitchen: 'Cocina',
   waiter: 'Mesero',
   cashier: 'Cajero',
-  manager: 'Gerente',
-  cleaner: 'Limpieza',
   delivery: 'Repartidor',
-  other: 'Otro',
 };
 
 // Mismo catálogo, en formato { value, label } para poblar selects.

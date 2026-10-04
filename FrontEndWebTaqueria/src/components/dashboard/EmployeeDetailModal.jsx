@@ -104,7 +104,7 @@ const EmployeeDetailModal = ({
         // Teléfonos viejos (con +503 o espacios) se muestran ya con el formato nuevo.
         phone: formatPhone(employee.personalInfo?.phone || ''),
         address: employee.personalInfo?.address || '',
-        type: employee.personalInfo?.type || 'other',
+        type: employee.personalInfo?.type || '',
         salary: employee.workInfo?.salary ?? '',
         workDays: employee.workInfo?.workDays || [],
         scheduleStart: employee.workInfo?.scheduleStart || '',

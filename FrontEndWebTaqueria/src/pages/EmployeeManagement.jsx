@@ -60,11 +60,10 @@ function EmployeeManagementContent() {
 
   const translateRole = (type) => {
     const t = String(type || '').toLowerCase();
-    if (t === 'manager') return 'Gerente';
     if (t === 'waiter') return 'Mesero';
     if (t === 'cashier') return 'Cajero';
     if (t === 'kitchen') return 'Cocina';
-    if (t === 'cleaner') return 'Limpieza';
+    if (t === 'delivery') return 'Repartidor';
     return 'Otro';
   };
 
@@ -241,11 +240,10 @@ function EmployeeManagementContent() {
               className="px-3 py-1.5 bg-surfalt/40 border border-line rounded-none focus:outline-none focus:border-ac text-xs text-ink cursor-pointer"
             >
               <option value="Todos">Todos los puestos</option>
-              <option value="GERENTE">Gerentes</option>
               <option value="MESERO">Meseros</option>
               <option value="CAJERO">Cajeros</option>
               <option value="COCINA">Cocina</option>
-              <option value="LIMPIEZA">Limpieza</option>
+              <option value="REPARTIDOR">Repartidores</option>
             </select>
           </div>
         </div>
