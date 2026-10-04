@@ -100,7 +100,7 @@ export default function useTables() {
   };
 
   // Pone el mismo estado a todas las mesas de una vez (ej. "abrir el local"
-  // dejando todo en libre, o mandar todas a limpieza al cerrar).
+  // dejando todo en libre, o ponerlas todas libres al cerrar).
   const bulkUpdateStatus = async (status) => {
     try {
       const res = await fetch(`${API_URL}/tables/status-all`, {

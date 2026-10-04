@@ -40,7 +40,6 @@ function TablesContent() {
   const totalMesas = tables.length;
   const mesasLibres = tables.filter((m) => m.status === 'libre').length;
   const mesasOcupadas = tables.filter((m) => m.status === 'ocupada').length;
-  const mesasLimpieza = tables.filter((m) => m.status === 'limpieza').length;
   const mesasReservadas = tables.filter((m) => m.status === 'reservada').length;
 
   const porcentajeOcupacion =
@@ -51,7 +50,6 @@ function TablesContent() {
     { id: 'all', label: 'Todas', count: totalMesas },
     { id: 'libre', label: 'Disponibles', count: mesasLibres },
     { id: 'ocupada', label: 'Ocupadas', count: mesasOcupadas },
-    { id: 'limpieza', label: 'En Limpieza', count: mesasLimpieza },
     { id: 'reservada', label: 'Reservadas', count: mesasReservadas },
   ];
 
@@ -168,7 +166,6 @@ function TablesContent() {
               >
                 <option value="libre">A Disponible</option>
                 <option value="ocupada">A Ocupada</option>
-                <option value="limpieza">A En Limpieza</option>
                 <option value="reservada">A Reservada</option>
               </Select>
               <button
@@ -260,7 +257,7 @@ function TablesContent() {
 
             <p className="text-xs text-muted mt-2">
               {porcentajeOcupacion >= 85
-                ? 'Capacidad alta: considera agilizar la rotación o preparar mesas en limpieza.'
+                ? 'Capacidad alta: considera agilizar la rotación de mesas.'
                 : 'Disponibilidad fluida en sala para comensales.'}
             </p>
           </div>
@@ -283,12 +280,12 @@ function TablesContent() {
           </div>
 
           <div className="border-t border-line pt-2.5 min-w-[130px] self-start">
-            <p className="kick text-muted mb-1.5">LIMPIEZA Y RESERVAS</p>
+            <p className="kick text-muted mb-1.5">RESERVAS</p>
             <p className="num text-2xl sm:text-3xl font-light text-ink">
-              {loading ? '—' : mesasLimpieza + mesasReservadas}
+              {loading ? '—' : mesasReservadas}
             </p>
             <p className="text-[11.5px] text-muted mt-1">
-              {mesasLimpieza} en limpieza · {mesasReservadas} reservadas
+              Apartadas para clientes
             </p>
           </div>
         </div>
@@ -417,10 +414,6 @@ function TablesContent() {
             <div className="flex items-center gap-1.5 text-inkalt">
               <span className="w-2 h-2 rounded-full bg-warn" />
               <span>Reservada</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-inkalt">
-              <span className="w-2 h-2 rounded-full bg-muted" />
-              <span>En Limpieza</span>
             </div>
           </div>
         </div>

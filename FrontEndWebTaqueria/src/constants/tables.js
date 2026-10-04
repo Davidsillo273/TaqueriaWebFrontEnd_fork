@@ -3,7 +3,6 @@ export const STATUS_LABELS = {
   libre: 'Disponible',
   ocupada: 'Ocupada',
   reservada: 'Reservada',
-  limpieza: 'En Limpieza',
 };
 
 export const STATUS_CONFIG = {
@@ -21,18 +20,9 @@ export const STATUS_CONFIG = {
     dot: 'bg-ac',
     badge: 'text-ac bg-acsoft border-acline',
     border: 'hover:border-ac',
-    nextAction: 'limpieza',
-    actionText: 'Pasar a Limpieza',
-    actionStyle: 'border-acline text-ac bg-acsoft/30 hover:bg-ac hover:text-white',
-  },
-  limpieza: {
-    label: 'En Limpieza',
-    dot: 'bg-muted',
-    badge: 'text-muted bg-surfalt border-line',
-    border: 'hover:border-muted',
     nextAction: 'libre',
-    actionText: 'Habilitar Mesa',
-    actionStyle: 'border-line text-inkalt hover:border-ok hover:text-ok hover:bg-oksoft/20',
+    actionText: 'Liberar Mesa',
+    actionStyle: 'border-acline text-ac bg-acsoft/30 hover:bg-ac hover:text-white',
   },
   reservada: {
     label: 'Reservada',

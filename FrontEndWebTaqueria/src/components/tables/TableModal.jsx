@@ -115,7 +115,6 @@ export default function TableModal({ isOpen, onClose, onSave, currentTable }) {
                 <option value="libre">Disponible</option>
                 <option value="ocupada">Ocupada</option>
                 <option value="reservada">Reservada</option>
-                <option value="limpieza">En Limpieza</option>
               </Select>
             </div>
           </label>

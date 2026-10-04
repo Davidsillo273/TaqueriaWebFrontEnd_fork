@@ -9,14 +9,12 @@ const STATUS_OPTIONS = [
   { value: 'libre', label: 'Libre' },
   { value: 'ocupada', label: 'Ocupada' },
   { value: 'reservada', label: 'Reservada' },
-  { value: 'limpieza', label: 'En limpieza' },
 ];
 
 const STATUS_STYLES = {
   libre: 'bg-oksoft text-ok border-ok',
   ocupada: 'bg-acsoft text-ac border-acline',
   reservada: 'bg-infosoft text-info border-info',
-  limpieza: 'bg-warnsoft text-warn border-warn',
 };
 
 const TableCard = ({ table, onUpdate, addToast }) => {
@@ -109,7 +107,7 @@ const TablesUseModal = ({ isOpen, onClose, tables, onUpdate, onBulkUpdate, addTo
             <PillGroup
               value={filter}
               onChange={setFilter}
-              options={['ocupada', 'all', 'libre', 'reservada', 'limpieza'].map((f) => {
+              options={['ocupada', 'all', 'libre', 'reservada'].map((f) => {
                 const count = f === 'all' ? tables.length : tables.filter((t) => t.status === f).length;
                 const label = f === 'all' ? 'Todas' : STATUS_OPTIONS.find((s) => s.value === f)?.label;
                 return { value: f, label: count > 0 ? `${label} (${count})` : label };
