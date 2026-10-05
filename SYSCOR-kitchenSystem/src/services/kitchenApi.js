@@ -7,7 +7,18 @@
 import axios from 'axios';
 import { readDeviceToken, clearDeviceToken } from '../utils/deviceStorage';
 
-const BASE_URL = import.meta.env.VITE_API_URL || '/api';
+// La URL de la API siempre termina en /api. Si VITE_API_URL se configuró
+// solo con el dominio del backend ("https://x.onrender.com"), se agrega: sin
+// eso las peticiones irían a /kitchen/... en vez de /api/kitchen/..., el
+// backend las rechaza con 403 y la pantalla vuelve al lobby en cada intento.
+// (El socket no tenía el problema porque usa la raíz del backend.)
+const normalizeApiUrl = (raw) => {
+  const url = String(raw || '').trim().replace(/\/+$/, '');
+  if (!url) return '/api';
+  return /\/api$/i.test(url) ? url : `${url}/api`;
+};
+
+const BASE_URL = normalizeApiUrl(import.meta.env.VITE_API_URL);
 
 const kitchenApi = axios.create({
   baseURL: BASE_URL,
