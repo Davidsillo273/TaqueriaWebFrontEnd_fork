@@ -1,0 +1,118 @@
+/* ============================================================
+   SYSCOR · pantalla de cocina (KDS)
+   ------------------------------------------------------------
+   Mismo sistema de diseño que el panel de administración: los tokens de
+   color, la tipografía y los estilos base vienen del paquete compartido.
+   Aquí solo vive lo propio de cocina: el color de cada estación y las
+   alertas de tiempo de los tickets.
+   ============================================================ */
+@import "tailwindcss";
+@import "@syscor/web-shared/src/styles/tokens.css";
+
+/* Tailwind solo busca clases dentro de este proyecto: sin esta línea, las
+   clases de los componentes compartidos (FAIcon, Logo, modales...) no se
+   generarían. */
+@source "../../packages/web-shared/src";
+
+/* Color por estación de cocina (ver constants/kitchenCategories.js). Se
+   eligieron lejos del amarillo y del rojo a propósito: esos dos colores son
+   exclusivos de las alertas de tiempo, para que nadie confunda "esta comanda
+   es de postres" con "esta comanda va tarde". */
+:root {
+  --cat-tacos: #9a4a2a;
+  --cat-antojitos: #2e7d74;
+  --cat-postres: #8e4a8c;
+  --cat-bebidas: #2f5f9e;
+  --cat-extras: #5f6b2e;
+  --cat-mixto: #4a4e63;
+
+  /* El acento del sistema es morado en modo oscuro; una comanda atrasada
+     tiene que verse roja en ambos temas, así que cocina usa su propio rojo. */
+  --kds-late: #b42318;
+  --kds-latesoft: rgba(180, 35, 24, 0.08);
+}
+
+html[data-theme="dark"] {
+  --cat-tacos: #d38b66;
+  --cat-antojitos: #6cc0b5;
+  --cat-postres: #cf8fcb;
+  --cat-bebidas: #82a8e2;
+  --cat-extras: #aebd6d;
+  --cat-mixto: #a6abc6;
+
+  --kds-late: #f0705f;
+  --kds-latesoft: rgba(240, 112, 95, 0.12);
+}
+
+/* Cada ticket es una isla de layout y pintado: cuando su cronómetro cambia
+   de segundo, el navegador no recalcula nada fuera de él. Con 30 comandas en
+   pantalla, esto evita que un tic de reloj repinte toda la cuadrícula. */
+.kds-ticket {
+  contain: layout paint style;
+}
+
+/* Ticket que superó el tiempo máximo: el parpadeo vive en un ::after y solo
+   anima opacity, que el navegador resuelve en el compositor (sin repintar
+   el ticket ni su contenido en cada cuadro). */
+.ticket-late {
+  position: relative;
+}
+.ticket-late::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* Mismas esquinas redondeadas que el ticket */
+  border-radius: inherit;
+  border: 2px solid var(--kds-late);
+  animation: ticketBlink 1.6s ease-in-out infinite;
+  /* Lo fija OrderTicket al volverse rojo, para que todos parpadeen juntos */
+  animation-delay: var(--blink-delay, 0ms);
+  will-change: opacity;
+}
+
+/* Entrada del tablero al salir del lobby */
+@keyframes kdsEnter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.kds-enter {
+  animation: kdsEnter 0.35s ease-out;
+}
+@keyframes ticketBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.15; }
+}
+
+/* Lobby de espera: tres puntos que "respiran" mientras llega la señal */
+@keyframes lobbyDot {
+  0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1); }
+}
+.lobby-dot {
+  animation: lobbyDot 1.4s ease-in-out infinite;
+}
+
+/* Chef Panchita escuchando: anillo que se expande alrededor del micrófono */
+@keyframes micPulse {
+  0% { opacity: 0.55; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.7); }
+}
+.mic-pulse::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: var(--color-ac);
+  animation: micPulse 1.4s ease-out infinite;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticket-late::after,
+  .kds-enter,
+  .lobby-dot,
+  .mic-pulse::before {
+    animation: none;
+  }
+}

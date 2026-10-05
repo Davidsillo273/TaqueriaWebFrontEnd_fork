@@ -1,0 +1,12 @@
+# Dependencias del workspace: npm las instala una sola vez aquí, en la raíz,
+# para el panel, la pantalla de cocina y el paquete compartido.
+node_modules
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema / editor
+.DS_Store
+.idea
+.claude/

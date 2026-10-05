@@ -1,0 +1,16 @@
+{
+  "name": "syscor-web-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "SYSCOR-AdminSystem",
+    "SYSCOR-kitchenSystem"
+  ],
+  "scripts": {
+    "admin": "npm run dev --workspace @syscor/web-admin",
+    "kitchen": "npm run dev --workspace @syscor/web-kitchen",
+    "build": "npm run build --workspace @syscor/web-admin --workspace @syscor/web-kitchen",
+    "lint": "npm run lint --workspace @syscor/web-admin --workspace @syscor/web-kitchen"
+  }
+}

@@ -1,0 +1,38 @@
+/* ============================================================
+   SYSCOR · panel de administración
+   ------------------------------------------------------------
+   Los tokens de color, la tipografía y los estilos base viven en el
+   paquete compartido (@syscor/web-shared), porque la pantalla de cocina
+   usa exactamente el mismo sistema de diseño. Aquí solo queda lo que es
+   propio del panel.
+   ============================================================ */
+@import "tailwindcss";
+@import "@syscor/web-shared/src/styles/tokens.css";
+
+/* Tailwind solo busca clases dentro de este proyecto: sin esta línea, las
+   clases que usan los componentes compartidos (FAIcon, Logo, modales...)
+   no se generarían. */
+@source "../../packages/web-shared/src";
+
+/* Fila de tabla/listado */
+.row:hover {
+  background-color: var(--color-surfalt);
+}
+
+.activity-grid {
+  display: grid;
+  grid-template-columns: 76px 90px minmax(160px, 1fr) 96px 132px 64px 36px;
+}
+
+/* Enlace de la barra superior: el destino activo se marca con la línea roja */
+.navlink {
+  font-size: 13px;
+  color: var(--color-inkalt);
+  padding: 6px 0;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.navlink:hover {
+  color: var(--color-ink);
+  border-bottom-color: var(--color-acline);
+}
