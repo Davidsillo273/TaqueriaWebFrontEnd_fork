@@ -7,6 +7,7 @@ Workspace de npm con los frontends web de SYSCOR para Taquería El Corral. Los t
 | `SYSCOR-AdminSystem/` | `@syscor/web-admin` | Panel de administración (antes `FrontEndWebTaqueria`) | 5173 |
 | `SYSCOR-kitchenSystem/` | `@syscor/web-kitchen` | Sistema de cocina (KDS) con Chef Panchita por voz | 5174 |
 | `SYSCOR-cashierSystem/` | `@syscor/web-cashier` | Sistema de caja (POS): cobros, comprobantes y cortes | 5175 |
+| `SYSCOR-tableSystem/` | `@syscor/web-table` | Página de la mesa (QR): el cliente pide la cuenta o llama a su mesero | 5176 |
 | `packages/web-shared/` | `@syscor/web-shared` | Tokens de diseño, assets de marca, componentes, contextos y config de Vite compartidos | — |
 
 Es el mismo patrón que la app móvil (SYSCOR-APP con `@syscor/shared`): lo compartido se importa por su ruta dentro del paquete, por ejemplo `@syscor/web-shared/src/components/FAIcon`.
@@ -20,6 +21,7 @@ npm install       # instala todo el workspace (un solo node_modules y un solo pa
 npm run admin     # panel de administración
 npm run kitchen   # pantalla de cocina
 npm run cashier   # caja (POS)
+npm run table     # página de la mesa (abrir /mesa/<qrToken>)
 npm run build     # compila los tres
 npm run lint      # lint de los tres
 ```
@@ -33,3 +35,5 @@ Solo lo que usa más de un proyecto: `styles/tokens.css` (colores, tipografía, 
 ## Despliegue
 
 Cada proyecto es un proyecto de Vercel aparte, con **Root Directory** en su carpeta (`SYSCOR-AdminSystem`, `SYSCOR-kitchenSystem` o `SYSCOR-cashierSystem`). En el panel, `VITE_KITCHEN_URL` y `VITE_CASHIER_URL` habilitan los botones para abrir la cocina y la caja; el backend debe incluir el dominio de la caja en `FRONTEND_URL` (CORS). Vercel detecta el workspace e instala desde la raíz.
+
+**Página de la mesa** (`SYSCOR-tableSystem`): en Vercel, `VITE_API_URL` (el backend con `/api`) y `VITE_APP_DOWNLOAD_URL` (enlace del APK de la app de clientes; sin él no sale la tarjeta "Descarga nuestra app"). Su dominio va en `FRONTEND_URL` del backend (CORS) y en `VITE_TABLE_URL` del panel, que lo usa para generar los QR de las mesas (`<dominio>/mesa/<qrToken>`). Si el dominio cambia, hay que reimprimir los QR.

@@ -102,7 +102,8 @@ function TablesContent() {
     }
   };
 
-  // Hoja para imprimir los QR que el cliente escanea al llegar con su reserva.
+  // Hoja para imprimir los QR de las mesas: abren la página de la mesa (pedir
+  // la cuenta, llamar al mesero) y sirven para registrar la llegada en la app.
   const handlePrintQrs = async (list) => {
     const result = await printTableQrs(list);
     if (!result.success) addToast(result.message, 'error');

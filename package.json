@@ -6,13 +6,15 @@
     "packages/*",
     "SYSCOR-AdminSystem",
     "SYSCOR-kitchenSystem",
-    "SYSCOR-cashierSystem"
+    "SYSCOR-cashierSystem",
+    "SYSCOR-tableSystem"
   ],
   "scripts": {
     "admin": "npm run dev --workspace @syscor/web-admin",
     "kitchen": "npm run dev --workspace @syscor/web-kitchen",
-    "build": "npm run build --workspace @syscor/web-admin --workspace @syscor/web-kitchen --workspace @syscor/web-cashier",
-    "lint": "npm run lint --workspace @syscor/web-admin --workspace @syscor/web-kitchen --workspace @syscor/web-cashier",
-    "cashier": "npm run dev --workspace @syscor/web-cashier"
+    "build": "npm run build --workspace @syscor/web-admin --workspace @syscor/web-kitchen --workspace @syscor/web-cashier --workspace @syscor/web-table",
+    "lint": "npm run lint --workspace @syscor/web-admin --workspace @syscor/web-kitchen --workspace @syscor/web-cashier --workspace @syscor/web-table",
+    "cashier": "npm run dev --workspace @syscor/web-cashier",
+    "table": "npm run dev --workspace @syscor/web-table"
   }
 }

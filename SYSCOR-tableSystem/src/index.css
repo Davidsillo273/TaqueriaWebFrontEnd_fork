@@ -1,0 +1,35 @@
+/* ============================================================
+   SYSCOR · página de la mesa (QR)
+   ------------------------------------------------------------
+   Mismo sistema de diseño que el panel, cocina y caja. Aquí solo vive lo
+   propio de una página para teléfono que sí se desplaza.
+   ============================================================ */
+@import "tailwindcss";
+@import "@syscor/web-shared/src/styles/tokens.css";
+
+@source "../../packages/web-shared/src";
+
+/* Los tokens fijan html/body sin scroll (pantallas de trabajo). En el
+   teléfono la página sí se desplaza. */
+html, body {
+  height: auto;
+  min-height: 100%;
+  overflow: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Hoja de opciones */
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+@keyframes sheetFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.sheet-up { animation: sheetUp 0.22s ease-out; }
+.sheet-fade { animation: sheetFade 0.2s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-up, .sheet-fade { animation: none; }
+}
