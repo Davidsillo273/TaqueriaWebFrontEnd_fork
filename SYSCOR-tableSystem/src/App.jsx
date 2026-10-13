@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ThemeProvider, useTheme } from '@syscor/web-shared/src/context/themeContext';
-import Logo from '@syscor/web-shared/src/components/Logo';
 import useTablePage, { tokenFromPath } from './hooks/useTablePage';
 import RequestStatus from './components/RequestStatus';
 import ChoiceSheet from './components/ChoiceSheet';
@@ -198,11 +197,14 @@ function TablePage() {
 }
 
 function Shell({ children }) {
+  const { theme } = useTheme();
+  const logoSrc = theme === 'dark' ? '/logos/nav-dark-plain.png' : '/logos/nav-light-plain.png';
+
   return (
     <div className="min-h-dvh bg-bg">
       <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-5 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
         <div className="flex items-center justify-between">
-          <Logo variant="nav" height={34} />
+          <img src={logoSrc} alt="SYSCOR" draggable={false} className="h-[34px] w-auto object-contain select-none" />
           <span className="kick text-muted">Servicio a la mesa</span>
         </div>
         {children}

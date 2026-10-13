@@ -74,6 +74,7 @@ export function SocketProvider({ children }) {
       // WebSocket primero; si la red de la feria bloquea el upgrade, cae a
       // polling largo y el tiempo real sigue funcionando igual.
       transports: ['websocket', 'polling'],
+      tryAllTransports: true,
       // Render duerme los servicios del plan gratuito: al despertar, los
       // primeros intentos fallan. Reintentar con espera creciente evita
       // machacar el servidor mientras arranca.
