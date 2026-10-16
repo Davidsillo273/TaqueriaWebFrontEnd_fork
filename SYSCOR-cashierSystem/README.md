@@ -11,6 +11,7 @@ Punto de venta de Taquería El Corral. Corre en `http://localhost:5175` (`npm ru
    - **Por cobrar:** cuentas de mesa (primero las que el mesero mandó a caja) y pedidos de la app que se pagan al recoger.
    - **Mostrador:** venta directa desde el menú; se cobra al momento y entra a cocina.
    - **Por entregar:** pedidos ya pagados que el cliente recoge en caja cuando cocina los marca listos.
+   - **Llamar mesero:** avisa a un mesero activo al azar; si no responde en 30 segundos, el sistema prueba con otro.
    - Pago en efectivo (con vuelto) o tarjeta (POS simulado), propina opcional en mesas.
    - Documento: **Factura de Consumidor Final** o **Comprobante de Crédito Fiscal** (con NIT, NRC, giro y dirección).
 3. **Comprobante.** Se imprime en formato de impresora térmica de 80 mm, con número de control, código de generación,

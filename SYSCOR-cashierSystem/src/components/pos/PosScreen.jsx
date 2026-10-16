@@ -53,6 +53,7 @@ export default function PosScreen({ session, issuer, onSessionUpdated, onShiftCl
   const [movementOpen, setMovementOpen] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
   const [shiftMenuOpen, setShiftMenuOpen] = useState(false);
+  const [callingWaiter, setCallingWaiter] = useState(false);
 
   const menuState = useCashierMenu();
   // La canasta también vive en una ref: Panchita agrega varios productos
@@ -98,6 +99,18 @@ export default function PosScreen({ session, issuer, onSessionUpdated, onShiftCl
       return false;
     }
   }, [addToast, pending]);
+
+  const handleCallWaiter = useCallback(async () => {
+    setCallingWaiter(true);
+    try {
+      const { data } = await cashierApi.post('/cashier/call-waiter');
+      addToast(data.message, 'success');
+    } catch (err) {
+      addToast(apiMessage(err, 'No se pudo llamar a un mesero.'), 'error');
+    } finally {
+      setCallingWaiter(false);
+    }
+  }, [addToast]);
 
   // --- Chef Panchita ---
   const menuProducts = useMemo(() => MENU_SECTIONS.flatMap((section) => menuState.menu[section.id] || []), [menuState.menu]);
@@ -242,6 +255,15 @@ export default function PosScreen({ session, issuer, onSessionUpdated, onShiftCl
               {cart.lines.reduce((sum, line) => sum + line.quantity, 0)}
             </span>
           )}
+        </button>
+        <button
+          type="button"
+          onClick={handleCallWaiter}
+          disabled={callingWaiter}
+          className="order-4 lg:order-3 w-full lg:w-auto justify-center inline-flex items-center gap-2.5 px-4 py-2.5 rounded-lg border border-line bg-surface text-ink hover:border-ac hover:text-ac disabled:opacity-60 disabled:cursor-wait font-display font-semibold text-[14px] transition-colors cursor-pointer active:scale-[0.98]"
+        >
+          <FAIcon icon={callingWaiter ? 'spinner' : 'bell'} size="sm" className={callingWaiter ? 'animate-spin' : ''} />
+          {callingWaiter ? 'Llamando…' : 'Llamar mesero'}
         </button>
       </div>
 
